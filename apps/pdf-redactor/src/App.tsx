@@ -95,14 +95,15 @@ export default function App() {
   }
 
   async function handleExport(format: ExportFormat) {
-    if (!pdfDoc) return;
+    if (!pdfDoc || !file) return;
     setExportProgress({ done: 0, total: pdfDoc.numPages });
     try {
-      const bytes = await buildRedactedPdf(pdfDoc, redactions, {
+      const originalBytes = await file.arrayBuffer();
+      const bytes = await buildRedactedPdf(pdfDoc, originalBytes, redactions, {
         format,
         onProgress: (done, total) => setExportProgress({ done, total }),
       });
-      const baseName = file?.name.replace(/\.pdf$/i, '') ?? 'document';
+      const baseName = file.name.replace(/\.pdf$/i, '');
       triggerDownload(bytes, `${baseName}-redacted.pdf`);
     } finally {
       setExportProgress(null);
