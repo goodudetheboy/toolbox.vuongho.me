@@ -2,8 +2,8 @@ import { PDFDocument as PdfLibDocument } from 'pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageRedactions } from '../types';
 import { renderPageToCanvas } from './pdfRender';
+import { resolvePageScale } from './renderScale';
 
-const EXPORT_SCALE = 150 / 72;
 const JPEG_QUALITY = 0.92;
 const MAX_WORKERS = 8;
 const MAIN_THREAD_CONCURRENCY = 4;
@@ -130,7 +130,6 @@ async function renderPagesInWorkerPool(
           worker.postMessage({
             type: 'renderPage',
             pageNumber,
-            scale: EXPORT_SCALE,
             rects: redactions[pageNumber] ?? [],
             format,
             jpegQuality: JPEG_QUALITY,
@@ -188,7 +187,9 @@ async function renderPagesOnMainThread(
   async function worker() {
     while (cursor < pageNumbers.length) {
       const pageNumber = pageNumbers[cursor++];
-      const canvas = await renderPageToCanvas(pdfDoc, pageNumber, EXPORT_SCALE);
+      const page = await pdfDoc.getPage(pageNumber);
+      const scale = await resolvePageScale(page);
+      const canvas = await renderPageToCanvas(pdfDoc, pageNumber, scale);
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Could not get a 2D canvas context');
 

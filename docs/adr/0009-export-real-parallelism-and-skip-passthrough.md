@@ -58,3 +58,36 @@ go through the render/paint/encode pipeline at all.
   mixing DOM and WebWorker lib types in one shared tsconfig causes global
   scope conflicts (`self`) without a proper multi-project TS setup;
   correctness here is verified by running it, not by the type checker.
+
+## Addendum: production-only crash, fixed
+
+This shipped with a real bug that only surfaced on the deployed production
+build, not the Vite dev server used to verify it here originally — see
+`docs/progress/` for the incident. Root causes, both inside pdf.js itself
+when run inside a Worker (not our worker's own logic):
+
+1. pdf.js's normal nested-worker spawn path unconditionally reads
+   `window.location`, which doesn't exist inside a Worker. This throws
+   every time, and pdf.js catches it and falls back to "fake worker" mode
+   (parsing runs directly in the calling thread) — which is actually the
+   architecture we want here, no further worker needed. But some other
+   internal pdf.js code path still reads `GlobalWorkerOptions.workerSrc`
+   directly and throws `No "GlobalWorkerOptions.workerSrc" specified` if
+   it's unset, even though the nested worker it would point to is never
+   actually used. Fix: set it anyway.
+2. The fake-worker path's default `CanvasFactory` calls
+   `document.createElement('canvas')` — `document` doesn't exist in a
+   Worker either. Fixed by passing a custom `CanvasFactory` to
+   `getDocument()` that creates `OffscreenCanvas` instances instead.
+   `disableFontFace: true` sidesteps an analogous DOM assumption for
+   custom embedded fonts (browser `FontFace` registration is main-thread
+   only); pdf.js falls back to its own internal glyph rendering.
+
+Why dev mode didn't catch it: unclear exactly which code path differs, but
+Vite's dev server serves pdf.js as live unbundled ESM while the production
+build is a single minified chunk, and something in that difference changed
+which branch got hit. The real lesson: **test the actual production
+build** (`npm run build && npm run combine && npx firebase-tools serve`,
+not just `npm run dev`) for anything Worker/module-loading-sensitive before
+pushing — dev-mode success does not guarantee production-mode success
+here, and this repo's normal workflow hadn't been doing that.

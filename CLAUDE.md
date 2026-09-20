@@ -57,3 +57,21 @@ npm run combine            # merge every app's dist/ into root dist/
 GCP project: `vuonghome` (shared across all `*.vuongho.me` subdomains, see
 `docs/adr/0002-shared-gcp-project-vuonghome.md`). Region for any per-tool
 Cloud Run/Firestore resources: `us-central1`.
+
+## Test the production build for anything Worker/module-loading-sensitive
+
+`npm run dev` (Vite dev server, live unbundled ESM) and the actual
+production bundle (single minified chunk) can genuinely behave
+differently for Web Worker construction and module resolution — not just
+theoretically, this shipped a real crash once (see
+`docs/adr/0009-export-real-parallelism-and-skip-passthrough.md`'s
+addendum). Before pushing a change that touches `new Worker(...)`,
+dynamic imports, or anything else sensitive to how modules get bundled,
+verify it against the real build, not just dev mode:
+
+```bash
+npm run build && npm run combine && npx firebase-tools serve --only hosting --port 5055
+```
+
+then exercise the actual feature at `http://localhost:5055/<tool>/`.
+Passing in dev mode is not sufficient evidence for these cases.
