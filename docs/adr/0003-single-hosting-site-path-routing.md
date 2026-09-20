@@ -15,7 +15,11 @@ same-domain nav requirement) or real added complexity.
 
 ## Decision
 
-One Hosting site (`toolbox`) for the whole `toolbox.vuongho.me` domain.
+One Hosting site for the whole `toolbox.vuongho.me` domain — site ID
+`toolbox-vuonghome` (Firebase Hosting site IDs are globally unique across
+*all* Firebase projects, not just this account's, so the plain `toolbox`
+ID was already taken by someone else; the deploy target alias in
+`.firebaserc` is still named `toolbox` locally).
 Each app still builds independently (own `apps/<name>/dist`), but
 [`scripts/combine-dist.mjs`](../../scripts/combine-dist.mjs) merges every
 app's build output into one root `dist/` before deploy — homepage's build
