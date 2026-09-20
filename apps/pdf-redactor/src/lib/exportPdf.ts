@@ -1,4 +1,4 @@
-import { PDFDocument as PdfLibDocument } from 'pdf-lib';
+import { PDFDocument as PdfLibDocument, PDFName } from 'pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageRedactions } from '../types';
 import { renderPageToCanvas } from './pdfRender';
@@ -80,6 +80,15 @@ export async function buildRedactedPdf(
       outDoc.addPage(copiedByPageNumber.get(p)!);
       reportProgress();
     }
+  }
+
+  // Passthrough pages keep everything attached to them structurally, not
+  // just their visible content — comments, hyperlinks, form field widgets.
+  // A redaction tool shouldn't ship any of that invisibly, so strip
+  // annotations from every page regardless of whether it was rasterized
+  // (which already carries nothing extra) or copied through.
+  for (const outPage of outDoc.getPages()) {
+    outPage.node.delete(PDFName.of('Annots'));
   }
 
   return outDoc.save();
