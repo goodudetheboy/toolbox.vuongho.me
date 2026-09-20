@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "vuonghome"
+  },
+  "targets": {
+    "vuonghome": {
+      "hosting": {
+        "toolbox": ["toolbox"]
+      }
+    }
+  }
+}
