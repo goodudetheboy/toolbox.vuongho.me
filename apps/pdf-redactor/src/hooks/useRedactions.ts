@@ -28,5 +28,17 @@ export function useRedactions() {
     });
   }, []);
 
-  return { redactions, addRect, undoLast, clearPage };
+  const deleteRect = useCallback((page: number, index: number) => {
+    setRedactions((prev) => {
+      const rects = prev[page];
+      if (!rects || index < 0 || index >= rects.length) return prev;
+      return { ...prev, [page]: rects.filter((_, i) => i !== index) };
+    });
+  }, []);
+
+  const replaceAll = useCallback((next: PageRedactions) => {
+    setRedactions(next);
+  }, []);
+
+  return { redactions, addRect, undoLast, clearPage, deleteRect, replaceAll };
 }
