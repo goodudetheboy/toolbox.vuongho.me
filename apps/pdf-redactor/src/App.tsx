@@ -7,7 +7,7 @@ import HistoryPanel from './components/HistoryPanel';
 import { usePdfDocument } from './hooks/usePdfDocument';
 import { useRedactions } from './hooks/useRedactions';
 import { useHistory } from './hooks/useHistory';
-import { buildRedactedPdf } from './lib/exportPdf';
+import { buildRedactedPdf, type ExportFormat } from './lib/exportPdf';
 import { triggerDownload } from './lib/download';
 import { getHistoryEntry, saveHistoryEntry } from './lib/history';
 
@@ -19,7 +19,9 @@ export default function App() {
   const [view, setView] = useState<View>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [page, setPage] = useState(1);
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
   const [historyId, setHistoryId] = useState<string | null>(null);
   const { pdfDoc, numPages, status, error } = usePdfDocument(file);
   const { redactions, addRect, undoLast, clearPage, deleteRect, replaceAll } = useRedactions();
@@ -92,15 +94,18 @@ export default function App() {
     setView('editing');
   }
 
-  async function handleExport() {
+  async function handleExport(format: ExportFormat) {
     if (!pdfDoc) return;
-    setIsExporting(true);
+    setExportProgress({ done: 0, total: pdfDoc.numPages });
     try {
-      const bytes = await buildRedactedPdf(pdfDoc, redactions);
+      const bytes = await buildRedactedPdf(pdfDoc, redactions, {
+        format,
+        onProgress: (done, total) => setExportProgress({ done, total }),
+      });
       const baseName = file?.name.replace(/\.pdf$/i, '') ?? 'document';
       triggerDownload(bytes, `${baseName}-redacted.pdf`);
     } finally {
-      setIsExporting(false);
+      setExportProgress(null);
     }
   }
 
@@ -158,8 +163,10 @@ export default function App() {
           <Toolbar
             onUndo={() => undoLast(page)}
             onClear={() => clearPage(page)}
-            onExport={handleExport}
-            exportDisabled={isExporting}
+            onExportFast={() => handleExport('jpeg')}
+            onExportQuality={() => handleExport('png')}
+            exportDisabled={exportProgress !== null}
+            exportProgress={exportProgress}
           />
           <PageCanvas
             pdfDoc={pdfDoc}
