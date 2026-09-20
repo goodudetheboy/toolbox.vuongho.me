@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pdf-redactor",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:pdf-redactor"],
+      "port": 5173
+    },
+    {
+      "name": "homepage",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:homepage"],
+      "port": 5174
+    }
+  ]
+}
