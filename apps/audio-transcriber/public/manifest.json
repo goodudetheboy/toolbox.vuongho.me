@@ -1,0 +1,12 @@
+{
+  "name": "Transcriber",
+  "short_name": "Transcriber",
+  "description": "Transcribe audio and video files to text, privately in your browser.",
+  "start_url": "/audio-transcriber/",
+  "display": "standalone",
+  "background_color": "#fff5ec",
+  "theme_color": "#ff8a65",
+  "icons": [
+    { "src": "/audio-transcriber/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

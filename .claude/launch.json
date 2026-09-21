@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:homepage"],
       "port": 5174
+    },
+    {
+      "name": "audio-transcriber",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:audio-transcriber"],
+      "port": 5175
     }
   ]
 }

@@ -8,6 +8,7 @@
     "build": "npm run build --workspaces --if-present",
     "combine": "node scripts/combine-dist.mjs",
     "dev:homepage": "npm run dev -w apps/homepage",
-    "dev:pdf-redactor": "npm run dev -w apps/pdf-redactor"
+    "dev:pdf-redactor": "npm run dev -w apps/pdf-redactor",
+    "dev:audio-transcriber": "npm run dev -w apps/audio-transcriber"
   }
 }

@@ -4,6 +4,11 @@ const tools = [
     description: 'Black out sensitive parts of a PDF, entirely in your browser.',
     href: '/pdf-redactor/',
   },
+  {
+    name: 'Audio Transcriber',
+    description: 'Transcribe audio and video files to timestamped text, entirely in your browser.',
+    href: '/audio-transcriber/',
+  },
 ];
 
 export default function App() {

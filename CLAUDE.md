@@ -10,6 +10,11 @@ homepage.
 - `apps/<tool-name>/` — one independent app per tool (own deps/styling/stack;
   default is Vite + React + TS but nothing forces it — see
   `docs/adr/0001-monorepo-npm-workspaces.md`)
+  - `apps/audio-transcriber/` — client-side audio/video transcription
+    (ffmpeg.wasm + transformers.js/Whisper), migrated from its own repo/
+    deploy at `audio-transcriber.vuongho.me` (being sunset). Needs
+    cross-origin isolation headers, scoped to its own path only — see
+    `docs/adr/0012-audio-transcriber-coop-coep-headers.md`.
 - `scripts/combine-dist.mjs` — merges every app's `dist/` into one root
   `dist/` before deploy (homepage at root, each tool under `/<tool-name>/`)
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the
@@ -75,3 +80,18 @@ npm run build && npm run combine && npx firebase-tools serve --only hosting --po
 
 then exercise the actual feature at `http://localhost:5055/<tool>/`.
 Passing in dev mode is not sufficient evidence for these cases.
+
+## `firebase.json` `hosting.headers` can't be verified locally at all
+
+Neither `firebase-tools serve` nor `firebase-tools emulators:start` applies
+`hosting.headers` rules — confirmed by testing a deliberately broad
+`"source": "**"` rule that still never showed up on any local response (see
+`docs/adr/0012-audio-transcriber-coop-coep-headers.md`'s addendum). Real
+deployed Hosting does apply them. If you add or change a `headers` rule,
+verify it with a temporary preview channel instead:
+
+```bash
+npx firebase-tools hosting:channel:deploy <channel-name> --project vuonghome --expires 2h
+# curl -sD - -o /dev/null https://<preview-url>/<path> | grep -i <header>
+npx firebase-tools hosting:channel:delete <channel-name> --project vuonghome --site toolbox-vuonghome --force
+```
