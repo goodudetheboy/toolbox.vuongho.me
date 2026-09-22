@@ -1,4 +1,4 @@
-# 0012. Cross-origin isolation headers scoped to `/audio-transcriber/**` only
+# 0001. Cross-origin isolation headers scoped to `/audio-transcriber/**` only
 
 Status: Accepted
 
@@ -6,7 +6,7 @@ Status: Accepted
 
 The `audio-transcriber` tool (migrated from its own standalone repo/deploy at
 `audio-transcriber.vuongho.me`, see
-[docs/progress/20260920.md](../progress/20260920.md)) needs
+[docs/progress/20260921.md](../progress/20260921.md)) needs
 `Cross-Origin-Opener-Policy: same-origin` and
 `Cross-Origin-Embedder-Policy: credentialless` on every response — its
 standalone deploy set these via `vercel.json`, required for ffmpeg.wasm and
@@ -20,7 +20,7 @@ image, font, or script.
 ## Decision
 
 Scope the headers to this one tool's path in
-[`firebase.json`](../../firebase.json)'s `hosting.headers`, matching on
+[`firebase.json`](../../../../firebase.json)'s `hosting.headers`, matching on
 `source: "/audio-transcriber/**"`, rather than applying them to the whole
 Hosting site.
 

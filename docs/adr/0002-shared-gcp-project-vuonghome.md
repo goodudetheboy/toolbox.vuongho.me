@@ -16,7 +16,7 @@ setup overhead.
 One GCP project, `vuonghome`, shared by every `*.vuongho.me` subdomain,
 including this repo's `toolbox` subdomain. Resources within it are kept from
 colliding by naming convention rather than project boundaries — see
-[0006](0006-per-tool-backend-and-firestore-naming.md).
+[0004](0004-per-tool-backend-and-firestore-naming.md).
 
 ## Consequences
 

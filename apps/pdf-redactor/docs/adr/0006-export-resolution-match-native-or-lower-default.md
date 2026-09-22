@@ -1,4 +1,4 @@
-# 0010. Export resolution: match embedded image's native DPI, or a lower default for text
+# 0006. Export resolution: match embedded image's native DPI, or a lower default for text
 
 Status: Accepted
 
@@ -9,7 +9,7 @@ match "the PDF's resolution." The real answer is nuanced: vector/text
 content has no native resolution at all (that's what vector means), so
 there's nothing to "match" for a typical text page — the bloat there comes
 from flattening any page to a raster image at all, not from picking the
-wrong DPI. [0005](0005-pdf-redactor-library-choices.md)'s fixed 150 DPI was
+wrong DPI. [0002](0002-pdf-redactor-library-choices.md)'s fixed 150 DPI was
 arbitrary either way.
 
 Where matching *does* apply: a page whose content is essentially one

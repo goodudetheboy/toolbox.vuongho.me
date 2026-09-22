@@ -1,10 +1,10 @@
-# 0009. True multi-core export via Web Workers, and skip untouched pages entirely
+# 0005. True multi-core export via Web Workers, and skip untouched pages entirely
 
 Status: Accepted
 
 ## Context
 
-[0008](0008-export-fast-jpeg-vs-quality-png-parallel.md)'s "parallel" export
+[0004](0004-export-fast-jpeg-vs-quality-png-parallel.md)'s "parallel" export
 pool was concurrent `async`/`await` scheduling on the single JS main
 thread — real for I/O-bound waits, but the actual canvas painting for each
 page still executed one at a time, since JS is single-threaded and Canvas
@@ -63,7 +63,8 @@ go through the render/paint/encode pipeline at all.
 
 This shipped with a real bug that only surfaced on the deployed production
 build, not the Vite dev server used to verify it here originally — see
-`docs/progress/` for the incident. Root causes, both inside pdf.js itself
+[docs/progress/20260920.md](../progress/20260920.md) for the incident.
+Root causes, both inside pdf.js itself
 when run inside a Worker (not our worker's own logic):
 
 1. pdf.js's normal nested-worker spawn path unconditionally reads

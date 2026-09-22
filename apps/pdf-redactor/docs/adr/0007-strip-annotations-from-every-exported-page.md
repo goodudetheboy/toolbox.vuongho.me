@@ -1,4 +1,4 @@
-# 0011. Strip annotations from every exported page
+# 0007. Strip annotations from every exported page
 
 Status: Accepted
 
@@ -8,12 +8,12 @@ User asked whether export wipes "all metadata." Investigation (verified,
 not assumed) found two different answers depending on the layer:
 
 - **Document-level metadata** (Title/Author/Subject/Keywords/dates):
-  already fully wiped, as a side effect of [0009](0009-export-real-parallelism-and-skip-passthrough.md)
+  already fully wiped, as a side effect of [0005](0005-export-real-parallelism-and-skip-passthrough.md)
   building a brand-new `PDFDocument` rather than editing the original —
   none of that gets copied over.
 - **Page-level annotations on passthrough pages**: not wiped at all. A
   page with no redaction box is copied structurally via `copyPages`
-  ([0009](0009-export-real-parallelism-and-skip-passthrough.md)), which
+  ([0005](0005-export-real-parallelism-and-skip-passthrough.md)), which
   preserves everything attached to it — comments, sticky notes,
   hyperlinks, form field widgets — regardless of whether any of that is
   visible when the page renders normally.

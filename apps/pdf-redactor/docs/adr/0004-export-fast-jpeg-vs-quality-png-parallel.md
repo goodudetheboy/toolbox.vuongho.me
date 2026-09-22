@@ -1,10 +1,10 @@
-# 0008. Export: Fast (JPEG) vs. Best Quality (PNG), parallelized with progress
+# 0004. Export: Fast (JPEG) vs. Best Quality (PNG), parallelized with progress
 
 Status: Accepted
 
 ## Context
 
-Export was slow, especially on larger documents: [0005](0005-pdf-redactor-library-choices.md)
+Export was slow, especially on larger documents: [0002](0002-pdf-redactor-library-choices.md)
 established PNG-only, one page rendered/encoded/embedded at a time, at 150
 DPI. PNG's lossless encoding is CPU-heavy, sequential processing means
 total time scales linearly with page count, and the UI gave no feedback

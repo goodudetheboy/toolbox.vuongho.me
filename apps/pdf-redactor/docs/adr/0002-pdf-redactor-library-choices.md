@@ -1,11 +1,11 @@
-# 0005. PDF Redactor: pdfjs-dist + pdf-lib + hand-rolled canvas drawing
+# 0002. PDF Redactor: pdfjs-dist + pdf-lib + hand-rolled canvas drawing
 
 Status: Accepted
 
 ## Context
 
 Building the redactor client-side (see
-[0004](0004-pdf-redactor-fully-client-side.md)) needs: rendering PDF pages
+[0001](0001-pdf-redactor-fully-client-side.md)) needs: rendering PDF pages
 to a rasterizable surface, letting the user draw rectangles on top of a
 page, and rebuilding a new PDF from the redacted page images.
 

@@ -24,7 +24,12 @@ pulled into a common package later — there is no shared package yet.
 - One `git clone`, one CI/CD pipeline, trivial to add tool #5 without new
   repo/CI/deploy setup.
 - Each app can differ in stack if ever needed (default going forward is
-  Vite + React + TypeScript, see 0005, but nothing enforces it).
+  Vite + React + TypeScript, see
+  [pdf-redactor's 0002](../../apps/pdf-redactor/docs/adr/0002-pdf-redactor-library-choices.md),
+  but nothing enforces it).
+- Each app also keeps its own `CLAUDE.md`, `docs/adr/`, and `docs/progress/`
+  for content specific to that tool — see
+  [0005](0005-per-app-docs-and-claude-md.md).
 - Losing: independent git history per tool, and independent
   open-source/hand-off of a single tool would require extracting it later
   rather than already living in its own repo.

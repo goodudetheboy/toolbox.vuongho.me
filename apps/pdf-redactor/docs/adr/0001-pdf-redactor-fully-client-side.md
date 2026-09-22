@@ -1,12 +1,13 @@
-# 0004. PDF Redactor runs entirely client-side, no backend
+# 0001. PDF Redactor runs entirely client-side, no backend
 
 Status: Accepted
 
 ## Context
 
 The general architecture allows any tool to add a Cloud Run backend and a
-Firestore database if it needs one (see
-[0006](0006-per-tool-backend-and-firestore-naming.md)). The PDF Redactor's
+Firestore database if it needs one (see the toolbox-wide
+[0004](../../../../docs/adr/0004-per-tool-backend-and-firestore-naming.md)).
+The PDF Redactor's
 job is specifically to remove sensitive information from a document before
 sharing it. Uploading that same sensitive document to a server to do the
 redaction would undercut the tool's entire purpose, even if the server

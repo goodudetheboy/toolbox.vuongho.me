@@ -1,4 +1,4 @@
-# 0013. Trip Planner ships local-first now; shared auth + Firestore sync planned, blocked on GCP console access
+# 0001. Trip Planner ships local-first now; shared auth + Firestore sync planned, blocked on GCP console access
 
 Status: Proposed (auth/sharing/sync portion not yet implemented)
 
@@ -13,8 +13,8 @@ The user asked for a trip itinerary tool (`apps/trip-planner`) with:
 
 All three require a live Firebase project (Authentication providers enabled,
 a Firestore database, security rules, an authorized domain for
-`toolbox.vuongho.me`) in the shared `vuonghome` GCP project
-([0002](0002-shared-gcp-project-vuonghome.md)). This session has no working
+`toolbox.vuongho.me`) in the shared `vuonghome` GCP project (the toolbox-wide
+[0002](../../../../docs/adr/0002-shared-gcp-project-vuonghome.md)). This session has no working
 path to any of that: `gcloud` and `firebase` are not installed, and running
 `npx firebase-tools serve` fails immediately with "Failed to authenticate,
 have you run firebase login?" — the underlying Google OAuth/metadata calls
@@ -26,8 +26,11 @@ steps with no way to complete them from here.
 
 **Ship now:** `trip-planner` works fully client-side, trip and activity data
 in `localStorage` only (see `src/lib/storage.ts`, `src/lib/useTrips.ts`) —
-one browser, one device, no account needed. No backend or Firestore database
-is provisioned yet; per [0006](0006-per-tool-backend-and-firestore-naming.md)
+one browser, one device, no account needed — with JSON export/import
+(`src/lib/exportImport.ts`) as the interim way to back up or move data
+between devices until real sync exists (see the addendum below). No backend
+or Firestore database is provisioned yet; per the toolbox-wide
+[0004](../../../../docs/adr/0004-per-tool-backend-and-firestore-naming.md)
 that only happens once it's actually wired up, not speculatively.
 
 **Planned, once GCP/Firebase console access is available** (the user said to
@@ -37,14 +40,16 @@ document this and continue later):
    Google provider and Email Link (passwordless) provider enabled. Per the
    user's request this is meant to be shared across tools, not owned by
    trip-planner — start it in `apps/trip-planner/src/lib/auth.ts`, and only
-   extract it into a shared workspace package (breaking from
-   [0001](0001-monorepo-npm-workspaces.md)'s "nothing shared yet" default)
-   once a second tool actually needs sign-in. Requires: enabling both
+   extract it into a shared workspace package (breaking from the
+   toolbox-wide [0001](../../../../docs/adr/0001-monorepo-npm-workspaces.md)'s
+   "nothing shared yet" default) once a second tool actually needs sign-in.
+   Requires: enabling both
    providers in the Firebase console, adding `toolbox.vuongho.me` as an
    authorized domain, and an OAuth consent screen for Google sign-in.
 
 2. **Data**: Firestore database `toolbox-trip-planner` (Native mode,
-   `us-central1`, per [0006](0006-per-tool-backend-and-firestore-naming.md)).
+   `us-central1`, per the toolbox-wide
+   [0004](../../../../docs/adr/0004-per-tool-backend-and-firestore-naming.md)).
    `trips/{tripId}` document (destination, date range, owner uid, an
    `editors: uid[]` array, a random `shareToken` for read-only links), with
    activities as a `trips/{tripId}/activities/{activityId}` subcollection.
@@ -83,6 +88,17 @@ document this and continue later):
   Firebase console setup above is done by someone with `gcloud`/Firebase
   login access — this is the blocker, not remaining engineering work.
 - Auth being shared across tools is a deliberate, user-requested exception
-  to [0001](0001-monorepo-npm-workspaces.md)'s "independent by default"
-  rule — call it out again in whichever future ADR actually extracts the
-  shared auth package, so it doesn't read as an accidental deviation.
+  to the toolbox-wide
+  [0001](../../../../docs/adr/0001-monorepo-npm-workspaces.md)'s
+  "independent by default" rule — call it out again in whichever future ADR
+  actually extracts the shared auth package, so it doesn't read as an
+  accidental deviation.
+
+## Addendum: JSON export/import shipped as the interim backup/transfer path
+
+Added `src/lib/exportImport.ts`: "Export" downloads every trip as one JSON
+file; "Import" reads one back in and merges it by trip `id` (a matching id
+overwrites, a new one is added). This doesn't give multi-device *sync* —
+importing is a manual, one-shot action, not a live merge — but it does close
+the immediate gap of trip-planner data being trapped on a single device/
+browser profile while the real Firestore-backed sync above stays blocked.

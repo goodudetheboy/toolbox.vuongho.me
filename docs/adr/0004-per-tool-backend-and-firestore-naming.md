@@ -1,4 +1,4 @@
-# 0006. Backend/database added per-tool only when needed, namespaced by naming convention
+# 0004. Backend/database added per-tool only when needed, namespaced by naming convention
 
 Status: Accepted
 

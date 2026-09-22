@@ -1,4 +1,4 @@
-# 0007. Upload history stored in IndexedDB, not localStorage
+# 0003. Upload history stored in IndexedDB, not localStorage
 
 Status: Accepted
 
@@ -16,7 +16,7 @@ what's practical to store that way.
 
 Store history in **IndexedDB** instead (`src/lib/history.ts`), keeping the
 same fully-client-side property this tool is built on
-([0004](0004-pdf-redactor-fully-client-side.md)) — it's still "never
+([0001](0001-pdf-redactor-fully-client-side.md)) — it's still "never
 leaves the browser," just persisted to disk via a storage API built for
 binary data. Each entry (`id`, `filename`, `uploadedAt`, `pageCount`,
 `pdfBytes: ArrayBuffer`, `redactions`) is written once on upload, then
