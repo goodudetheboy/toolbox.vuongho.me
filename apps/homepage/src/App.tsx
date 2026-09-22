@@ -9,6 +9,11 @@ const tools = [
     description: 'Transcribe audio and video files to timestamped text, entirely in your browser.',
     href: '/audio-transcriber/',
   },
+  {
+    name: 'Trip Planner',
+    description: 'Keep a simple day-by-day itinerary for a trip, saved on this device.',
+    href: '/trip-planner/',
+  },
 ];
 
 export default function App() {

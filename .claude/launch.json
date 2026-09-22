@@ -18,6 +18,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:audio-transcriber"],
       "port": 5175
+    },
+    {
+      "name": "trip-planner",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:trip-planner"],
+      "port": 5176
     }
   ]
 }
