@@ -2,14 +2,32 @@ import { useState } from 'react';
 import ItineraryView from './components/ItineraryView';
 import TripForm from './components/TripForm';
 import TripList from './components/TripList';
+import { downloadTripsAsJson, readTripsFromFile } from './lib/exportImport';
 import { useTrips } from './lib/useTrips';
 
 type View = { name: 'list' } | { name: 'create' } | { name: 'trip'; tripId: string };
 
 export default function App() {
   const [view, setView] = useState<View>({ name: 'list' });
-  const { trips, createTrip, updateTripDetails, deleteTrip, upsertActivity, deleteActivity } =
-    useTrips();
+  const {
+    trips,
+    createTrip,
+    updateTripDetails,
+    deleteTrip,
+    upsertActivity,
+    deleteActivity,
+    importTrips,
+  } = useTrips();
+
+  async function handleImportFile(file: File) {
+    try {
+      const imported = await readTripsFromFile(file);
+      importTrips(imported);
+      alert(`Imported ${imported.length} ${imported.length === 1 ? 'trip' : 'trips'}.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not import that file.');
+    }
+  }
 
   const activeTrip = view.name === 'trip' ? trips.find((t) => t.id === view.tripId) : undefined;
 
@@ -29,6 +47,8 @@ export default function App() {
           onOpen={(tripId) => setView({ name: 'trip', tripId })}
           onDelete={deleteTrip}
           onCreate={() => setView({ name: 'create' })}
+          onExportAll={() => downloadTripsAsJson(trips)}
+          onImportFile={handleImportFile}
         />
       )}
 

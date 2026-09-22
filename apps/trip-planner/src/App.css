@@ -67,6 +67,18 @@ h1 {
   margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hint {
+  margin: -4px 0 16px;
+  font-size: 0.82rem;
+  color: #7a7461;
+}
+
 .trip-dates-subtitle {
   margin: 2px 0 0;
   color: #5a5548;

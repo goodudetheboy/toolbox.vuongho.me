@@ -85,5 +85,23 @@ export function useTrips() {
     });
   }, []);
 
-  return { trips, createTrip, updateTripDetails, deleteTrip, upsertActivity, deleteActivity };
+  const importTrips = useCallback((imported: Trip[]) => {
+    setTrips((prev) => {
+      const byId = new Map(prev.map((trip) => [trip.id, trip]));
+      for (const trip of imported) byId.set(trip.id, trip);
+      const next = [...byId.values()];
+      saveTrips(next);
+      return next;
+    });
+  }, []);
+
+  return {
+    trips,
+    createTrip,
+    updateTripDetails,
+    deleteTrip,
+    upsertActivity,
+    deleteActivity,
+    importTrips,
+  };
 }
