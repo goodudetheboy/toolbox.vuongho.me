@@ -29,4 +29,14 @@ export interface Trip {
   activities: Activity[];
   createdAt: string;
   updatedAt: string;
+  /** Present once this trip has been moved to Firestore (see lib/cloud.ts). Absent for local-only trips. */
+  cloud?: {
+    ownerUid: string;
+    /** uids of signed-in users who joined via an edit link, in addition to the owner. */
+    editors: string[];
+    /** Whether the view link (`?trip=<id>`) grants read access to anyone, signed in or not. */
+    isShared: boolean;
+    /** Secret required (alongside sign-in) to join `editors` via the edit link. */
+    editToken: string;
+  };
 }

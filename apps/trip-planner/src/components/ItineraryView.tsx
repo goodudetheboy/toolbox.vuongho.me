@@ -3,10 +3,17 @@ import { enumerateDates, formatDateLong, formatDateRange } from '../lib/dates';
 import type { Activity, Trip } from '../types';
 import ActivityCard from './ActivityCard';
 import ActivityForm from './ActivityForm';
+import ShareDialog from './ShareDialog';
 import TripForm from './TripForm';
 
 interface ItineraryViewProps {
   trip: Trip;
+  /** True when the viewer may only look, not edit: a view-only share link, or a signed-out visitor. */
+  readOnly: boolean;
+  /** True when the signed-in user owns this cloud trip and may manage its sharing. */
+  isOwner: boolean;
+  /** Shown ("Go online") only for a local-only trip when the viewer is signed in. */
+  onGoOnline?: () => void;
   onBack: () => void;
   onUpdateTripDetails: (destination: string, startDate: string, endDate: string) => void;
   onUpsertActivity: (activity: Activity) => void;
@@ -15,12 +22,16 @@ interface ItineraryViewProps {
 
 export default function ItineraryView({
   trip,
+  readOnly,
+  isOwner,
+  onGoOnline,
   onBack,
   onUpdateTripDetails,
   onUpsertActivity,
   onDeleteActivity,
 }: ItineraryViewProps) {
   const [editingTrip, setEditingTrip] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [activityFormFor, setActivityFormFor] = useState<{
     date: string;
     activity?: Activity;
@@ -57,6 +68,10 @@ export default function ItineraryView({
     );
   }
 
+  if (sharing && trip.cloud) {
+    return <ShareDialog trip={trip as Trip & { cloud: NonNullable<Trip['cloud']> }} onClose={() => setSharing(false)} />;
+  }
+
   return (
     <div>
       <button className="link-button" onClick={onBack}>
@@ -66,10 +81,25 @@ export default function ItineraryView({
         <div>
           <h2>{trip.destination}</h2>
           <p className="trip-dates-subtitle">{formatDateRange(trip.startDate, trip.endDate)}</p>
+          {trip.cloud && <p className="hint cloud-badge">☁ Synced{readOnly ? ' · view only' : ''}</p>}
         </div>
-        <button className="secondary" onClick={() => setEditingTrip(true)}>
-          Edit trip / dates
-        </button>
+        <div className="header-actions">
+          {isOwner && (
+            <button className="secondary" onClick={() => setSharing(true)}>
+              Share
+            </button>
+          )}
+          {!trip.cloud && onGoOnline && (
+            <button className="secondary" onClick={onGoOnline}>
+              Go online
+            </button>
+          )}
+          {!readOnly && (
+            <button className="secondary" onClick={() => setEditingTrip(true)}>
+              Edit trip / dates
+            </button>
+          )}
+        </div>
       </div>
 
       {days.length === 0 && <p className="empty">This trip has no dates yet.</p>}
@@ -78,14 +108,16 @@ export default function ItineraryView({
         <section key={day} className="day-section">
           <div className="day-header">
             <h3>{formatDateLong(day)}</h3>
-            <button
-              className="secondary small"
-              onClick={() => setActivityFormFor({ date: day })}
-            >
-              + Add activity
-            </button>
+            {!readOnly && (
+              <button
+                className="secondary small"
+                onClick={() => setActivityFormFor({ date: day })}
+              >
+                + Add activity
+              </button>
+            )}
           </div>
-          {activityFormFor?.date === day && (
+          {!readOnly && activityFormFor?.date === day && (
             <ActivityForm
               tripDates={days}
               defaultDate={day}
@@ -102,6 +134,7 @@ export default function ItineraryView({
               <ActivityCard
                 key={activity.id}
                 activity={activity}
+                readOnly={readOnly}
                 onEdit={() => setActivityFormFor({ date: day, activity })}
                 onDelete={() => onDeleteActivity(activity.id)}
               />

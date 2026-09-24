@@ -1,6 +1,7 @@
 # 0001. Trip Planner ships local-first now; shared auth + Firestore sync planned, blocked on GCP console access
 
-Status: Proposed (auth/sharing/sync portion not yet implemented)
+Status: Implemented (see addendum below — the auth/sharing/sync portion
+originally deferred here shipped 2026-09-24)
 
 ## Context
 
@@ -102,3 +103,95 @@ overwrites, a new one is added). This doesn't give multi-device *sync* —
 importing is a manual, one-shot action, not a live merge — but it does close
 the immediate gap of trip-planner data being trapped on a single device/
 browser profile while the real Firestore-backed sync above stays blocked.
+
+## Addendum (2026-09-24): auth + Firestore sync + sharing, implemented
+
+The GCP console blocker above is resolved — `gcloud`/`firebase` login access
+now works, and the user separately enabled billing (`vuonghome` needed a
+Cloud Billing account before Identity Platform/Auth could be initialized;
+see the toolbox-wide root progress log for that account-level work). Built
+the full plan from this ADR, with two adjustments discovered while
+implementing:
+
+**Infra provisioned** (`vuonghome` project): Firestore database
+`toolbox-trip-planner` (Native mode, `us-central1`); a Firebase Web App for
+the toolbox's client config; Identity Platform initialized; Email Link
+(passwordless) and Google sign-in providers enabled; `toolbox.vuongho.me`
+and `localhost` added as authorized domains. The Google OAuth client
+(Client ID + secret, registered directly with Identity Toolkit's
+`defaultSupportedIdpConfigs`) needed one extra manual step beyond what the
+ADR anticipated: creating an OAuth consent screen and a Web-application
+OAuth Client ID both require the Cloud Console UI — there is no public
+API for either on a personal (non-org) GCP project. Everything else
+(Firestore database, Firebase Auth config, security rules) was scriptable
+via `gcloud`/the Identity Toolkit REST API.
+
+**Read-only link ≠ a second secret token, by design, not by omission.**
+This ADR's original text ("rules allow read when the request supplies the
+matching token") isn't expressible in Firestore: a plain document `get()`
+rule only sees `resource.data` and `request.auth` — there's no channel for
+a client to submit an arbitrary token that a read rule can check. The
+mechanism actually shipped: a trip has an `isShared: boolean` field: once
+true, its document (and its `activities` subcollection) is publicly
+readable by anyone who has the trip's own id — which is what the "view
+link" (`?trip=<id>`) contains. The trip id itself, an unguessable
+Firestore auto-id, *is* the capability; `isShared` is just the owner's
+on/off switch for it. This is simpler than a parallel shareToken and is
+exactly the kind of "simpler, sufficient" call this ADR already made for
+sync below — recorded here since it's a deliberate deviation from this
+document's original literal text, not an oversight.
+
+**Edit link is a real second secret**, unlike the view link, because
+Firestore *write* rules do get to see the client's submitted document
+(`request.resource.data`), which a read rule cannot. Each trip also gets
+an `editToken` (separate from its id). The edit link
+(`?trip=<id>&edit=<token>`) requires sign-in; on load, the signed-in uid is
+added to the trip's `editors` array via a transaction that Firestore's
+security rules independently verify (`editToken` must match, `isShared`
+must be true, and the write may only add the caller's own uid to
+`editors` — nothing else). From then on that uid is a normal editor.
+
+**Sync**: implemented as planned — per-activity Firestore documents
+(`trips/{tripId}/activities/{activityId}`) with `onSnapshot` listeners, so
+two editors on different activities never collide; last-write-wins on the
+rare same-activity collision. No CRDT, per the ADR's original reasoning.
+
+**Rules** live at `apps/trip-planner/firestore.rules`, deployed via
+`firebase deploy --only firestore:rules --project vuonghome` (this needed
+adding a `firestore` array entry — keyed by database id — to the root
+`firebase.json`, since this is the toolbox's first tool with its own
+Firestore database). Verified directly against the deployed rules, not
+just the client UI: an unauthenticated `PATCH` straight to the Firestore
+REST API against a shared trip's document returns `403
+PERMISSION_DENIED`, confirming the access control is enforced
+server-side.
+
+**Client**: `src/lib/firebase.ts` (app/auth/Firestore init — the Firestore
+instance is explicitly bound to the `toolbox-trip-planner` database, not
+the project's `(default)` one), `src/lib/auth.ts` (Google popup +
+email-link sign-in, shared-across-tools per this ADR's own call, so it's
+not namespaced to trip-planner internally), `src/lib/cloud.ts` (all
+Firestore reads/writes/subscriptions). `useTrips` now merges local
+(`localStorage`) and cloud (Firestore) trips into one list; a local trip
+gains a `cloud` field the first time its owner clicks "Go online",
+after which it's the same trip id in Firestore going forward — additive,
+not a migration, exactly as this ADR predicted the data-shape match would
+allow.
+
+**Verified**: real end-to-end pass against the live `vuonghome` project
+(not the emulator) — created a local trip, signed in via a real Firebase
+email-link round trip (sent to and fetched from the user's actual inbox),
+went online, added an activity, enabled sharing, opened the resulting view
+link in a second, signed-out tab and confirmed the itinerary was fully
+visible with zero edit affordances, and confirmed the REST-level write
+rejection above. `tsc --noEmit`, `vite build`, and a full workspace
+`npm run build && npm run combine` all passed; the production bundle was
+also smoke-tested via `firebase-tools serve` per this repo's
+Worker/module-loading rule (Firebase's SDK dynamic-imports some of its
+internals).
+
+**Not done**: no UI affordance yet to leave a trip's `editors` list or to
+transfer ownership; an editor can currently edit a shared trip's
+destination/dates but not its sharing settings (`isShared`/`editToken`
+changes are owner-only, enforced in `firestore.rules`). Neither was asked
+for; noted here in case a future session assumes otherwise.

@@ -2,11 +2,12 @@ import type { Activity } from '../types';
 
 interface ActivityCardProps {
   activity: Activity;
+  readOnly?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export default function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) {
+export default function ActivityCard({ activity, readOnly, onEdit, onDelete }: ActivityCardProps) {
   return (
     <li className="activity-card">
       <div className="activity-time">
@@ -32,14 +33,16 @@ export default function ActivityCard({ activity, onEdit, onDelete }: ActivityCar
           </ul>
         )}
       </div>
-      <div className="activity-actions">
-        <button className="icon-button" aria-label={`Edit ${activity.title}`} onClick={onEdit}>
-          ✎
-        </button>
-        <button className="icon-button" aria-label={`Delete ${activity.title}`} onClick={onDelete}>
-          ✕
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="activity-actions">
+          <button className="icon-button" aria-label={`Edit ${activity.title}`} onClick={onEdit}>
+            ✎
+          </button>
+          <button className="icon-button" aria-label={`Delete ${activity.title}`} onClick={onDelete}>
+            ✕
+          </button>
+        </div>
+      )}
     </li>
   );
 }

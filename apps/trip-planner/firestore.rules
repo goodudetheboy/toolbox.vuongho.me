@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// See docs/adr/0001-trip-planner-local-first-plus-planned-shared-auth-and-sync.md
+// for the design this implements: a view-only link works for anyone once a trip
+// is marked shared; an edit link additionally lets a signed-in visitor join the
+// trip's `editors` array, after which they can edit like the owner (except for
+// the trip's own sharing settings).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /trips/{tripId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == resource.data.ownerUid;
+      }
+
+      function isOwnerOrEditor() {
+        return request.auth != null &&
+          (request.auth.uid == resource.data.ownerUid ||
+           request.auth.uid in resource.data.editors);
+      }
+
+      allow read: if resource.data.isShared == true || isOwnerOrEditor();
+
+      allow create: if request.auth != null &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.editors == [] &&
+        request.resource.data.keys().hasAll(
+          ['destination', 'startDate', 'endDate', 'createdAt', 'updatedAt',
+           'ownerUid', 'editors', 'isShared', 'editToken']
+        );
+
+      allow update: if isOwner() || (
+        isOwnerOrEditor() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['destination', 'startDate', 'endDate', 'updatedAt'])
+      ) || (
+        // Joining as an editor via an edit link: only adds the caller's own uid,
+        // and only when the supplied editToken matches the trip's current one.
+        request.auth != null &&
+        resource.data.isShared == true &&
+        request.resource.data.editToken == resource.data.editToken &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['editors']) &&
+        request.resource.data.editors == resource.data.editors.concat([request.auth.uid]) &&
+        !(request.auth.uid in resource.data.editors)
+      );
+
+      allow delete: if isOwner();
+
+      match /activities/{activityId} {
+        function trip() {
+          return get(/databases/$(database)/documents/trips/$(tripId)).data;
+        }
+
+        allow read: if trip().isShared == true || (
+          request.auth != null &&
+          (request.auth.uid == trip().ownerUid || request.auth.uid in trip().editors)
+        );
+
+        allow write: if request.auth != null &&
+          (request.auth.uid == trip().ownerUid || request.auth.uid in trip().editors);
+      }
+    }
+  }
+}

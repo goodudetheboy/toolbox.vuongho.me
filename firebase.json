@@ -1,4 +1,10 @@
 {
+  "firestore": [
+    {
+      "database": "toolbox-trip-planner",
+      "rules": "apps/trip-planner/firestore.rules"
+    }
+  ],
   "hosting": {
     "target": "toolbox",
     "public": "dist",

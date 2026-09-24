@@ -360,3 +360,64 @@ button.small {
 .empty.small {
   margin: 4px 0;
 }
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.auth-identity {
+  color: #5a5548;
+}
+
+.auth-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 10;
+  width: 260px;
+  margin: 6px 0 0;
+}
+
+.auth-divider {
+  text-align: center;
+  color: #7a7461;
+  font-size: 0.8rem;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.share-link-row input {
+  flex: 1;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.8rem;
+}
+
+.cloud-badge {
+  margin: 4px 0 0 !important;
+}
