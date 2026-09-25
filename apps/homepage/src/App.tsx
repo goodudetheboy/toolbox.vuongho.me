@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { tools, type Tool } from './tools';
+import { ToolIcon } from './ToolIcon';
 import type { SceneState, ToolboxScene } from './scene/ToolboxScene';
+
+type Mode = 'list' | '3d';
+const MODE_KEY = 'toolbox.view';
 
 function hasWebGL() {
   try {
@@ -11,25 +15,55 @@ function hasWebGL() {
   }
 }
 
-function ToolList({ onClose }: { onClose?: () => void }) {
+const isTouch = () => window.matchMedia('(pointer: coarse)').matches;
+
+// Phones default to the plain list (the 3D scene is heavy on battery); a
+// choice the visitor makes is remembered for next time.
+function initialMode(webgl: boolean): Mode {
+  if (!webgl) return 'list';
+  try {
+    const saved = localStorage.getItem(MODE_KEY);
+    if (saved === 'list' || saved === '3d') return saved;
+  } catch {
+    /* storage blocked: fall through to the default */
+  }
+  return isTouch() ? 'list' : '3d';
+}
+
+function saveMode(m: Mode) {
+  try {
+    localStorage.setItem(MODE_KEY, m);
+  } catch {
+    /* ignore */
+  }
+}
+
+function ToolList({ onGarage }: { onGarage?: () => void }) {
   return (
     <div className="list-panel">
       <div className="list-inner">
         <div className="list-head">
-          <h1>Vuong's Toolbox</h1>
-          {onClose && (
-            <button className="btn" onClick={onClose}>
-              Back to the garage
+          <div>
+            <h1>Vuong's Toolbox</h1>
+            <p className="subtitle">Small tools that make life easier.</p>
+          </div>
+          {onGarage && (
+            <button className="btn" onClick={onGarage}>
+              Open the garage (3D)
             </button>
           )}
         </div>
-        <p className="subtitle">Small tools that make life easier.</p>
         <ul className="tool-list">
           {tools.map((tool) => (
             <li key={tool.href}>
               <a className="tool-card" href={tool.href}>
-                <span className="tool-name">{tool.name}</span>
-                <span className="tool-description">{tool.description}</span>
+                <span className="tool-icon">
+                  <ToolIcon model={tool.model} />
+                </span>
+                <span className="tool-text">
+                  <span className="tool-name">{tool.name}</span>
+                  <span className="tool-description">{tool.description}</span>
+                </span>
               </a>
             </li>
           ))}
@@ -41,25 +75,36 @@ function ToolList({ onClose }: { onClose?: () => void }) {
 
 export default function App() {
   const [webgl] = useState(hasWebGL);
-  const [listView, setListView] = useState(false);
+  const [mode, setMode] = useState<Mode>(() => initialMode(webgl));
+  const [started, setStarted] = useState(mode === '3d');
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<SceneState>('closed');
-  const [focus, setFocus] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [leaving, setLeaving] = useState(false);
   const mount = useRef<HTMLDivElement>(null);
-  const label = useRef<HTMLDivElement>(null);
   const scene = useRef<ToolboxScene | null>(null);
-  const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const touch = isTouch();
 
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    saveMode(m);
+    if (m === '3d') setStarted(true);
+  };
+
+  // The scene is only created the first time 3D is shown, then paused
+  // (not torn down) while the list is up.
   useEffect(() => {
-    if (!webgl || !mount.current || !label.current) return;
+    if (!started || !mount.current) return;
     let cancelled = false;
     let timer = 0;
     import('./scene/ToolboxScene').then(({ ToolboxScene }) => {
-      if (cancelled || !mount.current || !label.current) return;
-      scene.current = new ToolboxScene(mount.current, tools, label.current, {
-        onState: setState,
-        onFocus: setFocus,
+      if (cancelled || !mount.current) return;
+      scene.current = new ToolboxScene(mount.current, tools, {
+        onState: (s) => {
+          setState(s);
+          if (s === 'closed' || s === 'closing') setSelected(null);
+        },
+        onSelect: setSelected,
         onLaunch: (tool: Tool) => {
           setLeaving(true);
           timer = window.setTimeout(() => window.location.assign(tool.href), 650);
@@ -79,13 +124,19 @@ export default function App() {
       window.removeEventListener('pageshow', onShow);
       scene.current?.dispose();
       scene.current = null;
+      setReady(false);
     };
-  }, [webgl]);
+  }, [started]);
+
+  useEffect(() => {
+    scene.current?.setPaused(mode === 'list');
+  }, [mode, ready]);
 
   if (!webgl) return <ToolList />;
 
-  const focused = focus !== null && focus >= 0 ? tools[focus] : null;
   const verb = touch ? 'Tap' : 'Click';
+  const sel = selected !== null ? tools[selected] : null;
+  const showPanel = sel && (state === 'open' || state === 'opening');
 
   return (
     <main className="stage">
@@ -105,29 +156,35 @@ export default function App() {
         <p>Small tools that make life easier.</p>
       </header>
 
-      <button className="btn list-toggle" onClick={() => setListView(true)}>
+      <button className="btn list-toggle" onClick={() => switchMode('list')}>
         List view
       </button>
 
-      <div ref={label} className={`tool-label ${focus !== null ? 'show' : ''}`} aria-hidden="true">
-        <div className="tool-label-card">
-          {focus === -1 ? (
-            <span className="tool-name">Open toolbox</span>
-          ) : focused ? (
-            <>
-              <span className="tool-name">{focused.name}</span>
-              <span className="tool-description">{focused.description}</span>
-              {touch && <span className="tool-hint">Tap again to open</span>}
-            </>
-          ) : null}
-        </div>
-      </div>
+      <aside className={`info-panel ${showPanel ? 'show' : ''}`} aria-live="polite">
+        {sel && (
+          <>
+            <button className="info-close" aria-label="Dismiss" onClick={() => setSelected(null)}>
+              ×
+            </button>
+            <div className="info-icon">
+              <ToolIcon model={sel.model} size={64} />
+            </div>
+            <h2>{sel.name}</h2>
+            <p>{sel.description}</p>
+            <button className="btn btn-primary" onClick={() => scene.current?.launchTool(selected!)}>
+              Open {sel.name} →
+            </button>
+          </>
+        )}
+      </aside>
 
       <footer className={`hint ${ready ? 'show' : ''}`}>
         {state === 'closed' && <span>{verb} the toolbox to open it</span>}
         {(state === 'open' || state === 'opening') && (
           <>
-            <span>{verb} a tool to use it · drag things around</span>
+            <span>
+              {touch ? 'Hold a tool to see what it is · tap to open it' : 'Pick up a tool to see what it is · click to open it'}
+            </span>
             <button className="btn" onClick={() => scene.current?.close()}>
               Close lid
             </button>
@@ -136,9 +193,9 @@ export default function App() {
         {state === 'closing' && <span>Packing up…</span>}
       </footer>
 
-      {!ready && <div className="loading">Opening the garage…</div>}
+      {started && !ready && <div className="loading">Opening the garage…</div>}
       <div className={`fade ${leaving ? 'show' : ''}`} />
-      {listView && <ToolList onClose={() => setListView(false)} />}
+      {mode === 'list' && <ToolList onGarage={() => switchMode('3d')} />}
     </main>
   );
 }

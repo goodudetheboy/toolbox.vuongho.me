@@ -14,8 +14,8 @@ export type SceneState = 'closed' | 'opening' | 'open' | 'closing' | 'launching'
 
 export interface SceneCallbacks {
   onState: (s: SceneState) => void;
-  /** index into tools of the hovered (mouse) or armed (touch) tool, or -1 for the closed toolbox */
-  onFocus: (index: number | null) => void;
+  /** a tool was picked up (index into tools), or the box closed (null) */
+  onSelect: (index: number | null) => void;
   onLaunch: (tool: Tool) => void;
 }
 
@@ -69,14 +69,14 @@ export class ToolboxScene {
   private drag: { item: Item; target: THREE.Vector3; holdQuat: THREE.Quaternion } | null = null;
   private hovered: Item | null = null;
   private hoverBox = false;
-  private armed: Item | null = null;
+  private longPress = 0;
+  private paused = false;
   private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   private coarse = window.matchMedia('(pointer: coarse)').matches;
 
   constructor(
     private container: HTMLElement,
     private tools: Tool[],
-    private label: HTMLElement,
     private cb: SceneCallbacks,
   ) {
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -343,6 +343,7 @@ export class ToolboxScene {
     if (this.state !== 'open' && this.state !== 'opening') return;
     this.endDrag();
     this.setFocus(null);
+    this.cb.onSelect(null);
     this.setState('closing');
     this.flyTo(this.views.closed, 1.4);
     // Put anything that got moved back where it lives, then shut the lid.
@@ -371,6 +372,24 @@ export class ToolboxScene {
     this.setState('open');
     this.lid.angle = LID_MAX;
     this.lid.vel = 0;
+  }
+
+  /** Open a tool from outside the canvas (the info panel's button). */
+  launchTool(index: number) {
+    const it = this.items.find((i) => i.toolIndex === index);
+    if (it && this.state === 'open') this.launch(it);
+  }
+
+  /** Stop rendering entirely (list view is showing) to save power. */
+  setPaused(paused: boolean) {
+    if (paused === this.paused || this.disposed) return;
+    this.paused = paused;
+    if (paused) {
+      cancelAnimationFrame(this.raf);
+    } else {
+      this.timer.update();
+      this.loop();
+    }
   }
 
   private launch(it: Item) {
@@ -560,6 +579,14 @@ export class ToolboxScene {
     const item = hit.item ?? (this.state === 'open' ? this.pickAnyItem() : null);
     this.down = { x: e.clientX, y: e.clientY, item, toolbox: hit.toolbox, pointerType: e.pointerType };
     this.renderer.domElement.setPointerCapture(e.pointerId);
+    // Press and hold (without moving) also picks the thing up.
+    window.clearTimeout(this.longPress);
+    if (item && this.state === 'open') {
+      const d = this.down;
+      this.longPress = window.setTimeout(() => {
+        if (this.down === d && !this.drag && this.state === 'open') this.startDrag(item);
+      }, 280);
+    }
   };
 
   private pickAnyItem(): Item | null {
@@ -585,6 +612,7 @@ export class ToolboxScene {
   private onUp = (e: PointerEvent) => {
     const d = this.down;
     this.down = null;
+    window.clearTimeout(this.longPress);
     if (this.drag) {
       this.endDrag();
       return;
@@ -597,12 +625,6 @@ export class ToolboxScene {
     if (this.state !== 'open') return;
     const it = d.item;
     if (it && it.toolIndex !== null) {
-      // Touch has no hover, so the first tap shows what the tool is.
-      if (d.pointerType !== 'mouse' && this.armed !== it) {
-        this.armed = it;
-        this.setFocus(it);
-        return;
-      }
       this.launch(it);
       return;
     }
@@ -614,12 +636,12 @@ export class ToolboxScene {
         return;
       }
     }
-    this.armed = null;
     this.setFocus(null);
   };
 
   private onCancel = () => {
     this.down = null;
+    window.clearTimeout(this.longPress);
     this.endDrag();
   };
 
@@ -653,12 +675,11 @@ export class ToolboxScene {
   private setFocus(f: Item | 'box' | null) {
     if (this.focused === f) return;
     this.focused = f;
-    this.cb.onFocus(f === null ? null : f === 'box' ? -1 : f.toolIndex);
   }
 
   private startDrag(item: Item) {
     this.setFocus(null);
-    this.armed = null;
+    if (item.toolIndex !== null) this.cb.onSelect(item.toolIndex);
     const q = item.body.quaternion;
     item.body.wakeUp();
     // While held, contacts can't spin it; driveDrag sets its rotation rate.
@@ -748,7 +769,7 @@ export class ToolboxScene {
   };
 
   private loop = () => {
-    if (this.disposed) return;
+    if (this.disposed || this.paused) return;
     this.raf = requestAnimationFrame(this.loop);
     this.timer.update();
     const dt = this.timer.getDelta();
@@ -791,7 +812,6 @@ export class ToolboxScene {
     this.updateCamera(dt);
     this.updateDust(dt);
     this.updateHoverLight(dt);
-    this.updateLabel();
     if (this.composer) this.composer.render(dt);
     else this.renderer.render(this.scene, this.camera);
   }
@@ -809,28 +829,16 @@ export class ToolboxScene {
   }
 
   private updateHoverLight(dt: number) {
-    const f = this.focused && this.focused !== 'box' ? this.focused : null;
+    const f = this.drag?.item ?? (this.focused && this.focused !== 'box' ? this.focused : null);
     const target = f ? 0.25 : 0;
     this.hoverLight.intensity += (target - this.hoverLight.intensity) * (1 - Math.exp(-dt * 10));
     if (f) this.hoverLight.position.set(f.body.position.x, f.body.position.y + 0.06, f.body.position.z + 0.03);
   }
 
-  private updateLabel() {
-    const f = this.focused;
-    if (!f) return;
-    const p = f === 'box'
-      ? new THREE.Vector3(0, DESK_Y + BOX.H + BOX.LH + 0.06, 0)
-      : new THREE.Vector3(f.body.position.x, f.body.position.y + 0.03, f.body.position.z);
-    p.project(this.camera);
-    const { w, h } = this.size();
-    const x = (p.x * 0.5 + 0.5) * w;
-    const y = (-p.y * 0.5 + 0.5) * h;
-    this.label.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-  }
-
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    window.clearTimeout(this.longPress);
     this.timer.dispose();
     const el = this.renderer.domElement;
     el.removeEventListener('pointerdown', this.onDown);

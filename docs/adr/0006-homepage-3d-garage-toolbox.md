@@ -63,3 +63,17 @@ site need.
   GPU render; it can't be judged in software-rendered environments (the
   Claude desktop browser pane uses the Microsoft Basic Render Driver and
   runs it at ~1 fps).
+
+## Addendum 2026-09-25: info on pick-up, list view by default on phones
+
+- Tool info no longer floats next to the object on hover (it never showed
+  on touch). Picking a tool up (drag, or press-and-hold ~280 ms) shows it
+  in an info panel — right side on desktop, bottom sheet on phones — with
+  an "Open" button. A plain click/tap on a tool still opens it directly.
+- Touch-primary devices (`pointer: coarse`) default to the list view, and
+  the 3D chunk isn't even imported until the visitor taps "Open the garage
+  (3D)", to spare phone batteries/GPUs. The choice is remembered in
+  `localStorage` (`toolbox.view`). Switching back to the list pauses the
+  scene's render loop rather than disposing it.
+- List tiles and the info panel use `ToolIcon.tsx`: SVG drawings of the
+  same props (marker, microphone, compass, wrench fallback).
