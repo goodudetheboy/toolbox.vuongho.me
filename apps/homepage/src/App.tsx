@@ -183,7 +183,7 @@ export default function App() {
         {(state === 'open' || state === 'opening') && (
           <>
             <span>
-              {touch ? 'Hold a tool to see what it is · tap to open it' : 'Pick up a tool to see what it is · click to open it'}
+              {touch ? 'Hold a tool to see what it is · tap to open it' : 'Hover or pick up a tool to see what it is · click to open it'}
             </span>
             <button className="btn" onClick={() => scene.current?.close()}>
               Close lid

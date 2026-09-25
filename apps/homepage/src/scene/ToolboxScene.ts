@@ -660,6 +660,11 @@ export class ToolboxScene {
 
   private updateHover() {
     const hit = this.pick();
+    // Hovering a tool previews it in the info panel. It stays selected when
+    // the pointer leaves, so the panel's Open button is still reachable.
+    if (this.state === 'open' && hit.item && hit.item !== this.hovered && hit.item.toolIndex !== null) {
+      this.cb.onSelect(hit.item.toolIndex);
+    }
     this.hovered = hit.item;
     this.hoverBox = this.state === 'closed' && hit.toolbox;
     const el = this.renderer.domElement;
