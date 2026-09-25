@@ -33,11 +33,19 @@ export interface TranscriptRecord {
 export interface QueuedFile {
   id: string;
   file: File;
+  // Present when the file came in via the File System Access API (Chromium), so
+  // the recording can be reopened from history later without storing its bytes.
+  handle?: FileSystemFileHandle;
   status: FileStatus;
   progress: number;
   progressLabel?: string;
   transcript?: TranscriptRecord;
   error?: string;
+}
+
+export interface PickedFile {
+  file: File;
+  handle?: FileSystemFileHandle;
 }
 
 export interface AppSettings {

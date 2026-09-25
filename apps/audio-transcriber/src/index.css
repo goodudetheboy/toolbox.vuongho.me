@@ -68,6 +68,9 @@ body {
   text-decoration: none;
   font-size: 0.85rem;
   margin-right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .back-link:hover { color: var(--text); }
@@ -132,6 +135,8 @@ button:disabled:hover { transform: none; }
 }
 .btn-icon:hover { background: var(--accent-lighter); color: var(--accent); }
 
+.btn-with-icon { display: inline-flex; align-items: center; gap: 6px; }
+
 .btn-danger { color: #e53e3e; }
 .btn-danger:hover { background: rgba(229, 62, 62, 0.08); }
 
@@ -142,6 +147,9 @@ button:disabled:hover { transform: none; }
   padding: 3px 9px;
   border-radius: 20px;
   letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .badge-webgpu { background: rgba(72, 187, 120, 0.14); color: #276749; }
 .badge-wasm { background: var(--accent-lighter); color: var(--text-sub); }
@@ -204,6 +212,7 @@ button:disabled:hover { transform: none; }
   color: var(--text-sub);
   font-size: 14px;
 }
+.dropzone-left-icon { color: var(--accent); flex-shrink: 0; }
 
 /* ── Workspace ── */
 .workspace {
@@ -254,7 +263,7 @@ button:disabled:hover { transform: none; }
 .queue-item:hover { background: var(--bg-hover); }
 .queue-item.active { background: var(--accent-light); }
 
-.queue-item-icon { font-size: 20px; flex-shrink: 0; }
+.queue-item-icon { display: flex; color: var(--accent); flex-shrink: 0; }
 
 .queue-item-info { flex: 1; min-width: 0; }
 
@@ -279,11 +288,12 @@ button:disabled:hover { transform: none; }
   border: none;
   color: var(--text-muted);
   font-size: 16px;
-  padding: 2px 4px;
+  padding: 4px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
+  display: flex;
 }
 .queue-item:hover .queue-item-remove { opacity: 1; }
 .queue-item-remove:hover { color: #e53e3e; background: rgba(229,62,62,0.08); }
@@ -408,7 +418,7 @@ button:disabled:hover { transform: none; }
   font-size: 14px;
 }
 
-.transcript-empty .empty-icon { font-size: 40px; opacity: 0.5; }
+.transcript-empty .empty-icon { opacity: 0.6; }
 
 .transcript-segment {
   display: flex;
@@ -418,6 +428,62 @@ button:disabled:hover { transform: none; }
   line-height: 1.55;
 }
 .transcript-segment:last-child { border-bottom: none; }
+.transcript-segment.is-current {
+  background: var(--accent-lighter);
+  box-shadow: inset 3px 0 0 var(--accent);
+  margin: 0 -18px;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.segment-play {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: -1px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.segment-play:hover,
+.segment-play.is-playing {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* ── Recording player ── */
+.recording-bar {
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-hover);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recording-audio { width: 100%; height: 40px; }
+
+.recording-bar-empty {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.recording-bar-icon { color: var(--accent); flex-shrink: 0; }
+.recording-note {
+  flex: 1;
+  min-width: 180px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.recording-note strong { color: var(--text); font-weight: 600; word-break: break-all; }
+.recording-note-error { color: #c53030; font-size: 12px; margin-top: 2px; }
 
 .segment-time {
   font-size: 12px;
@@ -430,6 +496,7 @@ button:disabled:hover { transform: none; }
 }
 
 .segment-time-input {
+  align-self: flex-start;
   font-size: 12px;
   font-weight: 600;
   color: var(--accent);
@@ -554,6 +621,7 @@ button:disabled:hover { transform: none; }
   line-height: 1;
   cursor: pointer;
   padding: 0 2px;
+  display: flex;
 }
 .speaker-chip-remove:hover { color: #e53e3e; }
 
@@ -606,6 +674,7 @@ button:disabled:hover { transform: none; }
   gap: 12px;
 }
 .history-item:hover { background: var(--bg-hover); }
+.history-item-icon { color: var(--accent); flex-shrink: 0; margin-top: 2px; }
 .history-item.active { background: var(--accent-light); }
 
 .history-item-info { flex: 1; min-width: 0; }

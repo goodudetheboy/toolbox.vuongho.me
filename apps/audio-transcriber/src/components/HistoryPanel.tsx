@@ -1,3 +1,4 @@
+import { FileText, Trash2, X } from 'lucide-react';
 import type { TranscriptRecord } from '../types';
 import { formatDate } from '../lib/formatters';
 
@@ -15,7 +16,7 @@ export default function HistoryPanel({ history, activeId, onSelect, onDelete, on
       <div className="history-drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-header">
           <h2>History</h2>
-          <button className="btn-icon" onClick={onClose} title="Close">×</button>
+          <button className="btn-icon" onClick={onClose} title="Close"><X size={18} /></button>
         </div>
         <div className="drawer-body">
           {history.length === 0 ? (
@@ -27,7 +28,7 @@ export default function HistoryPanel({ history, activeId, onSelect, onDelete, on
                 className={`history-item ${r.id === activeId ? 'active' : ''}`}
                 onClick={() => onSelect(r.id)}
               >
-                <span style={{ fontSize: 22 }}>📄</span>
+                <FileText size={20} className="history-item-icon" />
                 <div className="history-item-info">
                   <div className="history-item-name" title={r.filename}>{r.filename}</div>
                   <div className="history-item-meta">{formatDate(r.createdAt)}</div>
@@ -37,7 +38,7 @@ export default function HistoryPanel({ history, activeId, onSelect, onDelete, on
                   title="Delete"
                   onClick={e => { e.stopPropagation(); onDelete(r.id); }}
                 >
-                  🗑
+                  <Trash2 size={16} />
                 </button>
               </div>
             ))

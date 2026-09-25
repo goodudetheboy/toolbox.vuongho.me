@@ -1,3 +1,4 @@
+import { Film, Music, X } from 'lucide-react';
 import type { QueuedFile, FileStatus } from '../types';
 
 interface Props {
@@ -7,10 +8,10 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-function fileIcon(name: string): string {
+function fileIcon(name: string) {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
-  if (['mp4', 'mov', 'mkv', 'webm', 'avi'].includes(ext)) return '🎬';
-  return '🎵';
+  if (['mp4', 'mov', 'mkv', 'webm', 'avi'].includes(ext)) return <Film size={18} />;
+  return <Music size={18} />;
 }
 
 function statusDot(status: FileStatus): string {
@@ -59,7 +60,7 @@ export default function FileQueue({ files, activeId, onSelect, onRemove }: Props
               title="Remove"
               onClick={e => { e.stopPropagation(); onRemove(f.id); }}
             >
-              ×
+              <X size={14} />
             </button>
           </div>
         ))}

@@ -28,6 +28,11 @@ it to timestamped text. Migrated from its own standalone repo/deploy at
   `import.meta.env.BASE_URL` (not hardcoded `/ffmpeg/`) since this tool is
   served under a subpath — a real bug found and fixed during migration, see
   the progress log above if touching this path again.
+- Segment playback: history keeps only File System Access handles to the
+  original recordings (`mediaHandles` store), never the media itself.
+  Firefox/Safari fall back to re-attaching the file. See
+  [ADR 0002](docs/adr/0002-recording-playback-via-file-handles.md).
+- Icons are `lucide-react`. Don't use emojis for UI icons.
 
 ## Running
 

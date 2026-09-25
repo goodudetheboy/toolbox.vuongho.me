@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { QueuedFile, TranscriptRecord, TranscriptSegment, AppSettings, WorkerInMessage, WorkerOutMessage, ComputeDevice } from './types';
-import { saveTranscript, getAllTranscripts, deleteTranscript } from './lib/storage';
+import { ArrowLeft, Cpu, Settings, Zap } from 'lucide-react';
+import type { QueuedFile, TranscriptRecord, TranscriptSegment, AppSettings, WorkerInMessage, WorkerOutMessage, ComputeDevice, PickedFile } from './types';
+import { saveTranscript, getAllTranscripts, deleteTranscript, saveMediaHandle } from './lib/storage';
+import { useRecording } from './lib/useRecording';
 import DropZone from './components/DropZone';
 import FileQueue from './components/FileQueue';
 import TranscriptViewer from './components/TranscriptViewer';
@@ -128,6 +130,9 @@ export default function App() {
         });
 
         if (msg.chunkIndex === 0) {
+          // Persist only a pointer to the original file (not its bytes) so the
+          // recording can be reopened for playback from history later.
+          if (file?.handle) saveMediaHandle(msg.id, file.handle).catch(console.error);
           const switchingAway = activeFileIdRef.current !== null && activeFileIdRef.current !== msg.id;
           if (!(switchingAway && hasUnsavedEditsRef.current)) setActiveFileId(msg.id);
         }
@@ -187,10 +192,11 @@ export default function App() {
     } as WorkerInMessage);
   }, [files, settings]);
 
-  const addFiles = useCallback((newFiles: File[]) => {
-    const items: QueuedFile[] = newFiles.map(file => ({
+  const addFiles = useCallback((newFiles: PickedFile[]) => {
+    const items: QueuedFile[] = newFiles.map(({ file, handle }) => ({
       id: crypto.randomUUID(),
       file,
+      handle,
       status: 'pending',
       progress: 0,
     }));
@@ -228,12 +234,14 @@ export default function App() {
   // rebuild files[].transcript straight from the raw worker output and would silently
   // clobber any in-progress edits made while a file is still transcribing.
   const activeTranscriptEditable = !activeFile || activeFile.status === 'done';
+  const recording = useRecording(activeTranscript?.id, activeFile?.file);
 
   return (
     <div className="app">
       <header className="header">
         <a className="back-link" href="/">
-          ← Back to Toolbox
+          <ArrowLeft size={16} />
+          Back to Toolbox
         </a>
         <div className="header-brand">
           <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -248,11 +256,12 @@ export default function App() {
         <div className="header-actions">
           {computeMode && (
             <span className={`badge badge-${computeMode}`}>
-              {computeMode === 'webgpu' ? '⚡ GPU' : '⬜ CPU'}
+              {computeMode === 'webgpu' ? <Zap size={12} /> : <Cpu size={12} />}
+              {computeMode === 'webgpu' ? 'GPU' : 'CPU'}
             </span>
           )}
           <button className="btn-icon" title="Settings" onClick={() => setShowSettings(true)}>
-            ⚙️
+            <Settings size={18} />
           </button>
           <button className="btn-secondary" onClick={() => setShowHistory(true)}>
             History
@@ -278,6 +287,10 @@ export default function App() {
               editable={activeTranscriptEditable}
               onUpdateTranscript={handleUpdateTranscript}
               onDirtyChange={setHasUnsavedEdits}
+              recording={recording.state}
+              recordingError={recording.lockedError}
+              onUnlockRecording={recording.unlock}
+              onAttachRecording={recording.attach}
             />
           </div>
         )}

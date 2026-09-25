@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Merge, Pause, Play, Scissors } from 'lucide-react';
 import type { Speaker, TranscriptSegment } from '../types';
 import { formatTimestamp, parseTimestamp } from '../lib/formatters';
 import { speakerColor } from '../lib/transcript';
@@ -8,6 +9,10 @@ interface Props {
   speakers: Speaker[];
   editMode: boolean;
   canMergeNext: boolean;
+  isCurrent: boolean;
+  isPlaying: boolean;
+  // Undefined when there's no recording loaded to play
+  onPlay?: () => void;
   onSplit: (cursorPos: number) => void;
   onMergeNext: () => void;
   onAssignSpeaker: (speakerId: string | undefined) => void;
@@ -20,6 +25,9 @@ export default function SegmentRow({
   speakers,
   editMode,
   canMergeNext,
+  isCurrent,
+  isPlaying,
+  onPlay,
   onSplit,
   onMergeNext,
   onAssignSpeaker,
@@ -63,7 +71,17 @@ export default function SegmentRow({
   };
 
   return (
-    <div className="transcript-segment">
+    <div className={`transcript-segment ${isCurrent ? 'is-current' : ''}`}>
+      {onPlay && (
+        <button
+          className={`segment-play ${isPlaying ? 'is-playing' : ''}`}
+          onClick={onPlay}
+          title={isPlaying ? 'Pause' : `Play from ${formatTimestamp(segment.start)}`}
+          aria-label={isPlaying ? 'Pause' : `Play from ${formatTimestamp(segment.start)}`}
+        >
+          {isPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+        </button>
+      )}
       {editMode ? (
         <input
           type="text"
@@ -110,12 +128,12 @@ export default function SegmentRow({
                 </option>
               ))}
             </select>
-            <button className="btn-ghost" onClick={handleSplit} title="Split at cursor">
-              ✂️ Split
+            <button className="btn-ghost btn-with-icon" onClick={handleSplit} title="Split at cursor">
+              <Scissors size={14} /> Split
             </button>
             {canMergeNext && (
-              <button className="btn-ghost" onClick={onMergeNext} title="Merge with next segment">
-                ⬇ Merge
+              <button className="btn-ghost btn-with-icon" onClick={onMergeNext} title="Merge with next segment">
+                <Merge size={14} /> Merge
               </button>
             )}
           </div>

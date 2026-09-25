@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useReducer, useRef } from 'react';
-import type { TranscriptRecord, Speaker } from '../types';
+import { Check, ChevronDown, FileText, MicOff, Redo2, Undo2 } from 'lucide-react';
+import type { TranscriptRecord, Speaker, PickedFile } from '../types';
+import type { RecordingState } from '../lib/useRecording';
 import { segmentsToText, segmentsToSrt, segmentsToVtt } from '../lib/formatters';
 import {
   addSpeaker,
@@ -13,12 +15,17 @@ import {
 } from '../lib/transcript';
 import SegmentRow from './SegmentRow';
 import SpeakerRoster from './SpeakerRoster';
+import RecordingPlayer from './RecordingPlayer';
 
 interface Props {
   transcript?: TranscriptRecord;
   editable: boolean;
   onUpdateTranscript: (updated: TranscriptRecord) => void;
   onDirtyChange: (dirty: boolean) => void;
+  recording: RecordingState | undefined;
+  recordingError?: string;
+  onUnlockRecording: () => void;
+  onAttachRecording: (picked: PickedFile) => void;
 }
 
 interface DraftState {
@@ -77,7 +84,19 @@ function draftReducer(state: DraftState, action: DraftAction): DraftState {
   }
 }
 
-export default function TranscriptViewer({ transcript, editable, onUpdateTranscript, onDirtyChange }: Props) {
+export default function TranscriptViewer({
+  transcript,
+  editable,
+  onUpdateTranscript,
+  onDirtyChange,
+  recording,
+  recordingError,
+  onUnlockRecording,
+  onAttachRecording,
+}: Props) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
@@ -171,6 +190,30 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
     setSaveMenuOpen(false);
   }, [draft]);
 
+  const canPlay = recording?.kind === 'ready';
+
+  // The segment under the playhead: the last one starting at or before it. Only
+  // highlighted once playback has actually moved, so a freshly loaded file
+  // doesn't light up the first row.
+  const activeSegmentIndex = (() => {
+    if (!canPlay || !draft || (!playing && playbackTime === 0)) return -1;
+    let idx = -1;
+    draft.segments.forEach((seg, i) => { if (seg.start <= playbackTime + 0.05) idx = i; });
+    return idx;
+  })();
+
+  const handlePlaySegment = (index: number) => {
+    const audio = audioRef.current;
+    const seg = draft?.segments[index];
+    if (!audio || !seg) return;
+    if (index === activeSegmentIndex && playing) {
+      audio.pause();
+      return;
+    }
+    audio.currentTime = seg.start;
+    audio.play().catch(console.error);
+  };
+
   const handleSplit = (index: number, cursorPos: number) => {
     dispatch({ type: 'COMMIT', mutate: r => ({ ...r, segments: splitSegmentAt(r.segments, index, cursorPos) }) });
   };
@@ -241,7 +284,7 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
                   onClick={() => dispatch({ type: 'UNDO' })}
                   title="Undo (Ctrl+Z)"
                 >
-                  ↶
+                  <Undo2 size={17} />
                 </button>
                 <button
                   className="btn-icon"
@@ -249,7 +292,7 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
                   onClick={() => dispatch({ type: 'REDO' })}
                   title="Redo (Ctrl+Shift+Z)"
                 >
-                  ↷
+                  <Redo2 size={17} />
                 </button>
               </>
             )}
@@ -271,12 +314,12 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
             >
               {editMode ? 'Done editing' : 'Edit'}
             </button>
-            <button className="btn-ghost" onClick={handleCopy}>
-              {copied ? '✓ Copied' : 'Copy all'}
+            <button className="btn-ghost btn-with-icon" onClick={handleCopy}>
+              {copied ? <><Check size={14} /> Copied</> : 'Copy all'}
             </button>
             <div className="save-dropdown" ref={saveMenuRef}>
-              <button className="btn-secondary" onClick={() => setSaveMenuOpen(v => !v)}>
-                Save ▾
+              <button className="btn-secondary btn-with-icon" onClick={() => setSaveMenuOpen(v => !v)}>
+                Save <ChevronDown size={14} />
               </button>
               {saveMenuOpen && (
                 <div className="save-dropdown-menu">
@@ -292,6 +335,18 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
         )}
       </div>
 
+      {draft && (
+        <RecordingPlayer
+          recording={recording}
+          error={recordingError}
+          audioRef={audioRef}
+          onUnlock={onUnlockRecording}
+          onAttach={onAttachRecording}
+          onTimeUpdate={setPlaybackTime}
+          onPlayingChange={setPlaying}
+        />
+      )}
+
       {draft && editMode && (
         <SpeakerRoster
           speakers={draft.speakers ?? []}
@@ -304,12 +359,12 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
       <div className="transcript-body">
         {!draft ? (
           <div className="transcript-empty">
-            <span className="empty-icon">📄</span>
+            <FileText size={40} strokeWidth={1.5} className="empty-icon" />
             <span>Select a completed file to view its transcript</span>
           </div>
         ) : draft.segments.length === 0 ? (
           <div className="transcript-empty">
-            <span className="empty-icon">🤔</span>
+            <MicOff size={40} strokeWidth={1.5} className="empty-icon" />
             <span>No speech detected in this file</span>
           </div>
         ) : (
@@ -320,6 +375,9 @@ export default function TranscriptViewer({ transcript, editable, onUpdateTranscr
               speakers={draft.speakers ?? []}
               editMode={editMode}
               canMergeNext={i < draft.segments.length - 1}
+              isCurrent={i === activeSegmentIndex}
+              isPlaying={i === activeSegmentIndex && playing}
+              onPlay={canPlay ? () => handlePlaySegment(i) : undefined}
               onSplit={cursorPos => handleSplit(i, cursorPos)}
               onMergeNext={() => handleMergeNext(i)}
               onAssignSpeaker={speakerId => handleAssignSpeaker(i, speakerId)}

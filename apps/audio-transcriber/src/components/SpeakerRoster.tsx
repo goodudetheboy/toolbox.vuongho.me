@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus, X } from 'lucide-react';
 import type { Speaker } from '../types';
 import { speakerColor } from '../lib/transcript';
 
@@ -46,12 +47,12 @@ export default function SpeakerRoster({ speakers, onAdd, onRename, onRemove }: P
             </span>
           )}
           <button className="speaker-chip-remove" title="Remove speaker" onClick={() => onRemove(speaker.id)}>
-            ×
+            <X size={12} />
           </button>
         </div>
       ))}
-      <button className="btn-ghost" onClick={onAdd}>
-        + Add speaker
+      <button className="btn-ghost btn-with-icon" onClick={onAdd}>
+        <Plus size={14} /> Add speaker
       </button>
     </div>
   );
