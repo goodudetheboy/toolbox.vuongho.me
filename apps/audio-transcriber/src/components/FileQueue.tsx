@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Film, Music, RotateCw, X } from 'lucide-react';
 import type { QueuedFile, FileStatus } from '../types';
 import { formatDuration } from '../lib/formatters';
@@ -33,25 +33,29 @@ function statusLabel(file: QueuedFile): string {
 
 const isRunning = (f: QueuedFile) => f.status === 'extracting' || f.status === 'transcribing';
 
-// "1m 05s elapsed · ~2m 10s left" while running, "Took 3m 15s" when done.
-// ETA extrapolates this run's transcription pace over the remaining progress;
-// model loading and audio extraction happen before that phase and aren't counted.
-function timingLabel(f: QueuedFile, now: number): string | null {
-  if (!f.startedAt) return null;
-  if (f.finishedAt) {
-    const took = formatDuration(f.finishedAt - f.startedAt);
-    return f.status === 'error' ? `Stopped after ${took}` : `Took ${took}`;
-  }
-  if (!isRunning(f)) return null;
+// How often the ETA is recalculated. Windows finish in bursts, so a
+// per-second estimate bounces around; in between it just counts down.
+const ETA_REFRESH_MS = 10_000;
+// Don't estimate from the first window or two to finish: the first batch
+// (one window per worker) lands together ~10–15s in, and an estimate taken
+// before that is wildly off (e.g. "~7m left" for a 45s job).
+const ETA_MIN_SAMPLE_MS = 20_000;
 
-  const elapsed = `${formatDuration(now - f.startedAt)} elapsed`;
-  if (f.status !== 'transcribing' || !f.transcribeStartedAt) return elapsed;
+interface EtaSnapshot {
+  // Identifies the run, so a retry doesn't reuse the last run's estimate
+  runStartedAt: number;
+  remainingMs: number;
+  computedAt: number;
+}
 
+// Projects this run's transcription pace over the remaining progress. Model
+// loading and audio extraction happen before that phase and aren't counted.
+function estimateRemaining(f: QueuedFile, now: number): number | null {
+  if (!f.transcribeStartedAt) return null;
   const done = f.progress - (f.transcribeStartProgress ?? 0);
   const spent = now - f.transcribeStartedAt;
-  if (done <= 0 || spent <= 0) return `${elapsed} · estimating…`;
-  const remaining = ((1 - f.progress) / done) * spent;
-  return `${elapsed} · ~${formatDuration(remaining)} left`;
+  if (done <= 0 || spent < ETA_MIN_SAMPLE_MS) return null;
+  return ((1 - f.progress) / done) * spent;
 }
 
 export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry }: Props) {
@@ -65,11 +69,44 @@ export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry
     return () => clearInterval(t);
   }, [anyRunning]);
 
+  const etaRef = useRef(new Map<string, EtaSnapshot>());
+
+  // "1m 05s elapsed · ~2m 10s left" while running, "Took 3m 15s" when done.
+  const timingLabel = (f: QueuedFile): string | null => {
+    if (!f.startedAt) return null;
+    if (f.finishedAt) {
+      etaRef.current.delete(f.id);
+      const took = formatDuration(f.finishedAt - f.startedAt);
+      return f.status === 'error' ? `Stopped after ${took}` : `Took ${took}`;
+    }
+    if (!isRunning(f)) return null;
+
+    const elapsed = `${formatDuration(now - f.startedAt)} elapsed`;
+    if (f.status !== 'transcribing') return elapsed;
+
+    let snap = etaRef.current.get(f.id);
+    if (!snap || snap.runStartedAt !== f.startedAt || now - snap.computedAt >= ETA_REFRESH_MS) {
+      const remainingMs = estimateRemaining(f, now);
+      if (remainingMs === null) {
+        etaRef.current.delete(f.id);
+        return `${elapsed} · estimating…`;
+      }
+      snap = { runStartedAt: f.startedAt, remainingMs, computedAt: now };
+      etaRef.current.set(f.id, snap);
+    }
+    const left = snap.remainingMs - (now - snap.computedAt);
+    return left > 1000
+      ? `${elapsed} · ~${formatDuration(left)} left`
+      : `${elapsed} · almost done`;
+  };
+
   return (
     <div className="queue-panel">
       <div className="queue-header">{files.length} file{files.length !== 1 ? 's' : ''}</div>
       <div className="queue-list">
-        {files.map(f => (
+        {files.map(f => {
+          const timing = timingLabel(f);
+          return (
           <div
             key={f.id}
             className={`queue-item ${f.id === activeId ? 'active' : ''}`}
@@ -82,7 +119,7 @@ export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry
                 <span className={`status-dot ${statusDot(f.status)}`} />
                 <span>{statusLabel(f)}</span>
               </div>
-              {timingLabel(f, now) && <div className="queue-item-time">{timingLabel(f, now)}</div>}
+              {timing && <div className="queue-item-time">{timing}</div>}
               {(f.status === 'extracting' || f.status === 'transcribing') && (
                 <div className="progress-bar">
                   <div
@@ -109,7 +146,8 @@ export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry
               <X size={14} />
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
