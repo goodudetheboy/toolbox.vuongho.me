@@ -3,6 +3,8 @@ import { ArrowLeft, Cpu, Settings, Zap } from 'lucide-react';
 import type { QueuedFile, TranscriptRecord, TranscriptSegment, AppSettings, WorkerInMessage, WorkerOutMessage, ComputeDevice, PickedFile } from './types';
 import { saveTranscript, getAllTranscripts, deleteTranscript, saveMediaHandle } from './lib/storage';
 import { useRecording } from './lib/useRecording';
+import { decoderPoolSize } from './lib/poolSize';
+import { createTranscriber, type Transcriber } from './lib/transcriber';
 import DropZone from './components/DropZone';
 import FileQueue from './components/FileQueue';
 import TranscriptViewer from './components/TranscriptViewer';
@@ -14,6 +16,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   device: 'webgpu',
 };
 
+function transcribingLabel(completed: number, total: number, workers: number): string {
+  const pct = total ? Math.round((completed / total) * 100) : 0;
+  return `Transcribing… ${pct}%${workers > 1 ? ` · ${workers} workers` : ''}`;
+}
+
 export default function App() {
   const [files, setFiles] = useState<QueuedFile[]>([]);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
@@ -24,21 +31,24 @@ export default function App() {
   const [computeMode, setComputeMode] = useState<ComputeDevice | null>(null);
   const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
 
-  const workerRef = useRef<Worker | null>(null);
+  const workerRef = useRef<Transcriber | null>(null);
   const settingsRef = useRef(settings);
   const computeModeRef = useRef(computeMode);
   const processingRef = useRef<string | null>(null);
   const filesRef = useRef(files);
   const activeFileIdRef = useRef(activeFileId);
   const hasUnsavedEditsRef = useRef(hasUnsavedEdits);
-  // Accumulates segments across chunks keyed by file id
-  const chunkAccRef = useRef<Map<string, { segments: TranscriptSegment[]; createdAt: number; filename: string }>>(new Map());
+  const historyRef = useRef(history);
+  // Per-file record metadata that must stay stable across progress updates
+  const recordMetaRef = useRef<Map<string, { createdAt: number; filename: string }>>(new Map());
+  const workerCountRef = useRef(1);
 
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   useEffect(() => { computeModeRef.current = computeMode; }, [computeMode]);
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { activeFileIdRef.current = activeFileId; }, [activeFileId]);
   useEffect(() => { hasUnsavedEditsRef.current = hasUnsavedEdits; }, [hasUnsavedEdits]);
+  useEffect(() => { historyRef.current = history; }, [history]);
 
   const confirmDiscard = useCallback(
     () => !hasUnsavedEdits || window.confirm('Discard unsaved changes?'),
@@ -57,21 +67,59 @@ export default function App() {
     getAllTranscripts().then(setHistory).catch(console.error);
   }, []);
 
-  // Initialize worker
-  useEffect(() => {
-    const worker = new Worker(
-      new URL('./workers/transcription.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
+  // Saves the merged-so-far transcript for a file (each update replaces the
+  // segments wholesale) and auto-selects the file the first time it has text.
+  const publishSegments = useCallback((id: string, segments: TranscriptSegment[]): TranscriptRecord => {
+    const file = filesRef.current.find(f => f.id === id);
+    let meta = recordMetaRef.current.get(id);
+    const isFirst = !meta;
+    if (!meta) {
+      // A retried file keeps its original history entry's createdAt
+      const prior = historyRef.current.find(r => r.id === id);
+      meta = { createdAt: prior?.createdAt ?? Date.now(), filename: file?.file.name ?? prior?.filename ?? 'audio' };
+      recordMetaRef.current.set(id, meta);
+    }
 
-    worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
-      const msg = e.data;
+    const record: TranscriptRecord = {
+      id,
+      filename: meta.filename,
+      createdAt: meta.createdAt,
+      model: settingsRef.current.model,
+      computeMode: computeModeRef.current ?? 'wasm',
+      segments,
+    };
+
+    saveTranscript(record).catch(console.error);
+    setHistory(h => (h.some(r => r.id === id) ? h.map(r => (r.id === id ? record : r)) : [record, ...h]));
+
+    if (isFirst) {
+      // Persist only a pointer to the original file (not its bytes) so the
+      // recording can be reopened for playback from history later.
+      if (file?.handle) saveMediaHandle(id, file.handle).catch(console.error);
+      const switchingAway = activeFileIdRef.current !== null && activeFileIdRef.current !== id;
+      if (!(switchingAway && hasUnsavedEditsRef.current)) setActiveFileId(id);
+    }
+    return record;
+  }, []);
+
+  // Initialize the transcription coordinator (main thread; owns the decoder pool)
+  useEffect(() => {
+    const worker = createTranscriber();
+
+    worker.onmessage = (msg: WorkerOutMessage) => {
 
       if (msg.type === 'MODEL_LOADING') {
         setFiles(prev => prev.map(f =>
           f.id === msg.id
             ? { ...f, progressLabel: `Loading model… ${Math.round(msg.progress)}%`, progress: msg.progress / 100 }
             : f,
+        ));
+        return;
+      }
+
+      if (msg.type === 'PREPARING') {
+        setFiles(prev => prev.map(f =>
+          f.id === msg.id ? { ...f, progressLabel: msg.label, progress: 0 } : f,
         ));
         return;
       }
@@ -91,69 +139,38 @@ export default function App() {
       }
 
       if (msg.type === 'TRANSCRIBING') {
+        workerCountRef.current = msg.workers;
         setFiles(prev => prev.map(f =>
           f.id === msg.id
             ? {
                 ...f,
                 status: 'transcribing',
-                progress: 0,
-                progressLabel: msg.totalChunks > 1
-                  ? `Transcribing… 0 of ${msg.totalChunks} chunks`
-                  : 'Transcribing…',
+                progress: msg.total ? msg.completed / msg.total : 0,
+                progressLabel: transcribingLabel(msg.completed, msg.total, msg.workers),
               }
             : f,
         ));
         return;
       }
 
-      if (msg.type === 'CHUNK_DONE') {
-        const file = filesRef.current.find(f => f.id === msg.id);
-        const filename = file?.file.name ?? chunkAccRef.current.get(msg.id)?.filename ?? 'audio';
-        const existing = chunkAccRef.current.get(msg.id) ?? { segments: [], createdAt: Date.now(), filename };
-        const allSegments = [...existing.segments, ...msg.segments];
-        chunkAccRef.current.set(msg.id, { segments: allSegments, createdAt: existing.createdAt, filename });
-
-        const record: TranscriptRecord = {
-          id: msg.id,
-          filename,
-          createdAt: existing.createdAt,
-          model: settingsRef.current.model,
-          computeMode: computeModeRef.current ?? 'wasm',
-          segments: allSegments,
-        };
-
-        saveTranscript(record).catch(console.error);
-
-        setHistory(h => {
-          const exists = h.some(r => r.id === msg.id);
-          return exists ? h.map(r => r.id === msg.id ? record : r) : [record, ...h];
-        });
-
-        if (msg.chunkIndex === 0) {
-          // Persist only a pointer to the original file (not its bytes) so the
-          // recording can be reopened for playback from history later.
-          if (file?.handle) saveMediaHandle(msg.id, file.handle).catch(console.error);
-          const switchingAway = activeFileIdRef.current !== null && activeFileIdRef.current !== msg.id;
-          if (!(switchingAway && hasUnsavedEditsRef.current)) setActiveFileId(msg.id);
-        }
-
+      if (msg.type === 'PROGRESS') {
+        const record = msg.segments ? publishSegments(msg.id, msg.segments) : undefined;
         setFiles(prev => prev.map(f => f.id === msg.id ? {
           ...f,
           status: 'transcribing',
-          progress: (msg.chunkIndex + 1) / msg.totalChunks,
-          progressLabel: msg.totalChunks > 1
-            ? `Transcribing… chunk ${msg.chunkIndex + 1} of ${msg.totalChunks}`
-            : 'Transcribing…',
-          transcript: record,
+          progress: msg.total ? msg.completed / msg.total : 0,
+          progressLabel: transcribingLabel(msg.completed, msg.total, workerCountRef.current),
+          ...(record ? { transcript: record } : {}),
         } : f));
         return;
       }
 
       if (msg.type === 'DONE') {
         processingRef.current = null;
-        chunkAccRef.current.delete(msg.id);
+        const record = publishSegments(msg.id, msg.segments);
+        recordMetaRef.current.delete(msg.id);
         setFiles(prev => prev.map(f =>
-          f.id === msg.id ? { ...f, status: 'done', progress: 1, progressLabel: undefined } : f,
+          f.id === msg.id ? { ...f, status: 'done', progress: 1, progressLabel: undefined, transcript: record } : f,
         ));
         return;
       }
@@ -170,7 +187,7 @@ export default function App() {
 
     workerRef.current = worker;
     return () => worker.terminate();
-  }, []);
+  }, [publishSegments]);
 
   // Queue processor — picks the next pending file when nothing is running
   useEffect(() => {
@@ -189,6 +206,7 @@ export default function App() {
       file: next.file,
       model: settings.model,
       device: settings.device,
+      maxWorkers: decoderPoolSize(settings.model),
     } as WorkerInMessage);
   }, [files, settings]);
 
@@ -205,10 +223,18 @@ export default function App() {
 
   const removeFile = useCallback((id: string) => {
     if (id === activeFileId && !confirmDiscard()) return;
-    chunkAccRef.current.delete(id);
+    recordMetaRef.current.delete(id);
+    workerRef.current?.postMessage({ type: 'DISCARD', id } as WorkerInMessage);
     setFiles(prev => prev.filter(f => f.id !== id));
     setActiveFileId(prev => (prev === id ? null : prev));
   }, [activeFileId, confirmDiscard]);
+
+  // Re-queue a failed file; the worker resumes from the windows it already has
+  const retryFile = useCallback((id: string) => {
+    setFiles(prev => prev.map(f =>
+      f.id === id ? { ...f, status: 'pending', error: undefined, progress: 0, progressLabel: undefined } : f,
+    ));
+  }, []);
 
   const handleDeleteHistory = useCallback(async (id: string) => {
     if (id === activeFileId && !confirmDiscard()) return;
@@ -280,6 +306,7 @@ export default function App() {
                 activeId={activeFileId}
                 onSelect={id => { if (confirmDiscard()) setActiveFileId(id); }}
                 onRemove={removeFile}
+                onRetry={retryFile}
               />
             )}
             <TranscriptViewer

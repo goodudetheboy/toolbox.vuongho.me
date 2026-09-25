@@ -296,6 +296,18 @@ button:disabled:hover { transform: none; }
   display: flex;
 }
 .queue-item:hover .queue-item-remove { opacity: 1; }
+
+.queue-item-retry {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+}
+.queue-item-retry:hover { background: var(--accent-lighter); }
 .queue-item-remove:hover { color: #e53e3e; background: rgba(229,62,62,0.08); }
 
 .progress-bar {

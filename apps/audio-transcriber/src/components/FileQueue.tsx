@@ -1,4 +1,4 @@
-import { Film, Music, X } from 'lucide-react';
+import { Film, Music, RotateCw, X } from 'lucide-react';
 import type { QueuedFile, FileStatus } from '../types';
 
 interface Props {
@@ -6,6 +6,7 @@ interface Props {
   activeId: string | null;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
 }
 
 function fileIcon(name: string) {
@@ -28,7 +29,7 @@ function statusLabel(file: QueuedFile): string {
   return file.progressLabel ?? 'Processing…';
 }
 
-export default function FileQueue({ files, activeId, onSelect, onRemove }: Props) {
+export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry }: Props) {
   return (
     <div className="queue-panel">
       <div className="queue-header">{files.length} file{files.length !== 1 ? 's' : ''}</div>
@@ -37,7 +38,7 @@ export default function FileQueue({ files, activeId, onSelect, onRemove }: Props
           <div
             key={f.id}
             className={`queue-item ${f.id === activeId ? 'active' : ''}`}
-            onClick={() => f.status === 'done' && onSelect(f.id)}
+            onClick={() => (f.status === 'done' || f.transcript) && onSelect(f.id)}
           >
             <span className="queue-item-icon">{fileIcon(f.file.name)}</span>
             <div className="queue-item-info">
@@ -55,6 +56,15 @@ export default function FileQueue({ files, activeId, onSelect, onRemove }: Props
                 </div>
               )}
             </div>
+            {f.status === 'error' && (
+              <button
+                className="queue-item-retry"
+                title="Retry (picks up where it failed)"
+                onClick={e => { e.stopPropagation(); onRetry(f.id); }}
+              >
+                <RotateCw size={14} />
+              </button>
+            )}
             <button
               className="queue-item-remove"
               title="Remove"

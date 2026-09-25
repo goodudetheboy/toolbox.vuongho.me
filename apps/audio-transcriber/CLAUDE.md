@@ -23,11 +23,16 @@ it to timestamped text. Migrated from its own standalone repo/deploy at
   serve`/`emulators:start` at all** — confirmed, not assumed (see the ADR's
   addendum). Any change to this tool's headers needs a real preview-channel
   deploy to verify; see the root `CLAUDE.md` for the exact commands.
-- A dedicated Worker (`src/workers/transcription.worker.ts`) runs the whole
-  extract→transcribe pipeline. Its ffmpeg-core base URL is derived from
-  `import.meta.env.BASE_URL` (not hardcoded `/ffmpeg/`) since this tool is
-  served under a subpath — a real bug found and fixed during migration, see
-  the progress log above if touching this path again.
+- Transcription: a main-thread coordinator (`src/lib/transcriber.ts`)
+  extracts audio with ffmpeg.wasm, cuts overlapping 30s windows, and fans
+  them out to a pool of decoder workers (`src/workers/decoder.worker.ts`).
+  It retries failed windows and merges tokens in order with the Whisper
+  tokenizer. No nested workers: they failed in testing. See
+  [ADR 0003](docs/adr/0003-parallel-window-decoding.md). The ffmpeg-core
+  base URL is derived from `import.meta.env.BASE_URL` (not hardcoded
+  `/ffmpeg/`) since this tool is served under a subpath. That was a real
+  bug found and fixed during migration; see the progress log above if
+  touching this path again.
 - Segment playback: history keeps only File System Access handles to the
   original recordings (`mediaHandles` store), never the media itself.
   Firefox/Safari fall back to re-attaching the file. See
