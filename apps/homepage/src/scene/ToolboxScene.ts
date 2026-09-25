@@ -66,7 +66,7 @@ export class ToolboxScene {
   private currentView: View;
 
   private down: { x: number; y: number; item: Item | null; toolbox: boolean; pointerType: string } | null = null;
-  private drag: { item: Item; joint: CANNON.Body; constraint: CANNON.PointToPointConstraint } | null = null;
+  private drag: { item: Item; target: THREE.Vector3; holdQuat: THREE.Quaternion } | null = null;
   private hovered: Item | null = null;
   private hoverBox = false;
   private armed: Item | null = null;
@@ -487,7 +487,15 @@ export class ToolboxScene {
           tw.done?.();
         }
       }
+      this.driveDrag();
       this.world.step(FIXED_DT);
+      // Small props have almost no rotational inertia, so a glancing hit
+      // can spin them absurdly fast; cap it at something a real nut does.
+      for (const it of this.items) {
+        const w = it.body.angularVelocity;
+        const wl = w.length();
+        if (wl > 18) w.scale(18 / wl, w);
+      }
       // anything knocked off the bench goes back in the box
       for (const it of this.items) {
         if (it.body.position.y < DESK_Y - 0.2 && !it.tween) {
@@ -651,17 +659,16 @@ export class ToolboxScene {
   private startDrag(item: Item) {
     this.setFocus(null);
     this.armed = null;
-    const joint = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
-    joint.collisionFilterGroup = 0;
-    joint.collisionFilterMask = 0;
-    joint.position.copy(item.body.position);
-    this.world.addBody(joint);
-    const constraint = new CANNON.PointToPointConstraint(item.body, new CANNON.Vec3(0, 0, 0), joint, new CANNON.Vec3(0, 0, 0), 4);
-    this.world.addConstraint(constraint);
+    const q = item.body.quaternion;
     item.body.wakeUp();
-    item.body.angularDamping = 0.7;
-    item.body.linearDamping = 0.4;
-    this.drag = { item, joint, constraint };
+    // While held, contacts can't spin it; driveDrag sets its rotation rate.
+    item.body.fixedRotation = true;
+    item.body.updateMassProperties();
+    this.drag = {
+      item,
+      target: new THREE.Vector3(item.body.position.x, DRAG_Y, item.body.position.z),
+      holdQuat: new THREE.Quaternion(q.x, q.y, q.z, q.w),
+    };
     this.renderer.domElement.style.cursor = 'grabbing';
     this.updateDrag();
   }
@@ -674,16 +681,56 @@ export class ToolboxScene {
     if (!this.raycaster.ray.intersectPlane(plane, p)) return;
     p.x = THREE.MathUtils.clamp(p.x, -0.85, 0.85);
     p.z = THREE.MathUtils.clamp(p.z, -0.33, 0.36);
-    this.drag.joint.position.set(p.x, p.y, p.z);
+    this.drag.target.copy(p);
+  }
+
+  // Held objects are driven like a hand holds them: move toward the cursor
+  // at a capped speed and keep the orientation they were picked up in, with
+  // a slight swing into the direction of travel. Letting contacts spin them
+  // freely made thin props (marker, nuts) whirl around.
+  private driveDrag() {
+    if (!this.drag) return;
+    const { item, target, holdQuat } = this.drag;
+    const b = item.body;
+    b.wakeUp();
+    const want = new THREE.Vector3(target.x - b.position.x, target.y - b.position.y, target.z - b.position.z).multiplyScalar(14);
+    if (want.length() > 2.5) want.setLength(2.5);
+    // Lift clear of the box before moving sideways, otherwise it gets
+    // dragged along a wall and friction spins it.
+    const rim = DESK_Y + BOX.FEET + BOX.H + 0.025;
+    if (b.position.y < rim) {
+      const k = Math.max(0.05, 1 - (rim - b.position.y) / 0.03);
+      want.x *= k;
+      want.z *= k;
+      want.y = Math.max(want.y, 1.2);
+    }
+    b.velocity.x += (want.x - b.velocity.x) * 0.35;
+    b.velocity.y += (want.y - b.velocity.y) * 0.35;
+    b.velocity.z += (want.z - b.velocity.z) * 0.35;
+
+    const swingAxis = new THREE.Vector3(b.velocity.z, 0, -b.velocity.x);
+    const swing = Math.min(0.35, swingAxis.length() * 0.2);
+    const goal = holdQuat.clone();
+    if (swing > 1e-3) goal.premultiply(new THREE.Quaternion().setFromAxisAngle(swingAxis.normalize(), swing));
+    const cur = new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+    const err = goal.multiply(cur.invert());
+    if (err.w < 0) err.set(-err.x, -err.y, -err.z, -err.w);
+    const angle = 2 * Math.acos(Math.min(1, err.w));
+    const s = Math.sqrt(Math.max(0, 1 - err.w * err.w));
+    const w = s < 1e-4 ? new THREE.Vector3() : new THREE.Vector3(err.x / s, err.y / s, err.z / s).multiplyScalar(angle * 7);
+    if (w.length() > 3.5) w.setLength(3.5);
+    b.angularVelocity.set(w.x, w.y, w.z);
   }
 
   private endDrag() {
     if (!this.drag) return;
-    const { item, joint, constraint } = this.drag;
-    this.world.removeConstraint(constraint);
-    this.world.removeBody(joint);
-    item.body.angularDamping = 0.12;
-    item.body.linearDamping = 0.05;
+    const b = this.drag.item.body;
+    b.fixedRotation = false;
+    b.updateMassProperties();
+    // keep the throw, but don't release it spinning like a top
+    const w = b.angularVelocity;
+    const wl = w.length();
+    if (wl > 4) w.scale(4 / wl, w);
     this.drag = null;
     this.renderer.domElement.style.cursor = '';
   }
