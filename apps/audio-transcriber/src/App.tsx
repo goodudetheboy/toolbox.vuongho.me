@@ -147,6 +147,8 @@ export default function App() {
                 status: 'transcribing',
                 progress: msg.total ? msg.completed / msg.total : 0,
                 progressLabel: transcribingLabel(msg.completed, msg.total, msg.workers),
+                transcribeStartedAt: Date.now(),
+                transcribeStartProgress: msg.total ? msg.completed / msg.total : 0,
               }
             : f,
         ));
@@ -170,7 +172,9 @@ export default function App() {
         const record = publishSegments(msg.id, msg.segments);
         recordMetaRef.current.delete(msg.id);
         setFiles(prev => prev.map(f =>
-          f.id === msg.id ? { ...f, status: 'done', progress: 1, progressLabel: undefined, transcript: record } : f,
+          f.id === msg.id
+            ? { ...f, status: 'done', progress: 1, progressLabel: undefined, transcript: record, finishedAt: Date.now() }
+            : f,
         ));
         return;
       }
@@ -179,7 +183,7 @@ export default function App() {
         processingRef.current = null;
         setFiles(prev => prev.map(f =>
           f.id === msg.id
-            ? { ...f, status: 'error', progressLabel: undefined, error: msg.error }
+            ? { ...f, status: 'error', progressLabel: undefined, error: msg.error, finishedAt: Date.now() }
             : f,
         ));
       }
@@ -197,7 +201,18 @@ export default function App() {
 
     processingRef.current = next.id;
     setFiles(prev => prev.map(f =>
-      f.id === next.id ? { ...f, status: 'extracting', progressLabel: 'Starting…', progress: 0 } : f,
+      f.id === next.id
+        ? {
+            ...f,
+            status: 'extracting',
+            progressLabel: 'Starting…',
+            progress: 0,
+            startedAt: Date.now(),
+            transcribeStartedAt: undefined,
+            transcribeStartProgress: undefined,
+            finishedAt: undefined,
+          }
+        : f,
     ));
 
     workerRef.current.postMessage({

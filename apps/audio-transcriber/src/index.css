@@ -248,7 +248,18 @@ button:disabled:hover { transform: none; }
   color: var(--text-muted);
 }
 
-.queue-list { padding: 6px; }
+.queue-list {
+  padding: 6px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.queue-item-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
 
 .queue-item {
   display: flex;

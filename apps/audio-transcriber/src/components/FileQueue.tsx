@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Film, Music, RotateCw, X } from 'lucide-react';
 import type { QueuedFile, FileStatus } from '../types';
+import { formatDuration } from '../lib/formatters';
 
 interface Props {
   files: QueuedFile[];
@@ -29,7 +31,40 @@ function statusLabel(file: QueuedFile): string {
   return file.progressLabel ?? 'Processing…';
 }
 
+const isRunning = (f: QueuedFile) => f.status === 'extracting' || f.status === 'transcribing';
+
+// "1m 05s elapsed · ~2m 10s left" while running, "Took 3m 15s" when done.
+// ETA extrapolates this run's transcription pace over the remaining progress;
+// model loading and audio extraction happen before that phase and aren't counted.
+function timingLabel(f: QueuedFile, now: number): string | null {
+  if (!f.startedAt) return null;
+  if (f.finishedAt) {
+    const took = formatDuration(f.finishedAt - f.startedAt);
+    return f.status === 'error' ? `Stopped after ${took}` : `Took ${took}`;
+  }
+  if (!isRunning(f)) return null;
+
+  const elapsed = `${formatDuration(now - f.startedAt)} elapsed`;
+  if (f.status !== 'transcribing' || !f.transcribeStartedAt) return elapsed;
+
+  const done = f.progress - (f.transcribeStartProgress ?? 0);
+  const spent = now - f.transcribeStartedAt;
+  if (done <= 0 || spent <= 0) return `${elapsed} · estimating…`;
+  const remaining = ((1 - f.progress) / done) * spent;
+  return `${elapsed} · ~${formatDuration(remaining)} left`;
+}
+
 export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry }: Props) {
+  // Tick once a second while something is running so the timer moves
+  const anyRunning = files.some(isRunning);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!anyRunning) return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [anyRunning]);
+
   return (
     <div className="queue-panel">
       <div className="queue-header">{files.length} file{files.length !== 1 ? 's' : ''}</div>
@@ -47,6 +82,7 @@ export default function FileQueue({ files, activeId, onSelect, onRemove, onRetry
                 <span className={`status-dot ${statusDot(f.status)}`} />
                 <span>{statusLabel(f)}</span>
               </div>
+              {timingLabel(f, now) && <div className="queue-item-time">{timingLabel(f, now)}</div>}
               {(f.status === 'extracting' || f.status === 'transcribing') && (
                 <div className="progress-bar">
                   <div

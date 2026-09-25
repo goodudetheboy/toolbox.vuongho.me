@@ -41,6 +41,13 @@ export interface QueuedFile {
   progressLabel?: string;
   transcript?: TranscriptRecord;
   error?: string;
+  // Timing for the current run (a retry starts a new run), in Date.now() ms
+  startedAt?: number;
+  // When the transcribing phase began, and the progress it began at (a resumed
+  // run starts part-way), so the ETA is based only on this run's pace
+  transcribeStartedAt?: number;
+  transcribeStartProgress?: number;
+  finishedAt?: number;
 }
 
 export interface PickedFile {
