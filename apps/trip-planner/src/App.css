@@ -201,6 +201,82 @@ h1 {
   font-weight: 600;
 }
 
+.activity-place {
+  display: block;
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+
+.activity-place:hover {
+  text-decoration: underline;
+}
+
+.place-address {
+  color: #6b6557;
+}
+
+.place-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.place-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.place-suggestions button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-suggestions li:first-child button {
+  border-top: none;
+}
+
+.place-suggestions button:hover,
+.place-suggestions button:focus-visible {
+  background: #f3efe4;
+}
+
+.place-main {
+  color: var(--ink);
+}
+
+.place-secondary {
+  font-size: 0.8rem;
+  color: #6b6557;
+}
+
+.place-selected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.place-selected a {
+  color: var(--accent-dark);
+}
+
 .activity-description {
   margin: 4px 0 0;
   color: #443f34;

@@ -5,6 +5,17 @@ export const ACTIVITY_CATEGORIES: { value: ActivityCategory; label: string }[] =
   { value: 'dining', label: 'Dining' },
 ];
 
+/** A Google Maps place attached to an activity (Places API (New) — see lib/places.ts). */
+export interface ActivityPlace {
+  placeId: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  /** Opens the place in Google Maps. */
+  mapsUrl: string;
+}
+
 export interface Activity {
   id: string;
   /** ISO date (YYYY-MM-DD) this activity falls on. Must be within the trip's date range. */
@@ -17,6 +28,8 @@ export interface Activity {
   description: string;
   category: ActivityCategory;
   tags: string[];
+  /** Absent when no place was picked (and on activities from before places existed). */
+  place?: ActivityPlace;
 }
 
 export interface Trip {

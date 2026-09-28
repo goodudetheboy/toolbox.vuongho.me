@@ -2,6 +2,19 @@ import type { Activity, ActivityCategory, Trip } from '../types';
 
 const VALID_CATEGORIES: ActivityCategory[] = ['sightseeing', 'dining'];
 
+function isPlace(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  const p = value as Record<string, unknown>;
+  return (
+    typeof p.placeId === 'string' &&
+    typeof p.name === 'string' &&
+    typeof p.address === 'string' &&
+    typeof p.lat === 'number' &&
+    typeof p.lng === 'number' &&
+    typeof p.mapsUrl === 'string'
+  );
+}
+
 function isActivity(value: unknown): value is Activity {
   if (typeof value !== 'object' || value === null) return false;
   const a = value as Record<string, unknown>;
@@ -14,7 +27,8 @@ function isActivity(value: unknown): value is Activity {
     typeof a.description === 'string' &&
     VALID_CATEGORIES.includes(a.category as ActivityCategory) &&
     Array.isArray(a.tags) &&
-    a.tags.every((tag) => typeof tag === 'string')
+    a.tags.every((tag) => typeof tag === 'string') &&
+    (a.place === undefined || isPlace(a.place))
   );
 }
 

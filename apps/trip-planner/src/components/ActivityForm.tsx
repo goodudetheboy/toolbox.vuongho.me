@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ACTIVITY_CATEGORIES } from '../types';
-import type { Activity, ActivityCategory } from '../types';
+import type { Activity, ActivityCategory, ActivityPlace } from '../types';
+import PlacePicker from './PlacePicker';
 
 interface ActivityFormProps {
   tripDates: string[];
@@ -26,6 +27,7 @@ export default function ActivityForm({
     initialActivity?.category ?? 'sightseeing',
   );
   const [tagsText, setTagsText] = useState(initialActivity?.tags.join(', ') ?? '');
+  const [place, setPlace] = useState<ActivityPlace | undefined>(initialActivity?.place);
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(event: FormEvent) {
@@ -52,6 +54,8 @@ export default function ActivityForm({
       description: description.trim(),
       category,
       tags,
+      // Omitted rather than `undefined` — Firestore rejects undefined field values.
+      ...(place ? { place } : {}),
     });
   }
 
@@ -77,6 +81,16 @@ export default function ActivityForm({
           <span>End time</span>
           <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
         </label>
+      </div>
+      <div className="field">
+        <span>Place</span>
+        <PlacePicker
+          value={place}
+          onChange={(picked) => {
+            setPlace(picked);
+            if (picked && !title.trim()) setTitle(picked.name);
+          }}
+        />
       </div>
       <label className="field">
         <span>Title</span>

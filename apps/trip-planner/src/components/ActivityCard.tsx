@@ -22,6 +22,12 @@ export default function ActivityCard({ activity, readOnly, onEdit, onDelete }: A
             {activity.category}
           </span>
         </div>
+        {activity.place && (
+          <a className="activity-place" href={activity.place.mapsUrl} target="_blank" rel="noreferrer">
+            📍 {activity.place.name}
+            {activity.place.address && <span className="place-address"> · {activity.place.address}</span>}
+          </a>
+        )}
         {activity.description && <p className="activity-description">{activity.description}</p>}
         {activity.tags.length > 0 && (
           <ul className="tag-list">

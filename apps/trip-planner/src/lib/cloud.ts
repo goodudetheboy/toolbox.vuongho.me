@@ -68,6 +68,7 @@ function docToActivity(id: string, data: Record<string, unknown>): Activity {
     description: data.description as string,
     category: data.category as Activity['category'],
     tags: (data.tags as string[]) ?? [],
+    ...(data.place ? { place: data.place as Activity['place'] } : {}),
   };
 }
 
