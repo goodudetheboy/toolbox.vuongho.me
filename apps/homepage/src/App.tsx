@@ -17,8 +17,8 @@ function hasWebGL() {
 
 const isTouch = () => window.matchMedia('(pointer: coarse)').matches;
 
-// Phones default to the plain list (the 3D scene is heavy on battery); a
-// choice the visitor makes is remembered for next time.
+// Everyone defaults to the plain list (the 3D scene is heavy on battery and
+// GPU); a choice the visitor makes is remembered for next time.
 function initialMode(webgl: boolean): Mode {
   if (!webgl) return 'list';
   try {
@@ -27,7 +27,7 @@ function initialMode(webgl: boolean): Mode {
   } catch {
     /* storage blocked: fall through to the default */
   }
-  return isTouch() ? 'list' : '3d';
+  return 'list';
 }
 
 function saveMode(m: Mode) {

@@ -77,3 +77,10 @@ site need.
   scene's render loop rather than disposing it.
 - List tiles and the info panel use `ToolIcon.tsx`: SVG drawings of the
   same props (marker, microphone, compass, wrench fallback).
+
+## Addendum 2026-09-28: list view by default everywhere
+
+- The list view is now the default on desktop too, not just on
+  touch-primary devices. The 3D chunk is only imported once a visitor
+  clicks "Open the garage (3D)". A saved `toolbox.view` choice still wins,
+  so returning visitors who picked 3D keep it.
