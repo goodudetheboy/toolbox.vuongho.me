@@ -128,8 +128,8 @@ export default function App() {
 
       {view.name === 'create' && (
         <TripForm
-          onSubmit={(destination, startDate, endDate) => {
-            const trip = createTrip(destination, startDate, endDate);
+          onSubmit={(destination, startDate, endDate, notes) => {
+            const trip = createTrip(destination, startDate, endDate, notes);
             setView({ name: 'trip', tripId: trip.id });
           }}
           onCancel={() => setView({ name: 'list' })}
@@ -149,8 +149,8 @@ export default function App() {
               : undefined
           }
           onBack={() => setView({ name: 'list' })}
-          onUpdateTripDetails={(destination, startDate, endDate) =>
-            updateTripDetails(activeTrip.id, destination, startDate, endDate)
+          onUpdateTripDetails={(destination, startDate, endDate, notes) =>
+            updateTripDetails(activeTrip.id, destination, startDate, endDate, notes)
           }
           onUpsertActivity={(activity) => upsertActivity(activeTrip.id, activity)}
           onDeleteActivity={(activityId) => deleteActivity(activeTrip.id, activityId)}

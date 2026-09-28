@@ -26,6 +26,8 @@ export interface Trip {
   startDate: string;
   /** ISO date (YYYY-MM-DD), inclusive */
   endDate: string;
+  /** Free-text trip notes, shown under the title. Absent on trips created before notes existed. */
+  notes?: string;
   activities: Activity[];
   createdAt: string;
   updatedAt: string;

@@ -26,6 +26,7 @@ function isTrip(value: unknown): value is Trip {
     typeof t.destination === 'string' &&
     typeof t.startDate === 'string' &&
     typeof t.endDate === 'string' &&
+    (t.notes === undefined || typeof t.notes === 'string') &&
     typeof t.createdAt === 'string' &&
     typeof t.updatedAt === 'string' &&
     Array.isArray(t.activities) &&

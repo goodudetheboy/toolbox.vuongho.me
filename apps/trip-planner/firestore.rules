@@ -31,7 +31,7 @@ service cloud.firestore {
       allow update: if isOwner() || (
         isOwnerOrEditor() &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['destination', 'startDate', 'endDate', 'updatedAt'])
+          .hasOnly(['destination', 'startDate', 'endDate', 'notes', 'updatedAt'])
       ) || (
         // Joining as an editor via an edit link: only adds the caller's own uid,
         // and only when the supplied editToken matches the trip's current one.

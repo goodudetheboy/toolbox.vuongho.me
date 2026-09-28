@@ -15,7 +15,7 @@ interface ItineraryViewProps {
   /** Shown ("Go online") only for a local-only trip when the viewer is signed in. */
   onGoOnline?: () => void;
   onBack: () => void;
-  onUpdateTripDetails: (destination: string, startDate: string, endDate: string) => void;
+  onUpdateTripDetails: (destination: string, startDate: string, endDate: string, notes: string) => void;
   onUpsertActivity: (activity: Activity) => void;
   onDeleteActivity: (activityId: string) => void;
 }
@@ -59,8 +59,8 @@ export default function ItineraryView({
     return (
       <TripForm
         initialTrip={trip}
-        onSubmit={(destination, startDate, endDate) => {
-          onUpdateTripDetails(destination, startDate, endDate);
+        onSubmit={(destination, startDate, endDate, notes) => {
+          onUpdateTripDetails(destination, startDate, endDate, notes);
           setEditingTrip(false);
         }}
         onCancel={() => setEditingTrip(false)}
@@ -96,11 +96,13 @@ export default function ItineraryView({
           )}
           {!readOnly && (
             <button className="secondary" onClick={() => setEditingTrip(true)}>
-              Edit trip / dates
+              Edit trip / notes
             </button>
           )}
         </div>
       </div>
+
+      {trip.notes && <p className="trip-notes">{trip.notes}</p>}
 
       {days.length === 0 && <p className="empty">This trip has no dates yet.</p>}
 

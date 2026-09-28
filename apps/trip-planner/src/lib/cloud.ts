@@ -34,6 +34,7 @@ export async function goOnline(trip: Trip, ownerUid: string): Promise<Trip> {
     destination: trip.destination,
     startDate: trip.startDate,
     endDate: trip.endDate,
+    notes: trip.notes ?? '',
     createdAt: trip.createdAt,
     updatedAt: now,
     ownerUid: cloud.ownerUid,
@@ -88,6 +89,7 @@ export function subscribeTrip(tripId: string, cb: (trip: Trip | null) => void): 
       destination: tripData.destination as string,
       startDate: tripData.startDate as string,
       endDate: tripData.endDate as string,
+      notes: (tripData.notes as string | undefined) ?? '',
       createdAt: tripData.createdAt as string,
       updatedAt: tripData.updatedAt as string,
       activities,
@@ -189,11 +191,13 @@ export async function updateCloudTripDetails(
   destination: string,
   startDate: string,
   endDate: string,
+  notes: string,
 ): Promise<void> {
   await updateDoc(doc(tripsCol, tripId), {
     destination,
     startDate,
     endDate,
+    notes,
     updatedAt: new Date().toISOString(),
   });
 }

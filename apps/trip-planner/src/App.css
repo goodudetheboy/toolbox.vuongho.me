@@ -84,6 +84,12 @@ h1 {
   color: #5a5548;
 }
 
+.trip-notes {
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+  color: #3a362d;
+}
+
 .trip-list {
   list-style: none;
   margin: 0;

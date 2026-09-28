@@ -4,7 +4,7 @@ import type { Trip } from '../types';
 
 interface TripFormProps {
   initialTrip?: Trip;
-  onSubmit: (destination: string, startDate: string, endDate: string) => void;
+  onSubmit: (destination: string, startDate: string, endDate: string, notes: string) => void;
   onCancel: () => void;
 }
 
@@ -13,6 +13,7 @@ export default function TripForm({ initialTrip, onSubmit, onCancel }: TripFormPr
   const [destination, setDestination] = useState(initialTrip?.destination ?? '');
   const [startDate, setStartDate] = useState(initialTrip?.startDate ?? today);
   const [endDate, setEndDate] = useState(initialTrip?.endDate ?? today);
+  const [notes, setNotes] = useState(initialTrip?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(event: FormEvent) {
@@ -26,7 +27,7 @@ export default function TripForm({ initialTrip, onSubmit, onCancel }: TripFormPr
       return;
     }
     setError(null);
-    onSubmit(destination.trim(), startDate, endDate);
+    onSubmit(destination.trim(), startDate, endDate, notes.trim());
   }
 
   return (
@@ -52,6 +53,15 @@ export default function TripForm({ initialTrip, onSubmit, onCancel }: TripFormPr
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </label>
       </div>
+      <label className="field">
+        <span>Notes</span>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={4}
+          placeholder="e.g. Hotel confirmation #, JR Pass pickup, packing reminders"
+        />
+      </label>
       {error && <p className="error">{error}</p>}
       <div className="actions">
         <button type="button" className="secondary" onClick={onCancel}>

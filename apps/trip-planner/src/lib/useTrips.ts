@@ -27,13 +27,14 @@ export function useTrips(user: User | null) {
   );
 
   const createTrip = useCallback(
-    (destination: string, startDate: string, endDate: string): Trip => {
+    (destination: string, startDate: string, endDate: string, notes: string): Trip => {
       const now = new Date().toISOString();
       const trip: Trip = {
         id: crypto.randomUUID(),
         destination,
         startDate,
         endDate,
+        notes,
         activities: [],
         createdAt: now,
         updatedAt: now,
@@ -49,16 +50,16 @@ export function useTrips(user: User | null) {
   );
 
   const updateTripDetails = useCallback(
-    (tripId: string, destination: string, startDate: string, endDate: string) => {
+    (tripId: string, destination: string, startDate: string, endDate: string, notes: string) => {
       const trip = findTrip(tripId);
       if (trip?.cloud) {
-        void cloud.updateCloudTripDetails(tripId, destination, startDate, endDate);
+        void cloud.updateCloudTripDetails(tripId, destination, startDate, endDate, notes);
         return;
       }
       setLocalTrips((prev) => {
         const next = prev.map((t) =>
           t.id === tripId
-            ? { ...t, destination, startDate, endDate, updatedAt: new Date().toISOString() }
+            ? { ...t, destination, startDate, endDate, notes, updatedAt: new Date().toISOString() }
             : t,
         );
         saveTrips(next);
