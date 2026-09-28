@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { regenerateEditToken, setTripShared } from '../lib/cloud';
+import { routePath } from '../lib/router';
 import type { Trip } from '../types';
 
 interface ShareDialogProps {
@@ -8,9 +9,7 @@ interface ShareDialogProps {
 }
 
 function shareUrl(tripId: string, editToken?: string): string {
-  const url = new URL(window.location.href);
-  url.search = '';
-  url.searchParams.set('trip', tripId);
+  const url = new URL(routePath({ name: 'trip', tripId, mode: 'view' }), window.location.origin);
   if (editToken) url.searchParams.set('edit', editToken);
   return url.toString();
 }

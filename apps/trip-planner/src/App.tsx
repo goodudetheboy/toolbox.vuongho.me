@@ -6,14 +6,13 @@ import TripList from './components/TripList';
 import { completeEmailLinkSignInIfPresent, useAuth } from './lib/auth';
 import { joinAsEditor, subscribeTrip } from './lib/cloud';
 import { downloadTripsAsJson, readTripsFromFile } from './lib/exportImport';
+import { useRoute } from './lib/router';
 import { useTrips } from './lib/useTrips';
 import type { Trip } from './types';
 
-type View = { name: 'list' } | { name: 'create' } | { name: 'trip'; tripId: string };
-
-function readUrlParams(): { tripId: string | null; editToken: string | null } {
-  const params = new URLSearchParams(window.location.search);
-  return { tripId: params.get('trip'), editToken: params.get('edit') };
+/** The edit-link token (`/trips/<id>?edit=<token>`), read once on load — see migrateLegacyTripQuery for old links. */
+function readEditToken(): string | null {
+  return new URLSearchParams(window.location.search).get('edit');
 }
 
 /** Subscribes to a trip by id regardless of whether the viewer owns it — for view/edit share links. */
@@ -34,13 +33,14 @@ function useSharedTrip(tripId: string | null): Trip | null | undefined {
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
-  const [urlParams] = useState(readUrlParams);
+  const { route, navigate, goBack } = useRoute();
+  // The trip an edit link points at, captured on load (the route may change before sign-in finishes).
+  const [editLink] = useState(() => {
+    const editToken = readEditToken();
+    return editToken && route.name === 'trip' ? { tripId: route.tripId, editToken } : null;
+  });
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinedToken, setJoinedToken] = useState<string | null>(null);
-
-  const [view, setView] = useState<View>(
-    urlParams.tripId ? { name: 'trip', tripId: urlParams.tripId } : { name: 'list' },
-  );
 
   const {
     trips,
@@ -53,7 +53,10 @@ export default function App() {
     goOnline,
   } = useTrips(user);
 
-  const sharedTrip = useSharedTrip(urlParams.tripId);
+  const routeTripId = route.name === 'trip' ? route.tripId : null;
+  const ownTrip = routeTripId ? trips.find((t) => t.id === routeTripId) : undefined;
+  // Trips that aren't in my own list (someone else's, opened from a share link) are subscribed to directly.
+  const sharedTrip = useSharedTrip(routeTripId && !ownTrip ? routeTripId : null);
 
   useEffect(() => {
     void completeEmailLinkSignInIfPresent();
@@ -61,17 +64,17 @@ export default function App() {
 
   // Join as editor once signed in, if this page was opened from an edit link.
   useEffect(() => {
-    if (!urlParams.tripId || !urlParams.editToken || !user) return;
-    if (joinedToken === urlParams.editToken) return;
-    joinAsEditor(urlParams.tripId, urlParams.editToken, user.uid)
+    if (!editLink || !user) return;
+    if (joinedToken === editLink.editToken) return;
+    joinAsEditor(editLink.tripId, editLink.editToken, user.uid)
       .then(() => {
-        setJoinedToken(urlParams.editToken);
+        setJoinedToken(editLink.editToken);
         const url = new URL(window.location.href);
         url.searchParams.delete('edit');
         window.history.replaceState({}, '', url.toString());
       })
       .catch((err) => setJoinError(err instanceof Error ? err.message : 'Could not join as an editor.'));
-  }, [urlParams.tripId, urlParams.editToken, user, joinedToken]);
+  }, [editLink, user, joinedToken]);
 
   async function handleImportFile(file: File) {
     try {
@@ -83,11 +86,7 @@ export default function App() {
     }
   }
 
-  const activeTrip =
-    view.name === 'trip'
-      ? trips.find((t) => t.id === view.tripId) ??
-        (view.tripId === urlParams.tripId ? sharedTrip : undefined)
-      : undefined;
+  const activeTrip = ownTrip ?? (routeTripId ? sharedTrip : undefined);
 
   const isOwner = Boolean(activeTrip?.cloud && user && activeTrip.cloud.ownerUid === user.uid);
   const canEdit =
@@ -114,33 +113,36 @@ export default function App() {
 
       {joinError && <p className="error">{joinError}</p>}
 
-      {view.name === 'list' && (
+      {(route.name === 'list' || route.name === 'notFound') && (
         <TripList
           trips={trips}
           currentUid={user?.uid ?? null}
-          onOpen={(tripId) => setView({ name: 'trip', tripId })}
+          onOpen={(tripId) => navigate({ name: 'trip', tripId, mode: 'view' })}
           onDelete={deleteTrip}
-          onCreate={() => setView({ name: 'create' })}
+          onCreate={() => navigate({ name: 'create' })}
           onExportAll={() => downloadTripsAsJson(trips)}
           onImportFile={handleImportFile}
         />
       )}
 
-      {view.name === 'create' && (
+      {route.name === 'create' && (
         <TripForm
           onSubmit={(destination, startDate, endDate, notes) => {
             const trip = createTrip(destination, startDate, endDate, notes);
-            setView({ name: 'trip', tripId: trip.id });
+            navigate({ name: 'trip', tripId: trip.id, mode: 'view' }, { replace: true });
           }}
-          onCancel={() => setView({ name: 'list' })}
+          onCancel={() => goBack({ name: 'list' })}
         />
       )}
 
-      {view.name === 'trip' && activeTrip && (
+      {route.name === 'trip' && activeTrip && (
         <ItineraryView
           trip={activeTrip}
           readOnly={!canEdit}
           isOwner={isOwner}
+          mode={route.mode}
+          onChangeMode={(mode) => navigate({ name: 'trip', tripId: activeTrip.id, mode })}
+          onCloseSubview={() => goBack({ name: 'trip', tripId: activeTrip.id, mode: 'view' })}
           onGoOnline={
             !activeTrip.cloud && user
               ? () => {
@@ -148,7 +150,7 @@ export default function App() {
                 }
               : undefined
           }
-          onBack={() => setView({ name: 'list' })}
+          onBack={() => goBack({ name: 'list' })}
           onUpdateTripDetails={(destination, startDate, endDate, notes) =>
             updateTripDetails(activeTrip.id, destination, startDate, endDate, notes)
           }
@@ -157,10 +159,10 @@ export default function App() {
         />
       )}
 
-      {view.name === 'trip' && !activeTrip && activeTrip !== undefined && (
+      {route.name === 'trip' && !activeTrip && activeTrip !== undefined && (
         <p className="empty">
           That trip was not found, or isn't shared.{' '}
-          <button onClick={() => setView({ name: 'list' })}>Go back</button>
+          <button onClick={() => navigate({ name: 'list' }, { replace: true })}>Go back</button>
         </p>
       )}
     </main>

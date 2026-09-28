@@ -9,6 +9,9 @@
     "target": "toolbox",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/trip-planner/**", "destination": "/trip-planner/index.html" }
+    ],
     "headers": [
       {
         "source": "/audio-transcriber/**",

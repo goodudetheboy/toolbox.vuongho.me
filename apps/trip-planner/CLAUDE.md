@@ -40,6 +40,13 @@ read-only/edit-link security models differ from each other.
   entry in the root `firebase.json`'s `firestore` array). Enforces
   read-only vs. edit access server-side — verified directly against the
   REST API, not just the client UI (see the ADR addendum).
+- `src/lib/router.ts` — tiny History-API router; every view has a real
+  path (`/trips/:id`, `/trips/:id/edit`, …) — see
+  [ADR 0003](docs/adr/0003-real-url-paths.md). Deep links rely on the
+  root `firebase.json` rewrite for `/trip-planner/**`.
+- `src/lib/places.ts` / `src/components/PlacePicker.tsx` — Google Places
+  search for attaching a place to an activity — see
+  [ADR 0002](docs/adr/0002-google-places-for-activity-locations.md).
 - `src/lib/exportImport.ts` — JSON export (all trips, one file) and import
   (validated with runtime type guards, merged by trip `id`); imported
   trips always land as local-only, never inheriting cloud ownership.

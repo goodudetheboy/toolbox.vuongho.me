@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { TripMode } from '../lib/router';
 import { enumerateDates, formatDateLong, formatDateRange } from '../lib/dates';
 import type { Activity, Trip } from '../types';
 import ActivityCard from './ActivityCard';
@@ -12,6 +13,11 @@ interface ItineraryViewProps {
   readOnly: boolean;
   /** True when the signed-in user owns this cloud trip and may manage its sharing. */
   isOwner: boolean;
+  /** `edit`/`share` are their own URLs (`/trips/:id/edit`, `/trips/:id/share`) so the back button leaves them. */
+  mode: TripMode;
+  onChangeMode: (mode: TripMode) => void;
+  /** Leaves the edit/share subview (back to the itinerary). */
+  onCloseSubview: () => void;
   /** Shown ("Go online") only for a local-only trip when the viewer is signed in. */
   onGoOnline?: () => void;
   onBack: () => void;
@@ -24,14 +30,15 @@ export default function ItineraryView({
   trip,
   readOnly,
   isOwner,
+  mode,
+  onChangeMode,
+  onCloseSubview,
   onGoOnline,
   onBack,
   onUpdateTripDetails,
   onUpsertActivity,
   onDeleteActivity,
 }: ItineraryViewProps) {
-  const [editingTrip, setEditingTrip] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const [activityFormFor, setActivityFormFor] = useState<{
     date: string;
     activity?: Activity;
@@ -55,21 +62,21 @@ export default function ItineraryView({
     return map;
   }, [trip.activities]);
 
-  if (editingTrip) {
+  if (mode === 'edit' && !readOnly) {
     return (
       <TripForm
         initialTrip={trip}
         onSubmit={(destination, startDate, endDate, notes) => {
           onUpdateTripDetails(destination, startDate, endDate, notes);
-          setEditingTrip(false);
+          onCloseSubview();
         }}
-        onCancel={() => setEditingTrip(false)}
+        onCancel={onCloseSubview}
       />
     );
   }
 
-  if (sharing && trip.cloud) {
-    return <ShareDialog trip={trip as Trip & { cloud: NonNullable<Trip['cloud']> }} onClose={() => setSharing(false)} />;
+  if (mode === 'share' && isOwner && trip.cloud) {
+    return <ShareDialog trip={trip as Trip & { cloud: NonNullable<Trip['cloud']> }} onClose={onCloseSubview} />;
   }
 
   return (
@@ -85,7 +92,7 @@ export default function ItineraryView({
         </div>
         <div className="header-actions">
           {isOwner && (
-            <button className="secondary" onClick={() => setSharing(true)}>
+            <button className="secondary" onClick={() => onChangeMode('share')}>
               Share
             </button>
           )}
@@ -95,7 +102,7 @@ export default function ItineraryView({
             </button>
           )}
           {!readOnly && (
-            <button className="secondary" onClick={() => setEditingTrip(true)}>
+            <button className="secondary" onClick={() => onChangeMode('edit')}>
               Edit trip / notes
             </button>
           )}
