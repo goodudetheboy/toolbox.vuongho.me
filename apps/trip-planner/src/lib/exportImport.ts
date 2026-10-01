@@ -56,8 +56,13 @@ export function downloadTripsAsJson(trips: Trip[]): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = `trip-planner-export-${new Date().toISOString().slice(0, 10)}.json`;
+  // Mobile browsers (iOS Safari, Android Chrome) only honor the click when the
+  // anchor is in the DOM, and fetch the blob asynchronously after it — revoking
+  // the URL right away makes the download silently fail there.
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /** Parses a previously exported file back into trips. Throws with a user-facing message on bad input. */

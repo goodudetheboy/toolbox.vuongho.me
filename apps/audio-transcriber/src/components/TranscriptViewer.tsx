@@ -185,8 +185,13 @@ export default function TranscriptViewer({
     const a = document.createElement('a');
     a.href = url;
     a.download = draft.filename.replace(/\.[^.]+$/, '') + '_transcript.' + format;
+    // Mobile browsers (iOS Safari, Android Chrome) only honor the click when the
+    // anchor is in the DOM, and fetch the blob asynchronously after it — revoking
+    // the URL right away makes the download silently fail there.
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
     setSaveMenuOpen(false);
   }, [draft]);
 
