@@ -18,3 +18,13 @@ export async function renderPageToCanvas(
   await page.render({ canvasContext: context, viewport }).promise;
   return canvas;
 }
+
+/** Page size in PDF points (scale 1), used to pick a render scale for a target CSS width. */
+export async function getPageSize(
+  pdfDoc: PDFDocumentProxy,
+  pageNumber: number,
+): Promise<{ width: number; height: number }> {
+  const page = await pdfDoc.getPage(pageNumber);
+  const { width, height } = page.getViewport({ scale: 1 });
+  return { width, height };
+}

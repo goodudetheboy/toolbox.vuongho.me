@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FileDropzone from './components/FileDropzone';
-import PageCanvas from './components/PageCanvas';
-import Toolbar from './components/Toolbar';
-import PageNav from './components/PageNav';
+import PageCanvas, { type EditMode } from './components/PageCanvas';
+import EditorBar from './components/EditorBar';
 import HistoryPanel from './components/HistoryPanel';
 import { usePdfDocument } from './hooks/usePdfDocument';
 import { useRedactions } from './hooks/useRedactions';
@@ -23,6 +22,11 @@ export default function App() {
     null,
   );
   const [historyId, setHistoryId] = useState<string | null>(null);
+  // On touch screens one finger pans by default, so scrolling never draws a stray box.
+  const [mode, setMode] = useState<EditMode>(() =>
+    window.matchMedia('(pointer: coarse)').matches ? 'move' : 'draw',
+  );
+  const editorRef = useRef<HTMLDivElement>(null);
   const { pdfDoc, numPages, status, error } = usePdfDocument(file);
   const { redactions, addRect, undoLast, clearPage, deleteRect, replaceAll } = useRedactions();
   const history = useHistory();
@@ -72,6 +76,13 @@ export default function App() {
     }, AUTOSAVE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [redactions, historyId, file, pdfDoc]);
+
+  // On a phone the editor fills the screen, so bring it fully into view once loaded.
+  useEffect(() => {
+    if (status === 'ready' && view === 'editing' && window.matchMedia('(max-width: 640px)').matches) {
+      editorRef.current?.scrollIntoView({ block: 'start' });
+    }
+  }, [status, view]);
 
   // Ctrl+Z / Cmd+Z undoes the current page's last redaction box.
   useEffect(() => {
@@ -125,6 +136,8 @@ export default function App() {
     setView(file ? 'editing' : 'upload');
   }
 
+  const pageRects = redactions[page] ?? [];
+
   return (
     <main className="page">
       <header className="tool-header">
@@ -160,27 +173,31 @@ export default function App() {
       {view !== 'history' && file && status === 'error' && <p className="error">{error}</p>}
 
       {view !== 'history' && file && pdfDoc && status === 'ready' && (
-        <div className="editor">
-          <Toolbar
-            onUndo={() => undoLast(page)}
-            onClear={() => clearPage(page)}
-            onExportFast={() => handleExport('jpeg')}
-            onExportQuality={() => handleExport('png')}
-            exportDisabled={exportProgress !== null}
-            exportProgress={exportProgress}
-          />
+        <div className="editor" ref={editorRef}>
           <PageCanvas
             pdfDoc={pdfDoc}
             pageNumber={page}
-            rects={redactions[page] ?? []}
+            rects={pageRects}
+            mode={mode}
             onAddRect={(rect) => addRect(page, rect)}
             onDeleteRect={(index) => deleteRect(page, index)}
           />
-          <PageNav
+          <EditorBar
             page={page}
             numPages={numPages}
             onPrev={() => setPage((p) => Math.max(1, p - 1))}
             onNext={() => setPage((p) => Math.min(numPages, p + 1))}
+            mode={mode}
+            onModeChange={setMode}
+            hasBoxes={pageRects.length > 0}
+            onUndo={() => undoLast(page)}
+            onClear={() => {
+              if (window.confirm(`Remove all ${pageRects.length} boxes on page ${page}?`)) {
+                clearPage(page);
+              }
+            }}
+            onExport={handleExport}
+            exportProgress={exportProgress}
           />
         </div>
       )}

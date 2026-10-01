@@ -78,72 +78,70 @@ body {
 .editor {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  align-items: center;
+  gap: 0.75rem;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+.page-viewer {
+  position: relative;
 }
 
-.export-progress {
-  color: #9a9a9a;
-  font-size: 0.85rem;
-}
-
-.toolbar button {
-  background: #1b1e24;
-  color: #e6e6e6;
-  border: 1px solid #2a2d34;
+/* The page scrolls/zooms inside this box; the bar below always stays on screen. */
+.page-scroller {
+  max-height: calc(100dvh - 5.5rem);
+  overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 6px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.toolbar button:hover {
-  border-color: #4a90e2;
-}
-
-.toolbar button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toolbar button.primary {
-  background: #4a90e2;
-  border-color: #4a90e2;
-  color: #ffffff;
+  outline: 1px solid #2a2d34;
 }
 
 .page-canvas-wrap {
   position: relative;
-  display: inline-block;
-  max-width: 100%;
+  /* Every touch gesture on the page is handled in PageCanvas (draw, pan, pinch). */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.page-canvas-wrap.mode-draw {
+  cursor: crosshair;
+}
+
+.page-canvas-wrap.mode-move {
+  cursor: grab;
 }
 
 .page-canvas {
   display: block;
-  max-width: 100%;
-  border: 1px solid #2a2d34;
-  border-radius: 6px;
-  cursor: crosshair;
-  touch-action: none;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+}
+
+.rect-preview,
+.rect-selected {
+  position: absolute;
+  pointer-events: none;
+}
+
+.rect-preview {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.rect-selected {
+  outline: 2px solid #4a90e2;
 }
 
 .rect-delete-btn {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: none;
+  border: 2px solid #ffffff;
   background: #e25c5c;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -156,24 +154,162 @@ body {
   background: #ff7a7a;
 }
 
-.page-nav {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.zoom-reset {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(15, 17, 21, 0.85);
+  color: #e6e6e6;
+  border: 1px solid #2a2d34;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
-.page-nav button {
+.editor-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  background: #0f1115;
+  border-top: 1px solid #2a2d34;
+}
+
+.bar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.editor-bar button {
+  min-height: 40px;
+  min-width: 40px;
   background: #1b1e24;
   color: #e6e6e6;
   border: 1px solid #2a2d34;
   border-radius: 6px;
-  padding: 0.4rem 0.9rem;
+  padding: 0 0.75rem;
   cursor: pointer;
+  font-size: 0.9rem;
 }
 
-.page-nav button:disabled {
+.editor-bar button:hover:not(:disabled) {
+  border-color: #4a90e2;
+}
+
+.editor-bar button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.editor-bar button.primary {
+  background: #4a90e2;
+  border-color: #4a90e2;
+  color: #ffffff;
+}
+
+.page-count {
+  min-width: 3.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #9a9a9a;
+  font-size: 0.9rem;
+}
+
+.mode-toggle {
+  gap: 0;
+}
+
+.mode-toggle button {
+  border-radius: 0;
+}
+
+.mode-toggle button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.mode-toggle button:last-child {
+  border-radius: 0 6px 6px 0;
+  margin-left: -1px;
+}
+
+.mode-toggle button.active {
+  background: #24344a;
+  border-color: #4a90e2;
+  position: relative;
+}
+
+.export-menu {
+  position: relative;
+}
+
+.export-menu-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 13rem;
+  padding: 0.35rem;
+  background: #1b1e24;
+  border: 1px solid #2a2d34;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.editor-bar .export-menu-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border-color: transparent;
+  text-align: left;
+}
+
+.export-menu-list span {
+  color: #9a9a9a;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 1rem 1rem 0;
+  }
+
+  .tool-header {
+    margin-bottom: 1rem;
+  }
+
+  .tool-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .page-scroller {
+    /* A fixed height (not max-height) so the editor's size is known as soon as
+       it mounts, letting App scroll it to exactly fill the screen above the bar. */
+    height: calc(100dvh - 7.5rem);
+    max-height: none;
+  }
+
+  /* Two rows: page nav + mode on top, the actions full-width below. */
+  .editor-bar .bar-group:last-child {
+    flex-basis: 100%;
+  }
+
+  .editor-bar .bar-group:last-child > button,
+  .export-menu,
+  .export-menu > button {
+    flex: 1;
+    width: 100%;
+  }
 }
 
 .error {
