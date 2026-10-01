@@ -8,7 +8,7 @@ import { useRedactions } from './hooks/useRedactions';
 import { useHistory } from './hooks/useHistory';
 import { buildRedactedPdf, type ExportFormat } from './lib/exportPdf';
 import { triggerDownload } from './lib/download';
-import { getHistoryEntry, saveHistoryEntry } from './lib/history';
+import { getHistoryEntry, newDocId, saveHistoryEntry } from './lib/history';
 import { useRoute } from './lib/router';
 
 const AUTOSAVE_DELAY_MS = 400;
@@ -127,7 +127,7 @@ export default function App() {
   }, [isEditing, page, undoLast]);
 
   function handleFileSelected(selected: File) {
-    const id = crypto.randomUUID();
+    const id = newDocId();
     pendingNewIdRef.current = id;
     setFile(selected);
     setHistoryId(id);
@@ -205,6 +205,10 @@ export default function App() {
 
       {docLoaded && status === 'loading' && <p>Loading PDF…</p>}
       {docLoaded && status === 'error' && <p className="error">{error}</p>}
+
+      {/* File name shown on the page only — never in the URL or tab title, which
+          land in (possibly cloud-synced) browser history. */}
+      {docLoaded && file && <p className="doc-title">{file.name}</p>}
 
       {docLoaded && file && pdfDoc && status === 'ready' && (
         <div className="editor" ref={editorRef}>

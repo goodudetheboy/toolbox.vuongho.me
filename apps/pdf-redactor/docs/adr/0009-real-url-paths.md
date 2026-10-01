@@ -17,6 +17,12 @@ dropped you back to an empty upload screen.
   - `/pdf-redactor/` — upload
   - `/pdf-redactor/history` — history list
   - `/pdf-redactor/doc/<historyId>?page=N` — an open document
+- New documents get a short 8-character id (`newDocId()` in
+  `src/lib/history.ts`, e.g. `j3z728js`) instead of a 36-char UUID; older
+  UUID entries keep working. The **file name is deliberately kept out of
+  the URL and the tab title** — both land in browser history, which is
+  often cloud-synced, and a redaction tool's file names are frequently
+  sensitive. The name is shown on the page only.
 - The URL is the source of truth for which document is open. A doc URL
   whose id isn't the loaded one (back/forward, reload, history click) loads
   that entry from IndexedDB (ADR 0003). An upload gets its history id up

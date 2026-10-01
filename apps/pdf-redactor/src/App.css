@@ -75,6 +75,14 @@ body {
   background: #171a20;
 }
 
+.doc-title {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .editor {
   display: flex;
   flex-direction: column;

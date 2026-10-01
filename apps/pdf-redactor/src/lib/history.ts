@@ -13,6 +13,14 @@ export interface HistoryEntry {
   redactions: PageRedactions;
 }
 
+const ID_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'; // no look-alikes (0/o, 1/l)
+
+/** Short, URL-friendly document id, e.g. "k3x9p2qa". Older entries keep their UUIDs. */
+export function newDocId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (b) => ID_ALPHABET[b % ID_ALPHABET.length]).join('');
+}
+
 export type HistorySummary = Omit<HistoryEntry, 'pdfBytes'>;
 
 function openDb(): Promise<IDBDatabase> {
