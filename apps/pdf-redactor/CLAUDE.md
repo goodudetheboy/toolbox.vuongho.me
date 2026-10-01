@@ -17,6 +17,14 @@ browser; the uploaded PDF never leaves the user's machine.
   PDF; redaction rectangles are hand-rolled Canvas + pointer events, stored
   in normalized `[0,1]` page-fraction coordinates — see
   [ADR 0002](docs/adr/0002-pdf-redactor-library-choices.md).
+- Editing is touch-first: `PageCanvas` owns in-app pinch-zoom/pan, a
+  Move/Draw one-finger mode, and re-renders the preview at the zoomed
+  resolution; all controls live in `EditorBar` (sticky bottom bar) — see
+  [ADR 0008](docs/adr/0008-mobile-editing-zoom-pan-and-bottom-bar.md).
+- Real URL paths (`/`, `/history`, `/doc/<historyId>?page=N`) via a tiny
+  History-API router in `src/lib/router.ts`; the URL decides which document
+  is open, loaded from IndexedDB history — see
+  [ADR 0009](docs/adr/0009-real-url-paths.md).
 - Upload history persists in IndexedDB (`src/lib/history.ts`), not
   `localStorage` — binary PDF bytes don't fit `localStorage`'s quota/string
   model. See [ADR 0003](docs/adr/0003-local-history-via-indexeddb.md).

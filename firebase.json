@@ -10,7 +10,8 @@
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      { "source": "/trip-planner/**", "destination": "/trip-planner/index.html" }
+      { "source": "/trip-planner/**", "destination": "/trip-planner/index.html" },
+      { "source": "/pdf-redactor/**", "destination": "/pdf-redactor/index.html" }
     ],
     "headers": [
       {

@@ -9,37 +9,64 @@ import { useHistory } from './hooks/useHistory';
 import { buildRedactedPdf, type ExportFormat } from './lib/exportPdf';
 import { triggerDownload } from './lib/download';
 import { getHistoryEntry, saveHistoryEntry } from './lib/history';
+import { useRoute } from './lib/router';
 
 const AUTOSAVE_DELAY_MS = 400;
 
-type View = 'upload' | 'editing' | 'history';
-
 export default function App() {
-  const [view, setView] = useState<View>('upload');
+  const { route, navigate, goBack } = useRoute();
   const [file, setFile] = useState<File | null>(null);
-  const [page, setPage] = useState(1);
   const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(
     null,
   );
   const [historyId, setHistoryId] = useState<string | null>(null);
+  // A doc URL whose id isn't in this browser's history (deleted, or opened on another device).
+  const [missingDocId, setMissingDocId] = useState<string | null>(null);
   // On touch screens one finger pans by default, so scrolling never draws a stray box.
   const [mode, setMode] = useState<EditMode>(() =>
     window.matchMedia('(pointer: coarse)').matches ? 'move' : 'draw',
   );
   const editorRef = useRef<HTMLDivElement>(null);
+  // Id of a fresh upload whose first history entry hasn't been written yet.
+  const pendingNewIdRef = useRef<string | null>(null);
   const { pdfDoc, numPages, status, error } = usePdfDocument(file);
   const { redactions, addRect, undoLast, clearPage, deleteRect, replaceAll } = useRedactions();
   const history = useHistory();
 
-  // Save a new history entry once a freshly uploaded PDF finishes loading.
+  const isEditing = route.name === 'doc';
+  const docLoaded = isEditing && route.id === historyId;
+  const page = isEditing ? Math.min(route.page, numPages || route.page) : 1;
+
+  // The URL is the source of truth for which document is open: entering a doc
+  // URL (back/forward, reload, a history click) loads that entry from IndexedDB.
+  // Leaving to upload/history keeps the document in memory, so Forward is instant.
   useEffect(() => {
-    if (status !== 'ready' || !file || !pdfDoc) return;
-    if (historyId) return; // already tracking an entry (fresh upload or opened from history)
+    if (route.name !== 'doc' || route.id === historyId) return;
+    let cancelled = false;
+    setMissingDocId(null);
+    getHistoryEntry(route.id).then((entry) => {
+      if (cancelled) return;
+      if (!entry) {
+        setMissingDocId(route.id);
+        return;
+      }
+      setFile(new File([entry.pdfBytes], entry.filename, { type: 'application/pdf' }));
+      replaceAll(entry.redactions);
+      setHistoryId(entry.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [route]);
+
+  // Write the first history entry once a freshly uploaded PDF finishes loading.
+  useEffect(() => {
+    const id = pendingNewIdRef.current;
+    if (!id || id !== historyId || status !== 'ready' || !file || !pdfDoc) return;
 
     let cancelled = false;
     file.arrayBuffer().then((pdfBytes) => {
       if (cancelled) return;
-      const id = crypto.randomUUID();
       saveHistoryEntry({
         id,
         filename: file.name,
@@ -49,7 +76,7 @@ export default function App() {
         redactions: {},
       }).then(() => {
         if (cancelled) return;
-        setHistoryId(id);
+        if (pendingNewIdRef.current === id) pendingNewIdRef.current = null;
         history.refresh();
       });
     });
@@ -62,6 +89,8 @@ export default function App() {
   // Debounced autosave of redaction edits against the current history entry.
   useEffect(() => {
     if (!historyId || !file || !pdfDoc) return;
+    // A fresh upload's pdfDoc may still be the previous file's until it loads.
+    if (pendingNewIdRef.current === historyId) return;
     const timer = setTimeout(() => {
       file.arrayBuffer().then((pdfBytes) => {
         saveHistoryEntry({
@@ -79,14 +108,14 @@ export default function App() {
 
   // On a phone the editor fills the screen, so bring it fully into view once loaded.
   useEffect(() => {
-    if (status === 'ready' && view === 'editing' && window.matchMedia('(max-width: 640px)').matches) {
+    if (status === 'ready' && docLoaded && window.matchMedia('(max-width: 640px)').matches) {
       editorRef.current?.scrollIntoView({ block: 'start' });
     }
-  }, [status, view]);
+  }, [status, docLoaded]);
 
   // Ctrl+Z / Cmd+Z undoes the current page's last redaction box.
   useEffect(() => {
-    if (view !== 'editing') return;
+    if (!isEditing) return;
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -95,14 +124,22 @@ export default function App() {
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [view, page, undoLast]);
+  }, [isEditing, page, undoLast]);
 
   function handleFileSelected(selected: File) {
+    const id = crypto.randomUUID();
+    pendingNewIdRef.current = id;
     setFile(selected);
-    setPage(1);
-    setHistoryId(null);
+    setHistoryId(id);
     replaceAll({});
-    setView('editing');
+    navigate({ name: 'doc', id, page: 1 });
+  }
+
+  // Page turns replace the URL rather than push, so Back leaves the document
+  // instead of stepping back through every page.
+  function goToPage(next: number) {
+    if (route.name !== 'doc') return;
+    navigate({ ...route, page: Math.min(numPages, Math.max(1, next)) }, { replace: true });
   }
 
   async function handleExport(format: ExportFormat) {
@@ -121,19 +158,8 @@ export default function App() {
     }
   }
 
-  async function handleOpenHistoryEntry(id: string) {
-    const entry = await getHistoryEntry(id);
-    if (!entry) return;
-    const restored = new File([entry.pdfBytes], entry.filename, { type: 'application/pdf' });
-    setFile(restored);
-    setPage(1);
-    replaceAll(entry.redactions);
-    setHistoryId(entry.id);
-    setView('editing');
-  }
-
   function handleCloseHistory() {
-    setView(file ? 'editing' : 'upload');
+    goBack(historyId ? { name: 'doc', id: historyId, page: 1 } : { name: 'upload' });
   }
 
   const pageRects = redactions[page] ?? [];
@@ -145,8 +171,8 @@ export default function App() {
           <a className="back-link" href="/">
             ← Back to Toolbox
           </a>
-          {view !== 'history' && (
-            <button className="history-toggle" onClick={() => setView('history')}>
+          {route.name !== 'history' && (
+            <button className="history-toggle" onClick={() => navigate({ name: 'history' })}>
               History
             </button>
           )}
@@ -157,22 +183,30 @@ export default function App() {
         </p>
       </header>
 
-      {view === 'history' && (
+      {route.name === 'history' && (
         <HistoryPanel
           entries={history.entries}
-          onOpen={handleOpenHistoryEntry}
+          onOpen={(id) => navigate({ name: 'doc', id, page: 1 })}
           onDelete={history.remove}
           onClear={history.clear}
           onClose={handleCloseHistory}
         />
       )}
 
-      {view !== 'history' && !file && <FileDropzone onFileSelected={handleFileSelected} />}
+      {route.name === 'upload' && <FileDropzone onFileSelected={handleFileSelected} />}
 
-      {view !== 'history' && file && status === 'loading' && <p>Loading PDF…</p>}
-      {view !== 'history' && file && status === 'error' && <p className="error">{error}</p>}
+      {isEditing && !docLoaded && missingDocId !== route.id && <p>Opening PDF…</p>}
+      {isEditing && missingDocId === route.id && (
+        <p className="error">
+          This PDF isn't in this browser's history anymore.{' '}
+          <a href={import.meta.env.BASE_URL}>Open another PDF</a>
+        </p>
+      )}
 
-      {view !== 'history' && file && pdfDoc && status === 'ready' && (
+      {docLoaded && status === 'loading' && <p>Loading PDF…</p>}
+      {docLoaded && status === 'error' && <p className="error">{error}</p>}
+
+      {docLoaded && file && pdfDoc && status === 'ready' && (
         <div className="editor" ref={editorRef}>
           <PageCanvas
             pdfDoc={pdfDoc}
@@ -185,8 +219,8 @@ export default function App() {
           <EditorBar
             page={page}
             numPages={numPages}
-            onPrev={() => setPage((p) => Math.max(1, p - 1))}
-            onNext={() => setPage((p) => Math.min(numPages, p + 1))}
+            onPrev={() => goToPage(page - 1)}
+            onNext={() => goToPage(page + 1)}
             mode={mode}
             onModeChange={setMode}
             hasBoxes={pageRects.length > 0}
