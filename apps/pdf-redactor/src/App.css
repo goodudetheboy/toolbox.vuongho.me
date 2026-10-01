@@ -75,8 +75,31 @@ body {
   background: #171a20;
 }
 
+.doc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.doc-back {
+  flex-shrink: 0;
+  min-height: 40px;
+  background: #1b1e24;
+  color: #e6e6e6;
+  border: 1px solid #2a2d34;
+  border-radius: 6px;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.doc-back:hover {
+  border-color: #4a90e2;
+}
+
 .doc-title {
-  margin: 0 0 0.75rem;
+  min-width: 0;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -302,8 +325,9 @@ body {
 
   .page-scroller {
     /* A fixed height (not max-height) so the editor's size is known as soon as
-       it mounts, letting App scroll it to exactly fill the screen above the bar. */
-    height: calc(100dvh - 7.5rem);
+       it mounts, letting App scroll it to exactly fill the screen: Back/file-name
+       row, page, then the two-row bar. */
+    height: calc(100dvh - 10.75rem);
     max-height: none;
   }
 

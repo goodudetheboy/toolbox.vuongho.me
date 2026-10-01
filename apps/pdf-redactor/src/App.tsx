@@ -206,12 +206,18 @@ export default function App() {
       {docLoaded && status === 'loading' && <p>Loading PDF…</p>}
       {docLoaded && status === 'error' && <p className="error">{error}</p>}
 
-      {/* File name shown on the page only — never in the URL or tab title, which
-          land in (possibly cloud-synced) browser history. */}
-      {docLoaded && file && <p className="doc-title">{file.name}</p>}
-
       {docLoaded && file && pdfDoc && status === 'ready' && (
         <div className="editor" ref={editorRef}>
+          <div className="doc-header">
+            {/* Same as the browser back button when we got here in-app (upload or
+                history); a directly opened doc URL falls back to the upload screen. */}
+            <button className="doc-back" onClick={() => goBack({ name: 'upload' })}>
+              ← Back
+            </button>
+            {/* File name shown on the page only — never in the URL or tab title,
+                which land in (possibly cloud-synced) browser history. */}
+            <span className="doc-title">{file.name}</span>
+          </div>
           <PageCanvas
             pdfDoc={pdfDoc}
             pageNumber={page}
