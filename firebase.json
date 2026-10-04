@@ -3,6 +3,10 @@
     {
       "database": "toolbox-trip-planner",
       "rules": "apps/trip-planner/firestore.rules"
+    },
+    {
+      "database": "toolbox-study-assistant",
+      "rules": "apps/study-assistant/firestore.rules"
     }
   ],
   "hosting": {
@@ -11,7 +15,8 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       { "source": "/trip-planner/**", "destination": "/trip-planner/index.html" },
-      { "source": "/pdf-redactor/**", "destination": "/pdf-redactor/index.html" }
+      { "source": "/pdf-redactor/**", "destination": "/pdf-redactor/index.html" },
+      { "source": "/study-assistant/**", "destination": "/study-assistant/index.html" }
     ],
     "headers": [
       {

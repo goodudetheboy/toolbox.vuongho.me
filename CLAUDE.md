@@ -14,13 +14,16 @@ homepage.
   `docs/adr/0001-monorepo-npm-workspaces.md`). Each tool also has its own
   `CLAUDE.md`, `docs/adr/`, and `docs/progress/` — see "Docs are split
   per-app" below. Current tools: `pdf-redactor`, `audio-transcriber`,
-  `trip-planner`.
+  `trip-planner`, `study-assistant` (the only one with a Cloud Run backend,
+  `apps/study-assistant/api/`, deployed by CI when enabled).
 - `scripts/combine-dist.mjs` — merges every app's `dist/` into one root
   `dist/` before deploy (homepage at root, each tool under `/<tool-name>/`)
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the
   shared `vuonghome` GCP project
 - `.github/workflows/deploy.yml` — CI/CD, deploys `dist/` to Firebase
-  Hosting on push to `main`
+  Hosting on push to `main`; also (gated on the repo variable
+  `STUDY_ASSISTANT_ENABLED`) deploys the study-assistant Cloud Run API and
+  publishes Firestore rules
 - `docs/` — toolbox-wide only, see below
 
 ## Docs are split per-app — read the right `CLAUDE.md`/`docs/` for the job
@@ -77,6 +80,7 @@ npm run dev:homepage       # start the homepage dev server
 npm run dev:pdf-redactor   # start the PDF Redactor dev server
 npm run dev:audio-transcriber
 npm run dev:trip-planner
+npm run dev:study-assistant
 npm run build              # build every app (apps/*/dist)
 npm run combine            # merge every app's dist/ into root dist/
 ```

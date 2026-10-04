@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the study-assistant API step can tell whether its code changed.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -16,11 +19,51 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
-      - run: npm run combine
 
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # study-assistant has a Cloud Run backend (holds the Gemini key). These steps only run
+      # once its one-time Google Cloud setup is done and the repo variable
+      # STUDY_ASSISTANT_ENABLED is set to "true" — see apps/study-assistant/docs/SETUP.md.
+      # Until then the rest of the toolbox deploys exactly as before.
+      - uses: google-github-actions/setup-gcloud@v2
+        if: vars.STUDY_ASSISTANT_ENABLED == 'true'
+
+      - name: Deploy study-assistant API (only when it changed, or doesn't exist yet)
+        if: vars.STUDY_ASSISTANT_ENABLED == 'true'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          SERVICE=toolbox-study-assistant-api
+          REGION=us-central1
+          deploy=true
+          if gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome >/dev/null 2>&1 \
+            && git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+            && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- apps/study-assistant/api .github/workflows/deploy.yml; then
+            deploy=false
+          fi
+          if [ "$deploy" = true ]; then
+            # Keep ALLOWED_EMAILS in sync with apps/study-assistant/firestore.rules.
+            gcloud run deploy "$SERVICE" \
+              --source apps/study-assistant/api \
+              --region "$REGION" --project vuonghome \
+              --allow-unauthenticated \
+              --timeout 300 --memory 512Mi --max-instances 3 \
+              --set-secrets GEMINI_API_KEY=study-assistant-gemini-key:latest \
+              --set-env-vars "^@^ALLOWED_EMAILS=hochivuong2002@gmail.com,tling241004@gmail.com@ALLOWED_ORIGINS=https://toolbox.vuongho.me,http://localhost:5173" \
+              --quiet
+          fi
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome --format='value(status.url)')
+          echo "VITE_STUDY_API_URL=$URL" >> "$GITHUB_ENV"
+
+      - run: npm run build
+      - run: npm run combine
+
       - run: npx firebase-tools deploy --only hosting --project vuonghome
+
+      - name: Deploy Firestore security rules
+        if: vars.STUDY_ASSISTANT_ENABLED == 'true'
+        run: npx firebase-tools deploy --only firestore:rules --project vuonghome

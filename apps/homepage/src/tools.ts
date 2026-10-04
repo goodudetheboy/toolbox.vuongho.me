@@ -29,4 +29,10 @@ export const tools: Tool[] = [
     href: '/trip-planner/',
     model: 'compass',
   },
+  {
+    name: 'Study Assistant',
+    description: 'Split a study note into parts, then recite each one from memory with Biggu listening and hinting.',
+    href: '/study-assistant/',
+    model: 'wrench',
+  },
 ];

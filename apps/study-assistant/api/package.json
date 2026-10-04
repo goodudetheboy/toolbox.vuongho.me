@@ -1,0 +1,19 @@
+{
+  "name": "toolbox-study-assistant-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cloud Run backend for study-assistant: holds the Gemini API key, checks the caller is an allowed Firebase user.",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@google/genai": "^2.27.0",
+    "firebase-admin": "^13.5.0"
+  }
+}
