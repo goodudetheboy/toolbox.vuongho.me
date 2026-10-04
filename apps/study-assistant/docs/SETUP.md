@@ -76,7 +76,7 @@ top right if you don't see it). Pencil icon → add:
    - Database ID: `toolbox-study-assistant` (exactly this)
    - Mode: **Native mode**
    - Location type: **Region → us-central1**
-   - Security rules: **Production mode** (locked — CI publishes the real rules)
+   - Security rules: **Restrictive** (locked — CI publishes the real rules)
    - **Create database**.
 
 ## 6. Check sign-in is allowed on the site
