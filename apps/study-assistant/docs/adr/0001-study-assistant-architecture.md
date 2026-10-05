@@ -139,3 +139,17 @@ user's request:
 - A hint stays on screen for **3 s** (countdown ring on the bubble), then
   hides, regardless of whether she has started speaking. Saying past the
   hinted words still resets escalation to the concept cue.
+
+## Addendum 2026-10-05 — cleaned-up notes; hints pause the silence clock
+
+- **Notes are no longer strictly verbatim.** `/prepare` keeps all study
+  content and stays close to the wording, but fixes typos, removes clutter
+  (citation/reference markers, URLs, figure pointers, page numbers, stray
+  symbols) and may lightly smooth a phrase for readability. Medical terms,
+  drugs, doses and abbreviations stay as written. The fidelity check is now
+  a "content dropped?" guard: retry/warn below 0.7 (was 0.97 word-for-word).
+- **Silence only counts with a clear screen.** While a hint is on screen or
+  a hint is being fetched (auto or Hint button), the pause detector is
+  paused; the quiet clock restarts when the hint hides. So a manual hint is
+  never followed by an overlapping auto hint, and the next auto hint comes
+  3 s after the bubble clears.

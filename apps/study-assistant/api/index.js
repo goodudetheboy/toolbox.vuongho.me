@@ -26,8 +26,9 @@ const ALLOWED_ORIGINS = (
   process.env.ALLOWED_ORIGINS || 'https://toolbox.vuongho.me,http://localhost:5173'
 ).split(',');
 const MAX_BODY_BYTES = 30 * 1024 * 1024;
-// Pasted/Word notes must come back at least this close to word-for-word.
-const MIN_FIDELITY = 0.97;
+// Pasted/Word notes get cleaned up (typos, citations…), so they won't come back word-for-word, but
+// falling below this means content was probably dropped or rewritten. Keep in sync with NewNote.tsx.
+const MIN_FIDELITY = 0.7;
 
 if (!GEMINI_API_KEY) console.warn('GEMINI_API_KEY is not set — Gemini calls will fail.');
 if (ALLOWED_EMAILS.length === 0) console.warn('ALLOWED_EMAILS is empty — every request will be refused.');
@@ -47,12 +48,20 @@ class HttpError extends Error {
 // ---------------------------------------------------------------- prepare
 
 const PREPARE_INSTRUCTION = `You prepare a nursing student's study note so she can memorize it for an exam.
-She will read one chunk at a time, then recite it aloud word for word.
+She will read one chunk at a time, then recite it aloud from memory.
 
 RULES — follow all of them:
-1. VERBATIM. Keep every word of the note exactly as written, in the original order. Never paraphrase,
-   summarize, translate, correct spelling, add words or drop words. For photos and PDFs, transcribe exactly
-   what is written; you may skip page numbers and running headers/footers that repeat on every page.
+1. KEEP THE CONTENT, CLEAN THE CLUTTER. Keep all of the note's actual study content — every fact, term,
+   number, list item and relationship, in the original order — and stay close to its wording, since that
+   is what she memorizes. Never summarize, never drop content, never add facts, never translate.
+   Do clean it up so it reads smoothly:
+   - fix typos, spelling and obvious grammar slips; join words broken across lines ("hemo- globin");
+   - remove clutter that isn't study content: citation and reference markers ("[12]", "(Smith, 2019)",
+     "[citation needed]", superscript note numbers), URLs, "see Figure 3"/"Table 2" pointers, page numbers,
+     running headers/footers, slide numbers, watermarks, stray symbols and leftover formatting characters;
+   - you may lightly adjust a phrase so a sentence is coherent and easy to read (e.g. a fragment cut off by
+     a page break), but don't rewrite sentences that already read fine.
+   Medical terms, drug names, doses and abbreviations stay exactly as the note has them (fix only clear typos).
 2. FORMAT — make it easy to read on a phone. Ignore the original layout (line breaks, indentation, spacing,
    bullet symbols, PDF columns, how it was typed) and lay the words out again as clean, well-structured
    Markdown, choosing whatever structure reads best:
@@ -148,7 +157,7 @@ async function prepare(body) {
           ...input,
           {
             type: 'text',
-            text: 'IMPORTANT: a previous attempt changed or dropped words. Copy the note text exactly — only add Markdown formatting.',
+            text: 'IMPORTANT: a previous attempt dropped or rewrote too much of the note. Keep all of its content and wording — only fix typos, remove clutter (citations, URLs…) and add Markdown formatting.',
           },
         ],
         schema: PREPARE_SCHEMA,

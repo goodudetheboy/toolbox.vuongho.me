@@ -20,7 +20,7 @@ export const t = {
   makeParts: 'Split into parts',
   preparing: 'Biggu is reading your note…',
   preparingSlow: 'Long note — almost there…',
-  fidelityWarning: 'Biggu may have changed a few words. Give it a quick check.',
+  fidelityWarning: 'Biggu may have left something out. Give it a quick check.',
   read: 'Read it',
   startSpeaking: "I'm ready — recite",
   listening: 'Biggu is listening…',

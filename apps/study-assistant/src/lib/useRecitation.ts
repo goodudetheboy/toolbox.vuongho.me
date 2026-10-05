@@ -62,6 +62,8 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
   const hintCache = useRef(new Map<string, Promise<PlannedHint | null>>());
   const hintBusy = useRef(false);
   const lastHint = useRef<number[]>([]);
+  const hintShowing = useRef(false);
+  hintShowing.current = hint !== null;
   const heardRef = useRef(heard);
   heardRef.current = heard;
   const noiseFloor = useRef(0.01);
@@ -90,10 +92,14 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     }
   }, [heard]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A hint stays up for HINT_VISIBLE_MS, then goes away on its own.
+  // A hint stays up for HINT_VISIBLE_MS, then goes away on its own. Silence is only counted
+  // once it's gone, so the quiet clock restarts when it hides.
   useEffect(() => {
     if (!hint) return;
-    const timer = window.setTimeout(() => setHint(null), HINT_VISIBLE_MS);
+    const timer = window.setTimeout(() => {
+      setHint(null);
+      lastActivity.current = Date.now();
+    }, HINT_VISIBLE_MS);
     return () => window.clearTimeout(timer);
   }, [hint]);
 
@@ -152,6 +158,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
         hintLevel.current = Math.min(hintLevel.current + 1, 2);
         planned.indices.forEach((i) => hinted.current.add(i));
         lastHint.current = planned.indices;
+        hintShowing.current = true; // before the re-render, so no pause tick slips in between
         setHint({ indices: planned.indices, text: planned.text, id: Date.now() });
         setHintLoading(false);
         const buffer = planned.audio && (await planned.audio);
@@ -167,10 +174,13 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
   );
 
   // Pause detector: prefetch, then hint. After both hints, wait for her to speak again.
+  // While a hint is on screen or one is being fetched (auto or Hint button), silence doesn't
+  // count; the quiet clock restarts when the hint hides.
   useEffect(() => {
     if (phase !== 'listening') return;
     const timer = window.setInterval(() => {
-      if (hintLevel.current >= 2 || hintBusy.current) return;
+      if (hintShowing.current || hintBusy.current) return;
+      if (hintLevel.current >= 2) return;
       const quiet = Date.now() - lastActivity.current;
       if (quiet < PREFETCH_MS) return;
       planHint(hintLevel.current);

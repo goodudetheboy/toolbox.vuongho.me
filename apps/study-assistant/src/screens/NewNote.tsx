@@ -63,7 +63,7 @@ export default function NewNote({
         glossary: prepared.glossary,
         chunks: prepared.chunks.map((c) => ({ title: c.title, markdown: c.markdown })),
       });
-      onCreated(noteId, prepared.fidelity !== null && prepared.fidelity < 0.97);
+      onCreated(noteId, prepared.fidelity !== null && prepared.fidelity < 0.7);
     } catch (err) {
       setError(
         err instanceof ImportError
