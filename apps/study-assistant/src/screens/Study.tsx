@@ -99,10 +99,8 @@ export default function Study({
             ))}
           </div>
         </div>
-        <button className="progress-link" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
-          <Icon name="chart" size={20} />
-          <span className="progress-link-title">{t.progress}</span>
-          <span className="progress-link-go">›</span>
+        <button className="text-btn quiet progress-link" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
+          <Icon name="chart" size={18} /> {t.progress}
         </button>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
