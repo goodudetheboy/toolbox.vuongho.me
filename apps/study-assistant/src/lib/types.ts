@@ -6,6 +6,15 @@ export interface Chunk {
   bestScore?: number;
 }
 
+/** One recorded recitation of a part, kept on the note for the progress history. */
+export interface Attempt {
+  at: number;
+  /** Part index at the time (parts can be renamed but not reordered). */
+  part: number;
+  percent: number;
+  hints: number;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -13,6 +22,8 @@ export interface Note {
   /** Hard terms from the note — biases live speech recognition toward them. */
   glossary: string[];
   chunks: Chunk[];
+  /** Every recorded score, oldest first (missing on notes from before history existed). */
+  history?: Attempt[];
   createdAt: number;
   updatedAt: number;
 }

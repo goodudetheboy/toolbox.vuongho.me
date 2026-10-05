@@ -1,5 +1,6 @@
 import {
   addDoc,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -10,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
-import type { Chunk, NewNote, Note } from './types';
+import type { Attempt, Chunk, NewNote, Note } from './types';
 
 // All of a user's notes live under users/{uid}/notes/{noteId}; each note keeps its
 // chunks (and their scores) inline — one document per note keeps sync simple and
@@ -23,12 +24,18 @@ interface NotesStore {
   subscribeNote(uid: string, id: string, cb: (note: Note | null) => void, onError: (e: Error) => void): Unsubscribe;
   createNote(uid: string, note: NewNote): Promise<string>;
   updateChunk(uid: string, note: Note, index: number, patch: Partial<Chunk>): Promise<void>;
+  /** Saves a finished recitation: the part's last/best score plus a history entry. */
+  recordAttempt(uid: string, note: Note, attempt: Attempt): Promise<void>;
   updateNote(uid: string, id: string, patch: Partial<Pick<Note, 'title' | 'chunks'>>): Promise<void>;
   deleteNote(uid: string, id: string): Promise<void>;
 }
 
 function withChunkPatch(note: Note, index: number, patch: Partial<Chunk>): Chunk[] {
   return note.chunks.map((c, i) => (i === index ? { ...c, ...patch } : c));
+}
+
+function scorePatch(note: Note, a: Attempt): Partial<Chunk> {
+  return { lastScore: a.percent, bestScore: Math.max(a.percent, note.chunks[a.part]?.bestScore ?? 0) };
 }
 
 const firestoreStore: NotesStore = {
@@ -55,6 +62,13 @@ const firestoreStore: NotesStore = {
   async updateChunk(uid, note, index, patch) {
     await updateDoc(doc(db, 'users', uid, 'notes', note.id), {
       chunks: withChunkPatch(note, index, patch),
+      updatedAt: Date.now(),
+    });
+  },
+  async recordAttempt(uid, note, attempt) {
+    await updateDoc(doc(db, 'users', uid, 'notes', note.id), {
+      chunks: withChunkPatch(note, attempt.part, scorePatch(note, attempt)),
+      history: arrayUnion(attempt),
       updatedAt: Date.now(),
     });
   },
@@ -109,6 +123,20 @@ const mockStore: NotesStore = {
     mockSave(
       mockLoad().map((n) =>
         n.id === note.id ? { ...n, chunks: withChunkPatch(n, index, patch), updatedAt: Date.now() } : n,
+      ),
+    );
+  },
+  async recordAttempt(_uid, note, attempt) {
+    mockSave(
+      mockLoad().map((n) =>
+        n.id === note.id
+          ? {
+              ...n,
+              chunks: withChunkPatch(n, attempt.part, scorePatch(n, attempt)),
+              history: [...(n.history ?? []), attempt],
+              updatedAt: Date.now(),
+            }
+          : n,
       ),
     );
   },

@@ -991,9 +991,8 @@ button {
   border-radius: 8px;
 }
 
-.w-said { background: none; }
-.lg.close, .w-close { background: #d7ebfa; text-decoration: underline wavy #4fa3e0; text-underline-offset: 4px; }
-.lg.hinted, .w-hinted { background: #fdecaa; }
+.lg.said, .w-said { background: #cdeedd; color: #1f6b4f; }
+.lg.hinted, .w-hinted { background: #fde39a; color: #7a5300; }
 .lg.missed, .w-missed { background: #fbd0d5; color: #b23b4b; text-decoration: line-through 2px; }
 
 .result-card {
@@ -1113,4 +1112,124 @@ button {
 
 .preview-card {
   opacity: 0.95;
+}
+
+/* ---------- hint limit, hints taken */
+
+.hint-limit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0 0;
+}
+
+.hint-limit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.seg.small {
+  margin: 0;
+  border-width: 2.5px;
+  border-radius: 12px;
+}
+
+.seg.small button {
+  min-height: 36px;
+  min-width: 40px;
+  font-size: 0.95rem;
+}
+
+.hints-left {
+  min-width: 26px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--outline);
+  font-size: 0.9rem;
+  line-height: 22px;
+}
+
+.score-hints {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* ---------- note: progress history */
+
+.history {
+  margin-top: 30px;
+}
+
+.history-title {
+  font-size: 1.5rem;
+  color: var(--sky-ink);
+  margin: 0 4px 10px;
+}
+
+.history-empty {
+  margin: 0 4px;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.history-row + .history-row {
+  border-top: 2px dashed var(--paper-line);
+}
+
+.history-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-part {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-meta {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.history-delta {
+  font-weight: 800;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.history-delta.up { color: var(--green); }
+.history-delta.down { color: var(--coral); }
+
+.history-more {
+  display: block;
+  margin: 6px auto 0;
 }

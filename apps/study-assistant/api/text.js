@@ -59,6 +59,5 @@ export function gradeIdeas(result, wordCount) {
     if (pct === 0) for (let i = idea.start; i <= idea.end; i++) missed.add(i);
   }
   if (covered === 0) throw new Error('Gemini returned no ideas');
-  const unclear = [...new Set(result.unclear || [])].filter((i) => valid(i) && !missed.has(i));
-  return { percent: Math.round(weighted / covered), missed: [...missed].sort((a, b) => a - b), unclear };
+  return { percent: Math.round(weighted / covered), missed: [...missed].sort((a, b) => a - b) };
 }

@@ -166,3 +166,18 @@ words are sent along and earn no credit. Percent = idea scores weighted by
 idea length (`gradeIdeas` in `api/text.js`, unit-tested). Mispronounced key
 terms come back as `unclear` ("Say it clearer"). The on-device word match is
 now only the offline fallback. Label: "N% of the ideas".
+
+## Addendum 2026-10-05 — every word colored, hint limit, score history
+
+- Result: every word gets a color — Got it / Hinted / Missed. The "Say it
+  clearer" (mispronounced) category is gone (`/score` no longer asks for
+  it).
+- Hint limit per recitation: 3 / 5 / 10 / 20 / ∞, default 10, picked on the
+  read screen and kept per device (localStorage, `src/lib/settings.ts`). The
+  Hint button shows how many are left; at 0 both auto and manual hints stop.
+  Hints stay on screen 5 s (was 3 s).
+- Each finished recitation is recorded on the note as
+  `history: [{ at, part, percent, hints }]` (Firestore `arrayUnion`, same
+  write as the part's last/best score). The note page shows a Progress list,
+  newest first, with ▲/▼ versus that part's previous try. The result shows
+  how many hints were taken.

@@ -17,12 +17,12 @@ const PREFETCH_MS = 1000;
 const HINT_MS = 3000;
 const TICK_MS = 200;
 /** How long a hint stays on screen (the bubble shows a countdown ring). */
-export const HINT_VISIBLE_MS = 3000;
+export const HINT_VISIBLE_MS = 5000;
 /** Biggu speaking hints aloud (/speak TTS) — switched off for now at the user's request. */
 const SPEAK_HINTS = false;
 
 export type Phase = 'idle' | 'connecting' | 'listening' | 'scoring' | 'result';
-export type WordStatus = 'said' | 'close' | 'hinted' | 'missed';
+export type WordStatus = 'said' | 'hinted' | 'missed';
 
 export interface Hint {
   indices: number[];
@@ -35,18 +35,25 @@ type ShownHint = Hint & { id: number };
 export interface Result {
   statuses: WordStatus[];
   percent: number;
+  /** Hints shown during this recitation. */
+  hints: number;
 }
 
 function cleanForSpeech(words: string[]): string {
   return words.join(' ').replace(/[^\p{L}\p{N}\s'-]/gu, '').trim();
 }
 
-export function useRecitation(tokens: Token[], vocabulary: string[]) {
+/** `hintLimit`: max hints (auto + button) per recitation; Infinity for no limit. */
+export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: number) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [heard, setHeard] = useState('');
   const [hint, setHint] = useState<ShownHint | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const hintsUsedRef = useRef(0);
+  const hintLimitRef = useRef(hintLimit);
+  hintLimitRef.current = hintLimit;
   const [error, setError] = useState<'mic' | 'other' | null>(null);
 
   const alignment = useMemo(() => align(tokens, heard), [tokens, heard]);
@@ -146,7 +153,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
   /** Shows and speaks the next hint. Auto hints are dropped if she starts talking while it loads. */
   const giveHint = useCallback(
     async (manual: boolean) => {
-      if (hintBusy.current) return;
+      if (hintBusy.current || hintsUsedRef.current >= hintLimitRef.current) return;
       const pending = planHint(Math.min(hintLevel.current, 1));
       if (!pending) return;
       hintBusy.current = true;
@@ -156,6 +163,8 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
         const planned = await pending;
         if (!planned || !micRef.current || (!manual && lastActivity.current !== quietSince)) return;
         hintLevel.current = Math.min(hintLevel.current + 1, 2);
+        hintsUsedRef.current += 1;
+        setHintsUsed(hintsUsedRef.current);
         planned.indices.forEach((i) => hinted.current.add(i));
         lastHint.current = planned.indices;
         hintShowing.current = true; // before the re-render, so no pause tick slips in between
@@ -180,6 +189,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     if (phase !== 'listening') return;
     const timer = window.setInterval(() => {
       if (hintShowing.current || hintBusy.current) return;
+      if (hintsUsedRef.current >= hintLimitRef.current) return;
       if (hintLevel.current >= 2) return;
       const quiet = Date.now() - lastActivity.current;
       if (quiet < PREFETCH_MS) return;
@@ -199,6 +209,8 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     setHint(null);
     setResult(null);
     hinted.current = new Set();
+    hintsUsedRef.current = 0;
+    setHintsUsed(0);
     hintCache.current = new Map();
     hintLevel.current = 0;
     lastHint.current = [];
@@ -246,8 +258,8 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     }
   }, [tokens, vocabulary, teardown]);
 
-  /** Stops listening, scores what she said, returns the percentage (or null on failure). */
-  const stop = useCallback(async (): Promise<number | null> => {
+  /** Stops listening and scores what she said. */
+  const stop = useCallback(async (): Promise<Result> => {
     const live = liveRef.current;
     micRef.current?.stop();
     micRef.current = null;
@@ -267,9 +279,8 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
         [...hintedNow],
       );
       const missed = new Set(scored.missed);
-      const unclear = new Set(scored.unclear);
       statuses = tokens.map((_, i) =>
-        hintedNow.has(i) ? 'hinted' : missed.has(i) ? 'missed' : unclear.has(i) ? 'close' : 'said',
+        hintedNow.has(i) ? 'hinted' : missed.has(i) ? 'missed' : 'said',
       );
       percent = scored.percent;
     } catch {
@@ -279,9 +290,10 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
       const remembered = statuses.filter((st) => st === 'said').length;
       percent = tokens.length ? Math.round((100 * remembered) / tokens.length) : 0;
     }
-    setResult({ statuses, percent });
+    const result: Result = { statuses, percent, hints: hintsUsedRef.current };
+    setResult(result);
     setPhase('result');
-    return percent;
+    return result;
   }, [heard, tokens, teardown]);
 
   const reset = useCallback(() => {
@@ -295,5 +307,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
 
   const progress = tokens.length ? alignment.said.size / tokens.length : 0;
 
-  return { phase, heard, hint, hintLoading, result, error, progress, start, stop, reset, askHint };
+  const hintsLeft = Math.max(0, hintLimit - hintsUsed);
+
+  return { phase, heard, hint, hintLoading, hintsLeft, result, error, progress, start, stop, reset, askHint };
 }

@@ -4,6 +4,7 @@ import Markdown from '../components/Markdown';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
+import { HINT_LIMITS, useHintLimit } from '../lib/settings';
 import type { Route } from '../lib/router';
 import type { AppUser, Note } from '../lib/types';
 import { HINT_VISIBLE_MS, useRecitation, type WordStatus } from '../lib/useRecitation';
@@ -30,17 +31,14 @@ export default function Study({
     const own = tokens.map((tk) => tk.display.replace(/[^\p{L}\p{N}'-]/gu, '')).filter((w) => w.length >= 6);
     return [...new Set([...note.glossary, ...own])].slice(0, 100);
   }, [note.glossary, tokens]);
-  const rec = useRecitation(tokens, vocabulary);
+  const [hintLimit, setHintLimit] = useHintLimit();
+  const rec = useRecitation(tokens, vocabulary, hintLimit);
   const isLast = index === note.chunks.length - 1;
 
   async function finish() {
-    const percent = await rec.stop();
-    if (percent === null) return;
+    const result = await rec.stop();
     await notesStore
-      .updateChunk(user.uid, note, index, {
-        lastScore: percent,
-        bestScore: Math.max(percent, chunk.bestScore ?? 0),
-      })
+      .recordAttempt(user.uid, note, { at: Date.now(), part: index, percent: result.percent, hints: result.hints })
       .catch(() => {});
   }
 
@@ -81,6 +79,18 @@ export default function Study({
           </div>
           <Markdown text={chunk.markdown} />
         </Paper>
+        <div className="hint-limit">
+          <span className="hint-limit-label">
+            <Icon name="bulb" size={20} /> {t.hintLimit}
+          </span>
+          <div className="seg small" role="radiogroup" aria-label={t.hintLimit}>
+            {HINT_LIMITS.map((n) => (
+              <button key={n} role="radio" aria-checked={hintLimit === n} className={hintLimit === n ? 'on' : ''} onClick={() => setHintLimit(n)}>
+                {n === Infinity ? '∞' : n}
+              </button>
+            ))}
+          </div>
+        </div>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
           <Biggu mood="read" size={84} className="corner-biggu" />
@@ -131,8 +141,13 @@ export default function Study({
         </div>
         <p className="heard-line">{lastHeard || ' '}</p>
         <div className="bottom-action two">
-          <button className="btn btn-hint" onClick={rec.askHint} disabled={rec.phase !== 'listening' || rec.hintLoading}>
+          <button
+            className="btn btn-hint"
+            onClick={rec.askHint}
+            disabled={rec.phase !== 'listening' || rec.hintLoading || rec.hintsLeft === 0}
+          >
             <Icon name="bulb" size={26} /> {t.hintButton}
+            {rec.hintsLeft !== Infinity && <span className="hints-left">{rec.hintsLeft}</span>}
           </button>
           <button className="btn btn-stop" onClick={finish} disabled={rec.phase !== 'listening'}>
             <Icon name="stop" size={26} /> {t.done}
@@ -154,7 +169,7 @@ export default function Study({
   }
 
   // ---- result
-  const { percent, statuses } = rec.result;
+  const { percent, statuses, hints } = rec.result;
   const mood: BigguMood = percent >= 90 ? 'cheer' : percent >= 70 ? 'proud' : percent >= 40 ? 'wave' : 'sleepy';
   const lines: { word: string; status: WordStatus }[][] = [];
   tokens.forEach((tk, i) => {
@@ -170,13 +185,16 @@ export default function Study({
           <div className="score-number hand">{percent}%</div>
           <div className="score-label">{t.remembered}</div>
           <div className="score-cheer">{t.cheer(percent)}</div>
+          <div className="score-hints">
+            <Icon name="bulb" size={16} /> {t.hintsTaken(hints)}
+          </div>
           {percent >= 90 && <Star size={28} style={{ position: 'absolute', right: -10, top: -10 }} />}
         </Paper>
       </div>
 
-      {/* Said words stay plain; only the colors that actually appear get a label. */}
+      {/* Every word is colored; only the colors that actually appear get a label. */}
       <div className="legend">
-        {(['close', 'hinted', 'missed'] as const)
+        {(['said', 'hinted', 'missed'] as const)
           .filter((k) => statuses.includes(k))
           .map((k) => (
             <span key={k} className={`lg ${k}`}>

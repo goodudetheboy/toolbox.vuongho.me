@@ -36,11 +36,9 @@ test('gradeIdeas weights by idea length and marks missed details', () => {
         { start: 8, end: 9, score: 0, missed: [] },
         { start: 50, end: 60, score: 100, missed: [] }, // out of range: ignored
       ],
-      unclear: [2, 5, 99],
     },
     10,
   );
   assert.equal(r.percent, 56); // (70*8 + 0*2) / 10
   assert.deepEqual(r.missed, [5, 8, 9]);
-  assert.deepEqual(r.unclear, [2]);
 });

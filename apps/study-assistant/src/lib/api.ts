@@ -54,8 +54,6 @@ export interface ScoreResponse {
   percent: number;
   /** Word indices of details she left out or got wrong. */
   missed: number[];
-  /** Word indices of key terms she said but mispronounced. */
-  unclear: number[];
 }
 
 export interface HintRequest {
@@ -144,7 +142,6 @@ const mock: Api = {
     return {
       percent: Math.round((100 * (words.length - missed.length)) / Math.max(1, words.length)),
       missed,
-      unclear: said.indexOf(true) >= 0 ? [said.indexOf(true)] : [],
     };
   },
 

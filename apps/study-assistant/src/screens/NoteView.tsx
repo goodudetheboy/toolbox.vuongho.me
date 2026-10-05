@@ -62,6 +62,8 @@ export default function NoteView({
         ))}
       </ol>
 
+      <ProgressHistory note={note} />
+
       <div className="danger-zone">
         {!showMore ? (
           <button className="text-btn quiet" onClick={() => setShowMore(true)} aria-label={t.more}>
@@ -98,5 +100,57 @@ export default function NoteView({
         </button>
       </div>
     </main>
+  );
+}
+
+const SHOWN = 10;
+
+/** Every recorded score for this note, newest first, with the change since that part's previous try. */
+function ProgressHistory({ note }: { note: Note }) {
+  const [all, setAll] = useState(false);
+  const history = note.history ?? [];
+  const rows = history
+    .map((a, i) => {
+      const prev = history.slice(0, i).reverse().find((p) => p.part === a.part);
+      return { a, delta: prev ? a.percent - prev.percent : null };
+    })
+    .reverse();
+  const shown = all ? rows : rows.slice(0, SHOWN);
+  const when = (at: number) =>
+    new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+  return (
+    <section className="history">
+      <h2 className="hand history-title">{t.progress}</h2>
+      {rows.length === 0 ? (
+        <p className="muted history-empty">{t.noHistory}</p>
+      ) : (
+        <ol className="history-list">
+          {shown.map(({ a, delta }) => (
+            <li key={`${a.at}-${a.part}`} className="history-row">
+              <ScoreStamp score={a.percent} size={44} />
+              <span className="history-main">
+                <span className="history-part">
+                  {a.part + 1}. {note.chunks[a.part]?.title ?? ''}
+                </span>
+                <span className="history-meta">
+                  {when(a.at)} · {t.hintsTaken(a.hints)}
+                </span>
+              </span>
+              {delta !== null && delta !== 0 && (
+                <span className={`history-delta ${delta > 0 ? 'up' : 'down'}`}>
+                  {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+      {!all && rows.length > SHOWN && (
+        <button className="text-btn history-more" onClick={() => setAll(true)}>
+          {t.showAll(rows.length)}
+        </button>
+      )}
+    </section>
   );
 }

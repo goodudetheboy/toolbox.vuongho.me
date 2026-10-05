@@ -299,9 +299,8 @@ const SCORE_SCHEMA = {
         required: ['start', 'end', 'score', 'missed'],
       },
     },
-    unclear: { type: 'array', items: { type: 'integer' } },
   },
-  required: ['ideas', 'unclear'],
+  required: ['ideas'],
 };
 
 /**
@@ -314,7 +313,7 @@ async function score(body) {
   if (passage.length === 0 || passage.length > 2000) throw new HttpError(400, 'Bad passage');
   const hinted = new Set((Array.isArray(body.hinted) ? body.hinted : []).filter(Number.isInteger));
   const all = passage.map((_, i) => i);
-  if (!transcript.trim()) return { percent: 0, missed: all, unclear: [] };
+  if (!transcript.trim()) return { percent: 0, missed: all };
 
   const numbered = passage.map((w, i) => `${i}:${w}${hinted.has(i) ? '(hinted)' : ''}`).join(' ');
   const result = await generateJson({
@@ -332,9 +331,7 @@ paraphrase and a different order. None of that is a mistake.
 3. "missed": for each idea, the indices of the passage words for what she left out or got wrong — the
    specific details (the term "B", the number, the missing half of a definition), so she can see exactly
    what to review. If she missed the whole idea, list all of its words. Don't list filler or wording she
-   merely phrased differently.
-4. "unclear": indices of key terms she did say but that were noticeably mispronounced or misheard, so she
-   can practise saying them.`,
+   merely phrased differently.`,
     input: `Passage (index:word):\n${numbered}\n\nTranscript of what she said:\n${transcript}`,
     schema: SCORE_SCHEMA,
   });
