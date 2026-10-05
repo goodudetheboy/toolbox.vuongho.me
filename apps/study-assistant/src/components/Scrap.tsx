@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import faceHappy from '../assets/biggu/face-happy.webp';
 import faceSad from '../assets/biggu/face-sad.webp';
+import faceHead from '../assets/biggu/face-head.webp';
 
 // Scrapbook pieces: washi tape, torn-paper cards, stamps and doodles.
 
@@ -89,9 +90,11 @@ export function Star({ size = 22, color = '#FFD25E', style }: { size?: number; c
   );
 }
 
-/** Biggu's head looking happy or sad — the feedback "thumbs", without emoji. */
-export function BigguFace({ mood, size = 34 }: { mood: 'happy' | 'sad'; size?: number }) {
-  return <img src={mood === 'happy' ? faceHappy : faceSad} width={size} height={size} alt="" draggable={false} />;
+const FACES = { happy: faceHappy, sad: faceSad, calm: faceHead };
+
+/** Biggu's head: happy / sad are the feedback "thumbs" (no emoji); calm is the app-icon head. */
+export function BigguFace({ mood, size = 34, className }: { mood: keyof typeof FACES; size?: number; className?: string }) {
+  return <img className={className} src={FACES[mood]} width={size} height={size} alt="" draggable={false} />;
 }
 
 export function Heart({ size = 20, style }: { size?: number; style?: CSSProperties }) {

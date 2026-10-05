@@ -21,8 +21,8 @@ def cutout(name):
 
 for m in 'wave read listen hint cheer proud sleepy think'.split():
     cutout(m).resize((400, 400), Image.LANCZOS).save(f'{app}/src/assets/biggu/{m}.webp', quality=82, method=6)
-for f in ('happy', 'sad'):
-    cutout(f).resize((112, 112), Image.LANCZOS).save(f'{app}/src/assets/biggu/face-{f}.webp', quality=85, method=6)
+for f in ('happy', 'sad', 'head'):
+    cutout(f).resize((160, 160), Image.LANCZOS).save(f'{app}/src/assets/biggu/face-{f}.webp', quality=85, method=6)
 
 head = cutout('head')
 def icon(size, frac, path, bg=(0xDC, 0xEF, 0xFB, 255)):
