@@ -22,7 +22,7 @@ export const t = {
   preparingSlow: 'Long note — almost there…',
   fidelityWarning: 'Biggu may have left something out. Give it a quick check.',
   read: 'Read it',
-  startSpeaking: "I'm ready — recite",
+  startSpeaking: 'Practice',
   listening: 'Biggu is listening…',
   connecting: 'Getting ready…',
   stuckTip: 'Stuck? Pause or tap Hint — Biggu will help.',
