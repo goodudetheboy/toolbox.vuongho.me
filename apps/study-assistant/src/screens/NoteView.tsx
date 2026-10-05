@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Biggu from '../components/Biggu';
+import { ConfirmDialog, PromptDialog } from '../components/Dialog';
 import { Icon, ScoreStamp } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
@@ -28,6 +29,8 @@ export default function NoteView({
   onBack: () => void;
 }) {
   const [showMore, setShowMore] = useState(false);
+  const [dialog, setDialog] = useState<'rename' | 'delete' | null>(null);
+  const closeDialog = () => setDialog(null);
   const up = nextUp(note);
   const open = (index: number) => navigate({ name: 'chunk', noteId: note.id, index });
 
@@ -69,28 +72,42 @@ export default function NoteView({
           </button>
         ) : (
           <>
-            <button
-              className="text-btn"
-              onClick={async () => {
-                const title = window.prompt(t.renamePrompt, note.title)?.trim();
-                if (title && title !== note.title) await notesStore.updateNote(user.uid, note.id, { title });
-              }}
-            >
+            <button className="text-btn" onClick={() => setDialog('rename')}>
               <Icon name="pencil" size={18} /> {t.rename}
             </button>
-            <button
-              className="text-btn danger"
-              onClick={async () => {
-                if (!window.confirm(t.confirmDelete)) return;
-                await notesStore.deleteNote(user.uid, note.id);
-                onBack();
-              }}
-            >
+            <button className="text-btn danger" onClick={() => setDialog('delete')}>
               <Icon name="trash" size={18} /> {t.deleteLesson}
             </button>
           </>
         )}
       </div>
+
+      <PromptDialog
+        open={dialog === 'rename'}
+        title={t.rename}
+        label={t.renamePrompt}
+        initial={note.title}
+        confirmLabel={t.save}
+        onSubmit={async (title) => {
+          await notesStore.updateNote(user.uid, note.id, { title });
+          closeDialog();
+        }}
+        onCancel={closeDialog}
+      />
+      <ConfirmDialog
+        open={dialog === 'delete'}
+        title={t.confirmDelete}
+        message={t.confirmDeleteBody(note.title)}
+        confirmLabel={t.delete}
+        danger
+        mood="sleepy"
+        onConfirm={async () => {
+          await notesStore.deleteNote(user.uid, note.id);
+          closeDialog();
+          onBack();
+        }}
+        onCancel={closeDialog}
+      />
 
       <div className="bottom-action">
         <button className="btn btn-primary btn-big" onClick={() => open(up)}>

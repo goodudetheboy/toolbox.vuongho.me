@@ -223,7 +223,7 @@ export class ToolboxScene {
   }
 
   private spawnItems(m: ReturnType<typeof materials>) {
-    const toolSlots: [number, number][] = [[-0.13, 0.058], [0.085, -0.045], [-0.16, -0.055], [-0.03, -0.06], [0.19, 0.03]];
+    const toolSlots: [number, number][] = [[-0.13, 0.058], [0.085, -0.045], [-0.16, -0.055], [-0.083, -0.072], [0.19, 0.03]];
     this.tools.forEach((tool, i) => {
       const [x, z] = toolSlots[i % toolSlots.length];
       this.addItem(buildProp(tool.model, m), x, z + Math.floor(i / toolSlots.length) * 0.01, i, Math.floor(i / toolSlots.length) * 0.04);
@@ -231,7 +231,7 @@ export class ToolboxScene {
     // Loose hardware that isn't a link — it's there to rattle around.
     this.addItem(buildProp('screwdriver', m), 0.09, 0.07, null);
     const r = rng(3);
-    for (const [x, z] of [[-0.02, 0.02], [-0.05, -0.02], [0.2, -0.07], [0.02, 0.085]]) {
+    for (const [x, z] of [[-0.02, 0.02], [-0.055, -0.008], [0.2, -0.07], [0.02, 0.085]]) {
       const it = this.addItem(buildProp('nut', m), x, z, null);
       it.home.quat.setFromEuler(r() * 0.3, r() * 6, 0);
       it.body.quaternion.copy(it.home.quat);

@@ -58,6 +58,8 @@ export const t = {
   nextUp: 'Next up',
   deleteLesson: 'Delete this note',
   confirmDelete: 'Delete this note?',
+  confirmDeleteBody: (title: string) => `“${title}” and all its scores will be gone for good.`,
+  delete: 'Delete',
   more: 'More',
   part: (n: number, total: number) => `Part ${n} of ${total}`,
   error: 'Something went wrong. Try again.',

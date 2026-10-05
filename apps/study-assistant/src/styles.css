@@ -1351,3 +1351,87 @@ button {
   display: block;
   margin: 6px auto 0;
 }
+
+/* ---------- modal (components/Dialog.tsx) */
+
+.modal {
+  border: none;
+  padding: 0;
+  background: none;
+  overflow: visible;
+  width: min(100% - 32px, 400px);
+  max-width: none;
+  color: var(--ink);
+}
+
+.modal::backdrop {
+  background: rgba(31, 95, 143, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.modal[open] .modal-wrap {
+  animation: modal-pop 0.22s cubic-bezier(0.3, 1.4, 0.6, 1);
+}
+
+@keyframes modal-pop {
+  from { transform: translateY(16px) scale(0.92); opacity: 0; }
+}
+
+.modal-wrap {
+  position: relative;
+  padding-top: 62px;
+}
+
+.modal-biggu {
+  position: absolute;
+  top: 0;
+  right: 22px;
+}
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  padding: 30px 20px 22px;
+}
+
+.modal-title {
+  font-size: 1.7rem;
+  line-height: 1.15;
+  margin: 0 0 10px;
+  color: var(--sky-ink);
+}
+
+.modal-message {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.modal-field {
+  display: block;
+}
+
+.modal-label {
+  display: block;
+  margin: 0 4px 6px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn {
+  min-height: 46px;
+  padding: 0 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal[open] .modal-wrap { animation: none; }
+}
