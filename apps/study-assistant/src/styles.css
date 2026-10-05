@@ -830,7 +830,13 @@ button {
   flex-direction: column;
   align-items: center;
   min-width: 0;
+  max-width: 100%;
   line-height: 1.1;
+}
+
+/* Centered column children size to their content — cap the title so long ones get "…" instead of running under the buttons. */
+.study-title .title-ellipsis {
+  max-width: 100%;
 }
 
 .part-pill {
