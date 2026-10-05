@@ -74,11 +74,6 @@ export default function Study({
           <Menu
             items={[
               {
-                label: t.edit,
-                icon: <Icon name="pencil" size={20} />,
-                onSelect: () => navigate({ name: 'edit', noteId: note.id, index }),
-              },
-              {
                 label: t.progress,
                 icon: <Icon name="chart" size={20} />,
                 onSelect: () => navigate({ name: 'progress', noteId: note.id, index }),
@@ -100,6 +95,9 @@ export default function Study({
             <div className="read-label hand">
               <Icon name="book" size={22} /> {t.read}
             </div>
+            <button className="text-btn" onClick={() => navigate({ name: 'edit', noteId: note.id, index })} aria-label={t.edit} title={t.edit}>
+              <Icon name="pencil" size={20} />
+            </button>
           </div>
           <Markdown text={chunk.markdown} />
         </Paper>
