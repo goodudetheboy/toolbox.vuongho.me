@@ -47,7 +47,7 @@ export default function SessionFeedback({
           {(['up', 'down'] as const).map((r) => (
             <button
               key={r}
-              className={`thumb ${rating === r ? 'on' : ''}`}
+              className={`thumb thumb-${r} ${rating === r ? 'on' : ''}`}
               aria-label={r === 'up' ? t.feedbackGood : t.feedbackBad}
               aria-pressed={rating === r}
               disabled={state === 'saving'}

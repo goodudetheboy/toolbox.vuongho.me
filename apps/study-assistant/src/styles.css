@@ -1648,9 +1648,11 @@ button {
   transition: opacity 0.15s;
 }
 
-.thumb.on {
-  background: var(--yellow);
-}
+/* Same light green / red as the "Got it" / "Missed" word highlights; a shade deeper once picked. */
+.thumb-up { background: #cdeedd; }
+.thumb-down { background: #fbd0d5; }
+.thumb-up.on { background: #a9dfca; }
+.thumb-down.on { background: #f7b7c8; }
 
 .thumb.on svg {
   opacity: 1;
