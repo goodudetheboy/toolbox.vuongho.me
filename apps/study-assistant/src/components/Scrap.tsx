@@ -87,6 +87,30 @@ export function Star({ size = 22, color = '#FFD25E', style }: { size?: number; c
   );
 }
 
+/** Biggu's paw: tabby fur with pink toe beans. Points up by default; `down` flips it (👍 / 👎 without emoji). */
+export function Paw({ size = 28, down = false }: { size?: number; down?: boolean }) {
+  const line = '#3A2D24';
+  const bean = '#E9A0A6';
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="doodle" style={down ? { transform: 'rotate(180deg)' } : undefined}>
+      {/* the paw itself: a soft mitten with the four toes bumping out of the top */}
+      <path
+        d="M16 30c-6.2 0-10.5-3.4-10.5-8.4 0-1.9.6-3.5 1.5-4.8-1.6-.9-2.5-2.5-2.2-4.3.4-2.2 2.3-3.5 4.3-3.2.3-2.6 2.1-4.6 4.4-4.6 1.1 0 2 .4 2.6 1 .6-.6 1.5-1 2.6-1 2.3 0 4.1 2 4.4 4.6 2-.3 3.9 1 4.3 3.2.3 1.8-.6 3.4-2.2 4.3.9 1.3 1.5 2.9 1.5 4.8 0 5-4.3 8.4-10.5 8.4z"
+        fill="#9A8878"
+        stroke={line}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      {/* toe beans + the big pad */}
+      <ellipse cx="9.2" cy="13" rx="2.1" ry="2.5" fill={bean} transform="rotate(-25 9.2 13)" />
+      <ellipse cx="13.4" cy="9.6" rx="2" ry="2.5" fill={bean} transform="rotate(-8 13.4 9.6)" />
+      <ellipse cx="18.6" cy="9.6" rx="2" ry="2.5" fill={bean} transform="rotate(8 18.6 9.6)" />
+      <ellipse cx="22.8" cy="13" rx="2.1" ry="2.5" fill={bean} transform="rotate(25 22.8 13)" />
+      <path d="M16 17.2c3.3 0 6 2.4 6 5.2 0 2.3-2 3.6-3.6 3.6-1 0-1.6-.6-2.4-.6s-1.4.6-2.4.6c-1.6 0-3.6-1.3-3.6-3.6 0-2.8 2.7-5.2 6-5.2z" fill={bean} />
+    </svg>
+  );
+}
+
 export function Heart({ size = 20, style }: { size?: number; style?: CSSProperties }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" style={style} aria-hidden className="doodle">

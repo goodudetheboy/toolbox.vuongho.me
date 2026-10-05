@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { DOWN_REASONS, type DownReason, type Rating } from '../lib/feedback';
 import { t } from '../strings';
+import { Paw } from './Scrap';
 
 /**
- * "How was this session?" 👍 / 👎 on the result screen. 👍 saves straight away;
+ * "How was this session?" paw up / paw down on the result screen. 👍 saves straight away;
  * 👎 asks what felt off (chips + optional note). Either can be changed afterwards.
  */
 export default function SessionFeedback({
@@ -52,7 +53,7 @@ export default function SessionFeedback({
               disabled={state === 'saving'}
               onClick={() => pick(r)}
             >
-              {r === 'up' ? '👍' : '👎'}
+              <Paw size={30} down={r === 'down'} />
             </button>
           ))}
         </span>

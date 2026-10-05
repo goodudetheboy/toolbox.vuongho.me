@@ -1630,21 +1630,30 @@ button {
 }
 
 .thumb {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border-radius: 50%;
   border: 2.5px solid var(--outline);
   background: #fff;
   box-shadow: 0 3px 0 var(--outline);
-  font-size: 1.35rem;
-  line-height: 1;
   cursor: pointer;
-  filter: grayscale(0.6);
+}
+
+/* Unpicked paws fade back a little so the chosen one reads as "selected". */
+.thumb svg {
+  opacity: 0.55;
+  transition: opacity 0.15s;
 }
 
 .thumb.on {
   background: var(--yellow);
-  filter: none;
+}
+
+.thumb.on svg {
+  opacity: 1;
 }
 
 .thumb:active:not(:disabled) {
