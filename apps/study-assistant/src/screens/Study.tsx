@@ -81,15 +81,9 @@ export default function Study({
             <div className="read-label hand">
               <Icon name="book" size={22} /> {t.read}
             </div>
-            <span className="read-actions">
-              <button className="text-btn" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
-                <Icon name="chart" size={18} /> {t.progress}
-                {!!chunk.tries && <span className="count-badge">{chunk.tries}</span>}
-              </button>
-              <button className="text-btn" onClick={() => navigate({ name: 'edit', noteId: note.id, index })}>
-                <Icon name="pencil" size={18} /> {t.edit}
-              </button>
-            </span>
+            <button className="text-btn" onClick={() => navigate({ name: 'edit', noteId: note.id, index })}>
+              <Icon name="pencil" size={18} /> {t.edit}
+            </button>
           </div>
           <Markdown text={chunk.markdown} />
         </Paper>
@@ -105,6 +99,14 @@ export default function Study({
             ))}
           </div>
         </div>
+        <button className="progress-link" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
+          <Icon name="chart" size={20} />
+          <span className="progress-link-title">{t.progress}</span>
+          <span className="progress-link-meta">
+            {chunk.tries ? t.progressSummary(chunk.bestScore ?? 0, chunk.tries) : t.noTriesYet}
+          </span>
+          <span className="progress-link-go">›</span>
+        </button>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
           <Biggu mood="read" size={84} className="corner-biggu" />

@@ -1259,23 +1259,48 @@ button {
 
 /* ---------- part: progress screen */
 
-.read-actions {
+.progress-link {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 2.5px solid var(--outline);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--outline);
+  font: inherit;
+  color: var(--sky-ink);
+  text-align: left;
+  cursor: pointer;
 }
 
-.count-badge {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--sky-deep);
-  color: #fff;
-  font-size: 0.75rem;
+.progress-link:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--outline);
+}
+
+.progress-link-title {
   font-weight: 800;
-  display: inline-grid;
-  place-items: center;
+}
+
+.progress-link-meta {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-link-go {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ink-soft);
 }
 
 .progress-stats {

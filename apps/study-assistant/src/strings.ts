@@ -34,6 +34,8 @@ export const t = {
   best: 'Best',
   last: 'Last',
   triesLabel: 'Tries',
+  progressSummary: (best: number, tries: number) => `Best ${best}% · ${tries === 1 ? '1 try' : `${tries} tries`}`,
+  noTriesYet: 'No tries yet',
   newer: 'Newer',
   older: 'Older',
   pageOf: (n: number, total: number) => `${n} / ${total}`,
