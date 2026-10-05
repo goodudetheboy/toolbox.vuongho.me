@@ -3,6 +3,7 @@ import Biggu, { type BigguMood } from '../components/Biggu';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
 import Menu from '../components/Menu';
+import PartTitle from '../components/PartTitle';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
@@ -63,12 +64,7 @@ export default function Study({
         rec.reset();
         onBack();
       }}
-      title={
-        <span className="study-title">
-          <span className="hand title-ellipsis">{chunk.title}</span>
-          <span className="part-pill">{t.part(index + 1, note.chunks.length)}</span>
-        </span>
-      }
+      title={<PartTitle title={chunk.title} pill={t.part(index + 1, note.chunks.length)} />}
       right={
         rec.phase === 'idle' ? (
           <Menu

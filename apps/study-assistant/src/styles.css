@@ -834,9 +834,24 @@ button {
   line-height: 1.1;
 }
 
-/* Centered column children size to their content — cap the title so long ones get "…" instead of running under the buttons. */
-.study-title .title-ellipsis {
+/* Up to two lines, then "…" — long part titles often differ only at the end. */
+.study-title-text {
   max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.study-title-text.long {
+  font-size: 1.25rem;
+}
+
+/* Buttons stay put whether the title takes one line or two. */
+.topbar:has(.study-title) {
+  align-items: flex-start;
 }
 
 .part-pill {
@@ -1130,6 +1145,21 @@ button {
   margin: 14px 4px 6px;
   font-weight: 800;
   color: var(--ink-soft);
+}
+
+.edit-screen .field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.char-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.char-count.full {
+  color: var(--coral);
 }
 
 .text-input {

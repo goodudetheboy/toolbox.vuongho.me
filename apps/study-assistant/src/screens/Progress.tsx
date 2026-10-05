@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Biggu from '../components/Biggu';
 import MarkedWords from '../components/MarkedWords';
+import PartTitle from '../components/PartTitle';
 import { ScoreStamp } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { decodeMarks, textHash } from '../lib/marks';
@@ -68,12 +69,7 @@ export default function Progress({ user, note, index, onBack }: { user: AppUser;
     <main className="screen">
       <TopBar
         onBack={onBack}
-        title={
-          <span className="study-title">
-            <span className="hand title-ellipsis">{chunk.title}</span>
-            <span className="part-pill">{t.progress}</span>
-          </span>
-        }
+        title={<PartTitle title={chunk.title} pill={t.progress} />}
       />
 
       <div className="progress-stats">

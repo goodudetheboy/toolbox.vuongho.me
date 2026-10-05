@@ -22,6 +22,9 @@ function savedMode(): Mode {
   }
 }
 
+/** Two lines of the top-bar title at its smaller size (see PartTitle). */
+const TITLE_MAX = 50;
+
 const TOOLS: { label: string; title: string; run: () => void }[] = [
   { label: 'B', title: 'Bold', run: () => toggleInline('STRONG') },
   { label: 'I', title: 'Italic', run: () => toggleInline('EM') },
@@ -117,10 +120,21 @@ export default function EditPart({
     <main className="screen edit-screen">
       <TopBar onBack={onDone} title={<span className="hand title-ellipsis">{t.editPart(index + 1)}</span>} />
 
-      <label className="field-label" htmlFor="part-title">
+      <label className="field-label field-label-row" htmlFor="part-title">
         {t.partTitle}
+        {title.length >= TITLE_MAX - 10 && (
+          <span className={`char-count ${title.length >= TITLE_MAX ? 'full' : ''}`}>
+            {title.length}/{TITLE_MAX}
+          </span>
+        )}
       </label>
-      <input id="part-title" className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <input
+        id="part-title"
+        className="text-input"
+        value={title}
+        maxLength={TITLE_MAX}
+        onChange={(e) => setTitle(e.target.value)}
+      />
 
       <div className="seg" role="tablist">
         {(['rich', 'markdown'] as const).map((m) => (
