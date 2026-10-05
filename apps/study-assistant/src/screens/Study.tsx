@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
+import Menu from '../components/Menu';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
@@ -68,6 +69,19 @@ export default function Study({
           <span className="part-pill">{t.part(index + 1, note.chunks.length)}</span>
         </span>
       }
+      right={
+        rec.phase === 'idle' ? (
+          <Menu
+            items={[
+              {
+                label: t.progress,
+                icon: <Icon name="chart" size={20} />,
+                onSelect: () => navigate({ name: 'progress', noteId: note.id, index }),
+              },
+            ]}
+          />
+        ) : undefined
+      }
     />
   );
 
@@ -99,9 +113,6 @@ export default function Study({
             ))}
           </div>
         </div>
-        <button className="text-btn quiet progress-link" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
-          <Icon name="chart" size={18} /> {t.progress}
-        </button>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
           <Biggu mood="read" size={84} className="corner-biggu" />

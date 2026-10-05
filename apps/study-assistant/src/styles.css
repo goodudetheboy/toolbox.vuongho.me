@@ -1259,10 +1259,49 @@ button {
 
 /* ---------- part: progress screen */
 
-.progress-link {
+.menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.menu-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 170px;
+  padding: 6px;
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--outline);
+  animation: menu-pop 0.14s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes menu-pop {
+  from { transform: scale(0.9); opacity: 0; }
+}
+
+.menu-item {
   display: flex;
-  margin: 10px auto 0;
-  font-size: 0.95rem;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--sky);
 }
 
 .progress-stats {
