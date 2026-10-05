@@ -54,6 +54,18 @@ export interface ScoreResponse {
   percent: number;
   /** Word indices of details she left out or got wrong. */
   missed: number[];
+  /** Gemini's split of the part into ideas and how each was graded (saved with feedback). */
+  ideas?: GradedIdea[];
+  /** Text model that graded it. */
+  model?: string | null;
+}
+
+export interface GradedIdea {
+  /** Inclusive word indices. */
+  start: number;
+  end: number;
+  score: number;
+  missed: number[];
 }
 
 export interface HintRequest {
@@ -142,6 +154,8 @@ const mock: Api = {
     return {
       percent: Math.round((100 * (words.length - missed.length)) / Math.max(1, words.length)),
       missed,
+      ideas: [{ start: 0, end: words.length - 1, score: 100 - Math.round((100 * missed.length) / Math.max(1, words.length)), missed }],
+      model: 'mock',
     };
   },
 

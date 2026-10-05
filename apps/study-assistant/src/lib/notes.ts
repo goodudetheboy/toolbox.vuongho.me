@@ -33,8 +33,8 @@ interface NotesStore {
   subscribeNotes(uid: string, cb: (notes: Note[]) => void, onError: (e: Error) => void): Unsubscribe;
   createNote(uid: string, note: NewNote): Promise<string>;
   updateChunk(uid: string, note: Note, index: number, patch: Partial<Chunk>): Promise<void>;
-  /** Saves a finished recitation of part `index`: its own attempt document plus the part's last/best/tries. */
-  recordAttempt(uid: string, note: Note, index: number, attempt: Attempt): Promise<void>;
+  /** Saves a finished recitation of part `index` as attempt `id`: its own document plus the part's last/best/tries. */
+  recordAttempt(uid: string, note: Note, index: number, attempt: Attempt, id: string): Promise<void>;
   /** Up to `size + 1` attempts of one part, newest first, older than `before` (an `at`) when given. */
   pageAttempts(uid: string, noteId: string, part: number, size: number, before?: number): Promise<Attempt[]>;
   /** Moves history stored on the note by older versions into attempt documents. Idempotent. */
@@ -100,9 +100,9 @@ const firestoreStore: NotesStore = {
       updatedAt: Date.now(),
     });
   },
-  async recordAttempt(uid, note, index, attempt) {
+  async recordAttempt(uid, note, index, attempt, id) {
     const batch = writeBatch(db);
-    batch.set(doc(attemptsCol(uid, note.id, index)), attempt);
+    batch.set(doc(attemptsCol(uid, note.id, index), id), attempt);
     batch.update(doc(db, 'users', uid, 'notes', note.id), {
       chunks: withChunkPatch(note, index, scorePatch(note.chunks[index], attempt)),
       updatedAt: Date.now(),
@@ -194,7 +194,7 @@ const mockStore: NotesStore = {
   async updateChunk(_uid, note, index, patch) {
     mockUpdate(note.id, (n) => ({ ...n, chunks: withChunkPatch(n, index, patch), updatedAt: Date.now() }));
   },
-  async recordAttempt(_uid, note, index, attempt) {
+  async recordAttempt(_uid, note, index, attempt, _id) {
     mockAddAttempts(note.id, index, [attempt]);
     mockUpdate(note.id, (n) => ({
       ...n,

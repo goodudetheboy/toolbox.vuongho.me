@@ -7,6 +7,8 @@ import { MOCK } from './mock';
 // API mints — the real key never reaches the browser.
 
 export interface LiveSession {
+  /** Speech-to-text model in use (saved with session feedback). */
+  model: string;
   sendAudio(base64Pcm: string): void;
   /** Flushes the recognizer and resolves with everything heard. */
   finish(): Promise<string>;
@@ -73,6 +75,7 @@ async function startRealLive(opts: LiveOptions): Promise<LiveSession> {
   };
 
   return {
+    model: grant.model,
     sendAudio(data) {
       if (!closed) session.sendRealtimeInput({ audio: { data, mimeType: 'audio/pcm;rate=16000' } });
     },
@@ -108,6 +111,7 @@ function startMockLive(opts: LiveOptions): LiveSession {
     );
   });
   return {
+    model: 'mock',
     sendAudio() {},
     async finish() {
       timers.forEach(clearTimeout);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api } from './api';
+import { api, type GradedIdea } from './api';
 import { startLive, type LiveSession } from './live';
 import { startMic, type MicHandle } from './mic';
 import { decodeSpeech, play } from './sound';
@@ -37,6 +37,24 @@ export interface Result {
   percent: number;
   /** Hints shown during this recitation. */
   hints: number;
+  /** Everything below is kept only so session feedback can save what happened (see feedback.ts). */
+  transcript: string;
+  hintLog: HintLogEntry[];
+  /** 'gemini' = idea grading; 'offline' = the on-device word-match fallback. */
+  gradedBy: 'gemini' | 'offline';
+  ideas: GradedIdea[];
+  models: { transcribe: string | null; grade: string | null };
+  durationMs: number;
+}
+
+export interface HintLogEntry {
+  text: string;
+  /** Word indices the hint gave away. */
+  indices: number[];
+  /** ms since she started talking. */
+  atMs: number;
+  /** true = she tapped Hint; false = Biggu offered it after a pause. */
+  manual: boolean;
 }
 
 function cleanForSpeech(words: string[]): string {
@@ -65,6 +83,8 @@ export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: 
   const lastActivity = useRef(0);
   const hintLevel = useRef(0);
   const hinted = useRef(new Set<number>());
+  const hintLog = useRef<HintLogEntry[]>([]);
+  const startedAt = useRef(0);
   const speechCache = useRef(new Map<string, Promise<AudioBuffer | null>>());
   const hintCache = useRef(new Map<string, Promise<PlannedHint | null>>());
   const hintBusy = useRef(false);
@@ -166,6 +186,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: 
         hintsUsedRef.current += 1;
         setHintsUsed(hintsUsedRef.current);
         planned.indices.forEach((i) => hinted.current.add(i));
+        hintLog.current.push({ text: planned.text, indices: planned.indices, atMs: Date.now() - startedAt.current, manual });
         lastHint.current = planned.indices;
         hintShowing.current = true; // before the re-render, so no pause tick slips in between
         setHint({ indices: planned.indices, text: planned.text, id: Date.now() });
@@ -209,6 +230,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: 
     setHint(null);
     setResult(null);
     hinted.current = new Set();
+    hintLog.current = [];
     hintsUsedRef.current = 0;
     setHintsUsed(0);
     hintCache.current = new Map();
@@ -249,6 +271,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: 
         // keeping the screen on is just a nicety
       }
       lastActivity.current = Date.now();
+      startedAt.current = Date.now();
       setPhase('listening');
     } catch (err) {
       teardown();
@@ -265,12 +288,16 @@ export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: 
     micRef.current = null;
     setHint(null);
     setPhase('scoring');
+    const durationMs = Date.now() - startedAt.current;
     const transcript = live ? await live.finish() : heard;
     teardown();
 
     const hintedNow = hinted.current;
     let statuses: WordStatus[];
     let percent: number;
+    let gradedBy: Result['gradedBy'] = 'gemini';
+    let ideas: GradedIdea[] = [];
+    let gradeModel: string | null = null;
     try {
       // Gemini grades ideas, not words: paraphrase is fine, missing details are marked.
       const scored = await api.score(
@@ -283,14 +310,27 @@ export function useRecitation(tokens: Token[], vocabulary: string[], hintLimit: 
         hintedNow.has(i) ? 'hinted' : missed.has(i) ? 'missed' : 'said',
       );
       percent = scored.percent;
+      ideas = scored.ideas ?? [];
+      gradeModel = scored.model ?? null;
     } catch {
+      gradedBy = 'offline';
       // Offline fallback: the on-device word match.
       const said = align(tokens, transcript).said;
       statuses = tokens.map((_, i) => (hintedNow.has(i) ? 'hinted' : said.has(i) ? 'said' : 'missed'));
       const remembered = statuses.filter((st) => st === 'said').length;
       percent = tokens.length ? Math.round((100 * remembered) / tokens.length) : 0;
     }
-    const result: Result = { statuses, percent, hints: hintsUsedRef.current };
+    const result: Result = {
+      statuses,
+      percent,
+      hints: hintsUsedRef.current,
+      transcript,
+      hintLog: hintLog.current,
+      gradedBy,
+      ideas,
+      models: { transcribe: live?.model ?? null, grade: gradeModel },
+      durationMs,
+    };
     setResult(result);
     setPhase('result');
     return result;

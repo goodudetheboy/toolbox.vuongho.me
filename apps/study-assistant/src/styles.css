@@ -1600,3 +1600,111 @@ button {
   border-radius: 12px;
   font-size: 0.95rem;
 }
+
+/* ---------- result: session feedback (components/SessionFeedback.tsx) */
+
+.feedback {
+  margin-top: 22px;
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 2.5px dashed var(--paper-line);
+  border-radius: 16px;
+}
+
+.feedback-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.feedback-q {
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.feedback-thumbs {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2.5px solid var(--outline);
+  background: #fff;
+  box-shadow: 0 3px 0 var(--outline);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  filter: grayscale(0.6);
+}
+
+.thumb.on {
+  background: var(--yellow);
+  filter: none;
+}
+
+.thumb:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--outline);
+}
+
+.feedback-details {
+  margin-top: 12px;
+}
+
+.feedback-sub {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border: 2px solid var(--outline);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chip.on {
+  background: var(--sky-deep);
+  color: #fff;
+}
+
+.feedback-comment {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 2.5px solid var(--outline);
+  border-radius: 12px;
+  background: #fff;
+  font: 600 1rem var(--body);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.feedback-actions .btn {
+  min-height: 44px;
+  padding: 0 20px;
+}

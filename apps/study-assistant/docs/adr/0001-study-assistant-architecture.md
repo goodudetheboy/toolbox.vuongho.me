@@ -256,3 +256,21 @@ all notes) — bad on mobile data.
   maskable 512 with the cat inside the safe zone, 180 apple-touch-icon).
 - Hosting's `no-cache` on `/study-assistant/**` stays: it also keeps
   `sw.js` itself from being cached, which update checks rely on.
+
+## Addendum 2026-10-05 — session feedback for later tuning
+
+- Result screen asks "How was this session?" 👍 / 👎. 👍 saves at once; 👎
+  asks what felt off (score / didn't hear me right / hints / other, multi)
+  plus an optional note. Changing the rating overwrites the same record.
+- Stored at `users/{uid}/feedback/{attemptId}` — outside the note so it
+  outlives edits and deletion — and only for rated sessions. Each record is
+  self-contained training material (`FeedbackRecord`, `schema: 1`, in
+  `src/lib/feedback.ts`): part Markdown + its word list, transcript, every
+  hint (text, word indices, ms since start, manual vs auto), hint limit,
+  percent, per-word marks, Gemini's idea split and per-idea scores,
+  `gradedBy` (gemini / offline fallback), model ids (transcribe + grade),
+  duration.
+- `/score` now also returns `ideas` (sanitized, `sanitizeIdeas`) and
+  `model`; the client ignores them except for feedback. The attempt and
+  its feedback share a client-generated id (`crypto.randomUUID()`).
+- Not stored: audio. Only the transcript.

@@ -1,11 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
 import Menu from '../components/Menu';
+import SessionFeedback from '../components/SessionFeedback';
 import PartTitle from '../components/PartTitle';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
+import { saveFeedback, sessionContext } from '../lib/feedback';
 import { notesStore } from '../lib/notes';
 import { encodeMarks, textHash } from '../lib/marks';
 import { HINT_LIMITS, useHintLimit } from '../lib/settings';
@@ -39,16 +41,27 @@ export default function Study({
   const rec = useRecitation(tokens, vocabulary, hintLimit);
   const isLast = index === note.chunks.length - 1;
 
+  // Shared by the attempt document and its feedback record.
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+
   async function finish() {
+    const id = crypto.randomUUID();
+    setAttemptId(id);
     const result = await rec.stop();
     await notesStore
-      .recordAttempt(user.uid, note, index, {
-        at: Date.now(),
-        percent: result.percent,
-        hints: result.hints,
-        marks: encodeMarks(result.statuses),
-        textHash: textHash(chunk.markdown),
-      })
+      .recordAttempt(
+        user.uid,
+        note,
+        index,
+        {
+          at: Date.now(),
+          percent: result.percent,
+          hints: result.hints,
+          marks: encodeMarks(result.statuses),
+          textHash: textHash(chunk.markdown),
+        },
+        id,
+      )
       .catch(() => {});
   }
 
@@ -207,6 +220,30 @@ export default function Study({
       </div>
 
       <MarkedWords tokens={tokens} statuses={statuses} />
+
+      {attemptId && (
+        <SessionFeedback
+          key={attemptId}
+          onSave={(rating, reasons, comment) =>
+            saveFeedback(
+              user.uid,
+              sessionContext({
+                attemptId,
+                note,
+                part: index,
+                partTitle: chunk.title,
+                markdown: chunk.markdown,
+                words: tokens.map((tk) => tk.display),
+                hintLimit,
+                result: rec.result!,
+              }),
+              rating,
+              reasons,
+              comment,
+            )
+          }
+        />
+      )}
 
       <div className="bottom-action two">
         <button className="btn" onClick={() => rec.reset()}>

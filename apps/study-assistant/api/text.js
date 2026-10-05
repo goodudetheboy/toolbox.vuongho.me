@@ -44,6 +44,19 @@ export function cleanMarkdown(md) {
  * Turns Gemini's per-idea grading into the result: percent = average idea score weighted by idea
  * length (a one-word aside counts less than a full definition); a 0-score idea is missed whole.
  */
+/** Gemini's idea split with out-of-range indices dropped — kept as-is for feedback records. */
+export function sanitizeIdeas(result, wordCount) {
+  const valid = (i) => Number.isInteger(i) && i >= 0 && i < wordCount;
+  return (Array.isArray(result.ideas) ? result.ideas : [])
+    .filter((idea) => valid(idea.start) && valid(idea.end) && idea.end >= idea.start)
+    .map((idea) => ({
+      start: idea.start,
+      end: idea.end,
+      score: Math.max(0, Math.min(100, Number(idea.score) || 0)),
+      missed: (idea.missed || []).filter(valid),
+    }));
+}
+
 export function gradeIdeas(result, wordCount) {
   const valid = (i) => Number.isInteger(i) && i >= 0 && i < wordCount;
   const missed = new Set();

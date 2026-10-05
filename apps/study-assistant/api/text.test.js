@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words } from './text.js';
+import { cleanMarkdown, gradeIdeas, sanitizeIdeas, sequenceSimilarity, words } from './text.js';
 
 test('words strips markdown, html and punctuation', () => {
   assert.deepEqual(words('## The **Heart**\n- Pumps blood (4 chambers).'), [
@@ -41,4 +41,15 @@ test('gradeIdeas weights by idea length and marks missed details', () => {
   );
   assert.equal(r.percent, 56); // (70*8 + 0*2) / 10
   assert.deepEqual(r.missed, [5, 8, 9]);
+});
+
+test('sanitizeIdeas drops out-of-range ideas and indices, clamps scores', () => {
+  const r = sanitizeIdeas(
+    { ideas: [{ start: 0, end: 2, score: 140, missed: [1, 9] }, { start: 3, end: 1, score: 50, missed: [] }, { start: 3, end: 4, score: -5 }] },
+    5,
+  );
+  assert.deepEqual(r, [
+    { start: 0, end: 2, score: 100, missed: [1] },
+    { start: 3, end: 4, score: 0, missed: [] },
+  ]);
 });

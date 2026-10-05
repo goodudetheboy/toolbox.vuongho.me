@@ -15,5 +15,10 @@ service cloud.firestore {
     match /users/{uid}/notes/{noteId}/{path=**} {
       allow read, write: if allowed() && request.auth.uid == uid;
     }
+
+    // Session feedback (👍/👎 + context), kept apart from notes so it outlives them.
+    match /users/{uid}/feedback/{attemptId} {
+      allow read, write: if allowed() && request.auth.uid == uid;
+    }
   }
 }

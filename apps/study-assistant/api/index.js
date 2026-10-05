@@ -10,7 +10,7 @@ import http from 'node:http';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words } from './text.js';
+import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words, sanitizeIdeas } from './text.js';
 
 const PORT = Number(process.env.PORT || 8080);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -313,7 +313,7 @@ async function score(body) {
   if (passage.length === 0 || passage.length > 2000) throw new HttpError(400, 'Bad passage');
   const hinted = new Set((Array.isArray(body.hinted) ? body.hinted : []).filter(Number.isInteger));
   const all = passage.map((_, i) => i);
-  if (!transcript.trim()) return { percent: 0, missed: all };
+  if (!transcript.trim()) return { percent: 0, missed: all, ideas: [], model: null };
 
   const numbered = passage.map((w, i) => `${i}:${w}${hinted.has(i) ? '(hinted)' : ''}`).join(' ');
   const result = await generateJson({
@@ -336,7 +336,8 @@ paraphrase and a different order. None of that is a mistake.
     schema: SCORE_SCHEMA,
   });
 
-  return gradeIdeas(result, passage.length);
+  // `ideas` + `model` aren't needed to show the result — the app saves them with session feedback.
+  return { ...gradeIdeas(result, passage.length), ideas: sanitizeIdeas(result, passage.length), model: TEXT_MODEL };
 }
 
 // ---------------------------------------------------------------- http
