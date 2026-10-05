@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { DOWN_REASONS, type DownReason, type Rating } from '../lib/feedback';
 import { t } from '../strings';
-import { Paw } from './Scrap';
+import { BigguFace } from './Scrap';
 
 /**
- * "How was this session?" paw up / paw down on the result screen. 👍 saves straight away;
- * 👎 asks what felt off (chips + optional note). Either can be changed afterwards.
+ * "How was this session?" happy / sad Biggu on the result screen. Happy saves straight away;
+ * sad asks what felt off (chips + optional note). Either can be changed afterwards.
  */
 export default function SessionFeedback({
   onSave,
@@ -53,7 +53,7 @@ export default function SessionFeedback({
               disabled={state === 'saving'}
               onClick={() => pick(r)}
             >
-              <Paw size={30} down={r === 'down'} />
+              <BigguFace mood={r === 'up' ? 'happy' : 'sad'} />
             </button>
           ))}
         </span>

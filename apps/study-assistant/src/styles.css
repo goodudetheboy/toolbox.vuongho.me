@@ -1642,7 +1642,7 @@ button {
   cursor: pointer;
 }
 
-/* Unpicked paws fade back a little so the chosen one reads as "selected". */
+/* Unpicked faces fade back a little so the chosen one reads as "selected". */
 .thumb svg {
   opacity: 0.55;
   transition: opacity 0.15s;

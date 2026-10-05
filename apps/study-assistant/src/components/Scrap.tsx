@@ -87,26 +87,38 @@ export function Star({ size = 22, color = '#FFD25E', style }: { size?: number; c
   );
 }
 
-/** Biggu's paw: tabby fur with pink toe beans. Points up by default; `down` flips it (👍 / 👎 without emoji). */
-export function Paw({ size = 28, down = false }: { size?: number; down?: boolean }) {
+/** Biggu's head (same drawing as the app icon) looking happy or sad — the feedback "thumbs", without emoji. */
+export function BigguFace({ mood, size = 34 }: { mood: 'happy' | 'sad'; size?: number }) {
   const line = '#3A2D24';
-  const bean = '#E9A0A6';
+  const fur = '#9A8878';
+  const pink = '#E9A0A6';
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="doodle" style={down ? { transform: 'rotate(180deg)' } : undefined}>
-      {/* the paw itself: a soft mitten with the four toes bumping out of the top */}
-      <path
-        d="M16 30c-6.2 0-10.5-3.4-10.5-8.4 0-1.9.6-3.5 1.5-4.8-1.6-.9-2.5-2.5-2.2-4.3.4-2.2 2.3-3.5 4.3-3.2.3-2.6 2.1-4.6 4.4-4.6 1.1 0 2 .4 2.6 1 .6-.6 1.5-1 2.6-1 2.3 0 4.1 2 4.4 4.6 2-.3 3.9 1 4.3 3.2.3 1.8-.6 3.4-2.2 4.3.9 1.3 1.5 2.9 1.5 4.8 0 5-4.3 8.4-10.5 8.4z"
-        fill="#9A8878"
-        stroke={line}
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      {/* toe beans + the big pad */}
-      <ellipse cx="9.2" cy="13" rx="2.1" ry="2.5" fill={bean} transform="rotate(-25 9.2 13)" />
-      <ellipse cx="13.4" cy="9.6" rx="2" ry="2.5" fill={bean} transform="rotate(-8 13.4 9.6)" />
-      <ellipse cx="18.6" cy="9.6" rx="2" ry="2.5" fill={bean} transform="rotate(8 18.6 9.6)" />
-      <ellipse cx="22.8" cy="13" rx="2.1" ry="2.5" fill={bean} transform="rotate(25 22.8 13)" />
-      <path d="M16 17.2c3.3 0 6 2.4 6 5.2 0 2.3-2 3.6-3.6 3.6-1 0-1.6-.6-2.4-.6s-1.4.6-2.4.6c-1.6 0-3.6-1.3-3.6-3.6 0-2.8 2.7-5.2 6-5.2z" fill={bean} />
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden className="doodle">
+      <path d="M8 30 L12 6 L28 18 Z M56 30 L52 6 L36 18 Z" fill={fur} stroke={line} strokeWidth="3" strokeLinejoin="round" />
+      <ellipse cx="32" cy="36" rx="26" ry="22" fill={fur} stroke={line} strokeWidth="3" />
+      <path d="M26 20 l2 6 4-4 4 4 2-6" stroke="#5C4B3F" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M29.5 40 h5 l-2.5 2.6z" fill={pink} />
+      {mood === 'happy' ? (
+        <>
+          {/* smiling eyes, blush, open smile */}
+          <path d="M17.5 36 q5.5 -7 11 0 M35.5 36 q5.5 -7 11 0" stroke={line} strokeWidth="3" fill="none" strokeLinecap="round" />
+          <ellipse cx="15" cy="42" rx="4" ry="2.4" fill={pink} opacity="0.8" />
+          <ellipse cx="49" cy="42" rx="4" ry="2.4" fill={pink} opacity="0.8" />
+          <path d="M25 45 q7 9 14 0 z" fill="#7A3B3B" stroke={line} strokeWidth="2.4" strokeLinejoin="round" />
+          <path d="M28.5 48.4 q3.5 2.6 7 0" fill={pink} />
+        </>
+      ) : (
+        <>
+          {/* worried brows (rising toward the middle), shiny eyes, frown, a tear */}
+          <path d="M17 32.5 L25.5 29 M47 32.5 L38.5 29" stroke={line} strokeWidth="2.8" strokeLinecap="round" />
+          <ellipse cx="22.5" cy="37.5" rx="3.3" ry="3.8" fill="#2B211B" />
+          <ellipse cx="41.5" cy="37.5" rx="3.3" ry="3.8" fill="#2B211B" />
+          <circle cx="23.6" cy="36.3" r="1.1" fill="#fff" />
+          <circle cx="42.6" cy="36.3" r="1.1" fill="#fff" />
+          <path d="M26 50 q6 -6 12 0" stroke={line} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+          <path d="M19 43 q-2.4 3.6 0 5 q2.4 -1.4 0 -5z" fill="#8EC5EC" stroke="#4FA3E0" strokeWidth="1" />
+        </>
+      )}
     </svg>
   );
 }
