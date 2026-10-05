@@ -6,7 +6,7 @@ import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
 import type { Route } from '../lib/router';
 import type { AppUser, Note } from '../lib/types';
-import { useRecitation, type WordStatus } from '../lib/useRecitation';
+import { HINT_VISIBLE_MS, useRecitation, type WordStatus } from '../lib/useRecitation';
 import { tokenize } from '../lib/words';
 import { t } from '../strings';
 
@@ -105,8 +105,12 @@ export default function Study({
             className={rec.hint ? '' : 'bob'}
           />
           {rec.hint ? (
-            <div key={rec.hint.text} className="hint-bubble hand" role="status" aria-live="assertive">
+            <div key={rec.hint.id} className="hint-bubble hand" role="status" aria-live="assertive">
               {rec.hint.text}
+              <svg className="hint-timer" viewBox="0 0 24 24" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="9" style={{ animationDuration: `${HINT_VISIBLE_MS}ms` }} />
+              </svg>
             </div>
           ) : (
             rec.hintLoading && (

@@ -129,3 +129,13 @@ user's request:
   Markdown stays the stored format. The editor is a lazy chunk so the main
   bundle doesn't carry the converters. Notes can be renamed from the note
   page's "…" menu. Edits keep the part's scores.
+
+## Addendum 2026-10-05 — hints are silent and timed
+
+- Hints are **not spoken** for now (user request): `SPEAK_HINTS = false` in
+  `useRecitation.ts`; no `/speak` calls are made. `/speak` itself now sends
+  only the words — the TTS model was reading the "Say slowly and clearly:"
+  instruction aloud.
+- A hint stays on screen for **3 s** (countdown ring on the bubble), then
+  hides, regardless of whether she has started speaking. Saying past the
+  hinted words still resets escalation to the concept cue.

@@ -854,6 +854,36 @@ button {
   color: var(--sky-ink);
 }
 
+.hint-timer {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border: 2px solid var(--outline);
+  border-radius: 50%;
+  transform: rotate(-90deg);
+}
+
+.hint-timer circle {
+  fill: none;
+  stroke: var(--paper-line);
+  stroke-width: 4;
+}
+
+/* Countdown: the ring empties over the hint's lifetime (duration set inline). */
+.hint-timer circle + circle {
+  stroke: var(--sky-deep);
+  stroke-dasharray: 56.55;
+  stroke-dashoffset: 0;
+  animation: hint-countdown linear forwards;
+}
+
+@keyframes hint-countdown {
+  to { stroke-dashoffset: 56.55; }
+}
+
 .hint-loading {
   padding: 16px 22px;
 }

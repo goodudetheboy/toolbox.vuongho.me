@@ -209,7 +209,8 @@ async function speak(body) {
   if (!text || text.length > 300) throw new HttpError(400, 'Bad text');
   const interaction = await ai.interactions.create({
     model: TTS_MODEL,
-    input: `Say slowly and clearly: ${text}`,
+    // Just the words: the TTS model reads any instruction text aloud too.
+    input: text,
     generation_config: { speech_config: [{ voice: TTS_VOICE, language: 'en-US' }] },
     response_format: { type: 'audio', mime_type: 'audio/wav' },
     store: false,

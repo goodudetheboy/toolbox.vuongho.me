@@ -8,7 +8,7 @@ import { align, nextHint, phraseFrom, type Token } from './words';
 // The talking-mode loop: microphone → Gemini Live transcript → on-device word
 // tracking. Pauses are detected on the device (not by Gemini) so the hint fires
 // on time: after PREFETCH_MS of quiet the hint (text + audio) is fetched in the
-// background, after HINT_MS it's shown and spoken. She can also ask with the
+// background, after HINT_MS it's shown (and spoken, when SPEAK_HINTS). She can also ask with the
 // Hint button any time. First hint is a short cue for the idea she's stuck on
 // (Gemini picks the key words, ≤10); if she's still stuck, the note's exact next
 // words. Words a hint gives away never count as remembered.
@@ -16,6 +16,10 @@ import { align, nextHint, phraseFrom, type Token } from './words';
 const PREFETCH_MS = 1000;
 const HINT_MS = 3000;
 const TICK_MS = 200;
+/** How long a hint stays on screen (the bubble shows a countdown ring). */
+export const HINT_VISIBLE_MS = 3000;
+/** Biggu speaking hints aloud (/speak TTS) — switched off for now at the user's request. */
+const SPEAK_HINTS = false;
 
 export type Phase = 'idle' | 'connecting' | 'listening' | 'scoring' | 'result';
 export type WordStatus = 'said' | 'close' | 'hinted' | 'missed';
@@ -25,7 +29,8 @@ export interface Hint {
   text: string;
 }
 
-type PlannedHint = Hint & { audio: Promise<AudioBuffer | null> };
+type PlannedHint = Hint & { audio: Promise<AudioBuffer | null> | null };
+type ShownHint = Hint & { id: number };
 
 export interface Result {
   statuses: WordStatus[];
@@ -39,7 +44,7 @@ function cleanForSpeech(words: string[]): string {
 export function useRecitation(tokens: Token[], vocabulary: string[]) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [heard, setHeard] = useState('');
-  const [hint, setHint] = useState<Hint | null>(null);
+  const [hint, setHint] = useState<ShownHint | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<'mic' | 'other' | null>(null);
@@ -56,6 +61,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
   const speechCache = useRef(new Map<string, Promise<AudioBuffer | null>>());
   const hintCache = useRef(new Map<string, Promise<PlannedHint | null>>());
   const hintBusy = useRef(false);
+  const lastHint = useRef<number[]>([]);
   const heardRef = useRef(heard);
   heardRef.current = heard;
   const noiseFloor = useRef(0.01);
@@ -73,15 +79,23 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
 
   useEffect(() => teardown, [teardown]);
 
-  // Any new recognized speech counts as activity, and once she says past the hint, it clears.
+  // Any new recognized speech counts as activity; once she says past the last hint, the next
+  // stall starts again from a concept cue.
   useEffect(() => {
     if (phase !== 'listening') return;
     lastActivity.current = Date.now();
-    if (hint && hint.indices.some((i) => alignment.said.has(i) || i < alignment.cursor)) {
-      setHint(null);
+    if (lastHint.current.some((i) => alignment.said.has(i) || i < alignment.cursor)) {
+      lastHint.current = [];
       hintLevel.current = 0;
     }
   }, [heard]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A hint stays up for HINT_VISIBLE_MS, then goes away on its own.
+  useEffect(() => {
+    if (!hint) return;
+    const timer = window.setTimeout(() => setHint(null), HINT_VISIBLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [hint]);
 
   const speech = useCallback((text: string) => {
     let p = speechCache.current.get(text);
@@ -115,7 +129,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
                 .then((r) => (r.hint ? { text: r.hint, indices: r.covers.length ? r.covers : [from] } : exact()))
                 .catch(exact)
             : Promise.resolve(exact());
-        p = picked.then((h) => (h.text ? { ...h, audio: speech(h.text) } : null));
+        p = picked.then((h) => (h.text ? { ...h, audio: SPEAK_HINTS ? speech(h.text) : null } : null));
         hintCache.current.set(key, p);
       }
       return p;
@@ -137,9 +151,10 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
         if (!planned || !micRef.current || (!manual && lastActivity.current !== quietSince)) return;
         hintLevel.current = Math.min(hintLevel.current + 1, 2);
         planned.indices.forEach((i) => hinted.current.add(i));
-        setHint({ indices: planned.indices, text: planned.text });
+        lastHint.current = planned.indices;
+        setHint({ indices: planned.indices, text: planned.text, id: Date.now() });
         setHintLoading(false);
-        const buffer = await planned.audio;
+        const buffer = planned.audio && (await planned.audio);
         if (buffer && ctxRef.current) await play(ctxRef.current, buffer);
       } finally {
         hintBusy.current = false;
@@ -176,6 +191,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     hinted.current = new Set();
     hintCache.current = new Map();
     hintLevel.current = 0;
+    lastHint.current = [];
     setPhase('connecting');
     try {
       // Created inside the tap so iOS lets it play Biggu's voice later.
