@@ -49,7 +49,7 @@ jobs:
               --allow-unauthenticated \
               --timeout 300 --memory 512Mi --max-instances 3 \
               --set-secrets GEMINI_API_KEY=study-assistant-gemini-key:latest \
-              --set-env-vars "^@^ALLOWED_EMAILS=hochivuong2002@gmail.com,tling241004@gmail.com@ALLOWED_ORIGINS=https://toolbox.vuongho.me,http://localhost:5173" \
+              --set-env-vars "^;^ALLOWED_EMAILS=hochivuong2002@gmail.com,tling241004@gmail.com;ALLOWED_ORIGINS=https://toolbox.vuongho.me,http://localhost:5173" \
               --quiet
           fi
           URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome --format='value(status.url)')
