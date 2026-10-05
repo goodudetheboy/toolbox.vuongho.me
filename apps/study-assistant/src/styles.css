@@ -1282,20 +1282,10 @@ button {
 }
 
 .progress-link-title {
+  flex: 1;
   font-weight: 800;
 }
 
-.progress-link-meta {
-  flex: 1;
-  min-width: 0;
-  text-align: right;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 .progress-link-go {
   font-size: 1.4rem;

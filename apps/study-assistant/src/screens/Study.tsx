@@ -102,9 +102,6 @@ export default function Study({
         <button className="progress-link" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
           <Icon name="chart" size={20} />
           <span className="progress-link-title">{t.progress}</span>
-          <span className="progress-link-meta">
-            {chunk.tries ? t.progressSummary(chunk.bestScore ?? 0, chunk.tries) : t.noTriesYet}
-          </span>
           <span className="progress-link-go">›</span>
         </button>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
