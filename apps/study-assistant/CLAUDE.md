@@ -36,6 +36,10 @@ One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).
   text ⇄ Markdown via marked/turndown), lazy-loaded.
 - `src/components/Biggu.tsx` — the mascot SVG, moods via props.
 - `src/strings.ts` — all UI text (English).
+- PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/study-assistant/`),
+  `src/components/UpdateToast.tsx` (registers the worker, offers updates —
+  never auto-reloads). Service workers only run in the production build;
+  test with `firebase serve` per the root CLAUDE.md.
 
 ## Running
 

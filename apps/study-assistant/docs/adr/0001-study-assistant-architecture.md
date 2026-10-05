@@ -230,3 +230,29 @@ all notes) — bad on mobile data.
 - Firestore persistent local cache (IndexedDB, multi-tab): reopening the
   app reads from the device and the listener resumes with a token, so
   only changed notes are re-downloaded.
+
+## Addendum 2026-10-05 — installable PWA
+
+- `vite-plugin-pwa` (generateSW). Manifest `id`/`scope`/`start_url` are all
+  `/study-assistant/`, and the worker is served from `/study-assistant/sw.js`,
+  so installing gives just this tool — the toolbox homepage and other tools
+  stay outside its scope (homepage has no manifest; checked in Chrome:
+  `no-manifest` there, no installability errors here).
+- Precaches the whole build (~1.9 MB raw, ~0.4 MB over the wire, once),
+  lazy chunks included. Tried leaving the Word importer (mammoth) out via a
+  named manual chunk: Rollup moved shared CommonJS helpers into it and made
+  every page load fetch it, so reverted. Google Fonts are runtime-cached.
+  Deep links fall back to the cached `index.html` (works offline).
+- Updates: `registerType: 'prompt'` + `clientsClaim`, no auto skipWaiting —
+  a new version waits until she taps Update in `UpdateToast`, so a deploy
+  never reloads mid-recitation. Checks for updates hourly and when the app
+  comes back to the foreground. The Update button reloads on
+  `controllerchange` itself: workbox-window only reloads when a worker
+  already controlled the page at registration, which isn't true in the
+  first session after install.
+- `useRegisterSW({ immediate: true })`: without it registration waits for
+  window `load`, which has already fired by the time React mounts.
+- Icons generated from `public/favicon.svg` on the app's sky blue (192, 512,
+  maskable 512 with the cat inside the safe zone, 180 apple-touch-icon).
+- Hosting's `no-cache` on `/study-assistant/**` stays: it also keeps
+  `sw.js` itself from being cached, which update checks rely on.

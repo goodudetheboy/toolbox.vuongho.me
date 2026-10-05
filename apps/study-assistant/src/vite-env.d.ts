@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/react" />
 
 interface ImportMetaEnv {
   /** Base URL of the toolbox-study-assistant-api Cloud Run service (set by CI). */
