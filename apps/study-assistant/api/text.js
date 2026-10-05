@@ -39,3 +39,26 @@ export function cleanMarkdown(md) {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
+
+/**
+ * Turns Gemini's per-idea grading into the result: percent = average idea score weighted by idea
+ * length (a one-word aside counts less than a full definition); a 0-score idea is missed whole.
+ */
+export function gradeIdeas(result, wordCount) {
+  const valid = (i) => Number.isInteger(i) && i >= 0 && i < wordCount;
+  const missed = new Set();
+  let weighted = 0;
+  let covered = 0;
+  for (const idea of Array.isArray(result.ideas) ? result.ideas : []) {
+    if (!valid(idea.start) || !valid(idea.end) || idea.end < idea.start) continue;
+    const len = idea.end - idea.start + 1;
+    const pct = Math.max(0, Math.min(100, Number(idea.score) || 0));
+    weighted += pct * len;
+    covered += len;
+    for (const i of idea.missed || []) if (valid(i)) missed.add(i);
+    if (pct === 0) for (let i = idea.start; i <= idea.end; i++) missed.add(i);
+  }
+  if (covered === 0) throw new Error('Gemini returned no ideas');
+  const unclear = [...new Set(result.unclear || [])].filter((i) => valid(i) && !missed.has(i));
+  return { percent: Math.round(weighted / covered), missed: [...missed].sort((a, b) => a - b), unclear };
+}

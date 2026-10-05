@@ -256,26 +256,29 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     const transcript = live ? await live.finish() : heard;
     teardown();
 
-    const local = align(tokens, transcript);
-    let said = local.said;
-    let close = new Set<number>();
+    const hintedNow = hinted.current;
+    let statuses: WordStatus[];
+    let percent: number;
     try {
+      // Gemini grades ideas, not words: paraphrase is fine, missing details are marked.
       const scored = await api.score(
         tokens.map((tk) => tk.display),
         transcript,
+        [...hintedNow],
       );
-      // Gemini judges meaning-level matches (accent, reordering); keep anything either side credited.
-      said = new Set([...scored.said, ...local.said]);
-      close = new Set(scored.close);
+      const missed = new Set(scored.missed);
+      const unclear = new Set(scored.unclear);
+      statuses = tokens.map((_, i) =>
+        hintedNow.has(i) ? 'hinted' : missed.has(i) ? 'missed' : unclear.has(i) ? 'close' : 'said',
+      );
+      percent = scored.percent;
     } catch {
-      // Fall back to the on-device match.
+      // Offline fallback: the on-device word match.
+      const said = align(tokens, transcript).said;
+      statuses = tokens.map((_, i) => (hintedNow.has(i) ? 'hinted' : said.has(i) ? 'said' : 'missed'));
+      const remembered = statuses.filter((st) => st === 'said').length;
+      percent = tokens.length ? Math.round((100 * remembered) / tokens.length) : 0;
     }
-
-    const statuses: WordStatus[] = tokens.map((_, i) =>
-      hinted.current.has(i) ? 'hinted' : close.has(i) ? 'close' : said.has(i) ? 'said' : 'missed',
-    );
-    const remembered = statuses.filter((s) => s === 'said' || s === 'close').length;
-    const percent = tokens.length ? Math.round((100 * remembered) / tokens.length) : 0;
     setResult({ statuses, percent });
     setPhase('result');
     return percent;

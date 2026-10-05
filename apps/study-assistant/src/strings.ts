@@ -30,7 +30,7 @@ export const t = {
   thinking: 'Biggu is thinking…',
   done: 'Done',
   scoring: 'Checking…',
-  remembered: 'remembered',
+  remembered: 'of the ideas',
   close: 'Say it clearer',
   hinted: 'Hint',
   missed: 'Missed',

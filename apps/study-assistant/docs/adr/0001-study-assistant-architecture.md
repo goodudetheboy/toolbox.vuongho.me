@@ -153,3 +153,16 @@ user's request:
   paused; the quiet clock restarts when the hint hides. So a manual hint is
   never followed by an overlapping auto hint, and the next auto hint comes
   3 s after the bubble clears.
+
+## Addendum 2026-10-05 — score ideas, not words
+
+Supersedes **Score** above, at the user's request. `/score` now asks
+Gemini to split the part into its ideas (fact, definition, list, step,
+relationship — covering every word once), score each 0-100 for how
+completely she conveyed it in any wording, and list the passage words for
+the specific details she left out or got wrong (e.g. "B" when the note says
+"A, B and C" and she said A and C; a 0-score idea is missed whole). Hinted
+words are sent along and earn no credit. Percent = idea scores weighted by
+idea length (`gradeIdeas` in `api/text.js`, unit-tested). Mispronounced key
+terms come back as `unclear` ("Say it clearer"). The on-device word match is
+now only the offline fallback. Label: "N% of the ideas".

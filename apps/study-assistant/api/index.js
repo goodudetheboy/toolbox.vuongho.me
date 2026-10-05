@@ -10,7 +10,7 @@ import http from 'node:http';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { cleanMarkdown, sequenceSimilarity, words } from './text.js';
+import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words } from './text.js';
 
 const PORT = Number(process.env.PORT || 8080);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -286,37 +286,60 @@ she is stuck. Her first language is Vietnamese. Give her a short cue so she can 
 const SCORE_SCHEMA = {
   type: 'object',
   properties: {
-    said: { type: 'array', items: { type: 'integer' } },
-    close: { type: 'array', items: { type: 'integer' } },
+    ideas: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          start: { type: 'integer' },
+          end: { type: 'integer' },
+          score: { type: 'integer' },
+          missed: { type: 'array', items: { type: 'integer' } },
+        },
+        required: ['start', 'end', 'score', 'missed'],
+      },
+    },
+    unclear: { type: 'array', items: { type: 'integer' } },
   },
-  required: ['said', 'close'],
+  required: ['ideas', 'unclear'],
 };
 
+/**
+ * Concept-level grading: Gemini splits the passage into its ideas, scores how much of each she
+ * recalled (paraphrase is fine), and marks the specific details she left out (see gradeIdeas).
+ */
 async function score(body) {
   const passage = Array.isArray(body.words) ? body.words.map(String) : [];
   const transcript = String(body.transcript || '');
   if (passage.length === 0 || passage.length > 2000) throw new HttpError(400, 'Bad passage');
-  if (!transcript.trim()) return { said: [], close: [] };
+  const hinted = new Set((Array.isArray(body.hinted) ? body.hinted : []).filter(Number.isInteger));
+  const all = passage.map((_, i) => i);
+  if (!transcript.trim()) return { percent: 0, missed: all, unclear: [] };
 
-  const numbered = passage.map((w, i) => `${i}:${w}`).join(' ');
+  const numbered = passage.map((w, i) => `${i}:${w}${hinted.has(i) ? '(hinted)' : ''}`).join(' ');
   const result = await generateJson({
-    instruction: `A nursing student recited a passage from memory. Her first language is Vietnamese, so her
-pronunciation may be off, and the transcript comes from speech-to-text, so hard words may be misheard
-(e.g. "a rid row site" for "erythrocyte"). She may say parts in a different order — that is fine.
+    instruction: `A nursing student recited a passage of her study notes from memory. Judge how well she
+recalled its IDEAS — not its exact wording. Her first language is Vietnamese and the transcript comes from
+speech-to-text, so expect mispronounced or misheard words (e.g. "a rid row site" for "erythrocyte"),
+paraphrase and a different order. None of that is a mistake.
 
-For each numbered word of the passage, decide whether she said it.
-- Count it as said if the transcript has that word, or a recognizable mispronunciation or mis-hearing of it,
-  in a matching context. Order does not matter.
-- Do not credit a word just because a common word ("the", "and", "of") appears somewhere unrelated.
-- "said": indices of every word she said. "close": the subset of "said" that was noticeably mispronounced
-  or misheard (so she can practise them).`,
+1. Split the passage into its ideas, in order, covering every word exactly once: "start" and "end" are
+   inclusive word indices. An idea is one fact, definition, list, step or relationship (usually 4-25 words).
+2. For each idea, "score" 0-100: how completely and correctly she conveyed it, in her own words or the
+   note's. Every detail counts: if the idea is "X has three layers: A, B and C" and she said only A and C,
+   she missed part of it. Wrong facts (wrong number, wrong term, swapped relationship) count as missed.
+   Words marked (hinted) were shown to her as a hint — she gets no credit for those details.
+3. "missed": for each idea, the indices of the passage words for what she left out or got wrong — the
+   specific details (the term "B", the number, the missing half of a definition), so she can see exactly
+   what to review. If she missed the whole idea, list all of its words. Don't list filler or wording she
+   merely phrased differently.
+4. "unclear": indices of key terms she did say but that were noticeably mispronounced or misheard, so she
+   can practise saying them.`,
     input: `Passage (index:word):\n${numbered}\n\nTranscript of what she said:\n${transcript}`,
     schema: SCORE_SCHEMA,
   });
-  const valid = (xs) => [...new Set(xs)].filter((i) => Number.isInteger(i) && i >= 0 && i < passage.length);
-  const said = valid(result.said);
-  const saidSet = new Set(said);
-  return { said, close: valid(result.close).filter((i) => saidSet.has(i)) };
+
+  return gradeIdeas(result, passage.length);
 }
 
 // ---------------------------------------------------------------- http

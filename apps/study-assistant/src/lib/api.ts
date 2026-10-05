@@ -50,8 +50,12 @@ export interface LiveTokenResponse {
 }
 
 export interface ScoreResponse {
-  said: number[];
-  close: number[];
+  /** How much of the part's ideas she got, 0-100 (concept-level, not word-by-word). */
+  percent: number;
+  /** Word indices of details she left out or got wrong. */
+  missed: number[];
+  /** Word indices of key terms she said but mispronounced. */
+  unclear: number[];
 }
 
 export interface HintRequest {
@@ -80,7 +84,8 @@ const real = {
   liveToken: (vocabulary: string[]) => post<LiveTokenResponse>('/live-token', { vocabulary }),
   speak: (text: string) => post<SpeakResponse>('/speak', { text }),
   hint: (req: HintRequest) => post<HintResponse>('/hint', req),
-  score: (words: string[], transcript: string) => post<ScoreResponse>('/score', { words, transcript }),
+  score: (words: string[], transcript: string, hinted: number[]) =>
+    post<ScoreResponse>('/score', { words, transcript, hinted }),
 };
 
 export type Api = typeof real;
@@ -134,9 +139,15 @@ const mock: Api = {
   async score(words, transcript) {
     await delay(500);
     const spoken = new Set(transcript.toLowerCase().split(/\s+/));
-    const said = words.map((w, i) => (spoken.has(w.toLowerCase().replace(/[^a-z0-9]/g, '')) ? i : -1)).filter((i) => i >= 0);
-    return { said, close: said.slice(0, 1) };
+    const said = words.map((w) => spoken.has(w.toLowerCase().replace(/[^a-z0-9]/g, '')));
+    const missed = said.map((ok, i) => (ok ? -1 : i)).filter((i) => i >= 0);
+    return {
+      percent: Math.round((100 * (words.length - missed.length)) / Math.max(1, words.length)),
+      missed,
+      unclear: said.indexOf(true) >= 0 ? [said.indexOf(true)] : [],
+    };
   },
+
 };
 
 function mockBeepWav(): string {
