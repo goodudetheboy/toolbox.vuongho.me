@@ -102,7 +102,7 @@ changes.
 
 Open https://toolbox.vuongho.me/study-assistant/ on a phone, sign in, tap
 **Add your first note → Paste text**, paste a paragraph, **Split into parts**,
-open a part, **Practice**, allow the microphone, and talk.
+open a part, tap **Practice**, allow the microphone, and talk.
 
 ---
 
