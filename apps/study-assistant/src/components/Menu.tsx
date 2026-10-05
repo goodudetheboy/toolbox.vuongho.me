@@ -6,6 +6,8 @@ export interface MenuItem {
   label: string;
   icon: ReactNode;
   onSelect: () => void;
+  /** Destructive (delete): shown in coral. */
+  danger?: boolean;
 }
 
 /** Round "⋯" button (same look as the back button) that drops down a small paper menu. */
@@ -38,7 +40,7 @@ export default function Menu({ items }: { items: MenuItem[] }) {
             <button
               key={it.label}
               role="menuitem"
-              className="menu-item"
+              className={`menu-item ${it.danger ? 'danger' : ''}`}
               onClick={() => {
                 setOpen(false);
                 it.onSelect();

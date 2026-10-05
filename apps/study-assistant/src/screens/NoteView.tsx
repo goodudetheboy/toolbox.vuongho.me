@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Biggu from '../components/Biggu';
 import { ConfirmDialog, PromptDialog } from '../components/Dialog';
+import Menu from '../components/Menu';
 import { Icon, ScoreStamp } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
@@ -28,7 +29,6 @@ export default function NoteView({
   navigate: (r: Route) => void;
   onBack: () => void;
 }) {
-  const [showMore, setShowMore] = useState(false);
   const [dialog, setDialog] = useState<'rename' | 'delete' | null>(null);
   const closeDialog = () => setDialog(null);
   const up = nextUp(note);
@@ -36,7 +36,18 @@ export default function NoteView({
 
   return (
     <main className="screen">
-      <TopBar onBack={onBack} title={<span className="hand title-ellipsis">{note.title}</span>} />
+      <TopBar
+        onBack={onBack}
+        title={<span className="hand title-ellipsis">{note.title}</span>}
+        right={
+          <Menu
+            items={[
+              { label: t.rename, icon: <Icon name="pencil" size={20} />, onSelect: () => setDialog('rename') },
+              { label: t.deleteLesson, icon: <Icon name="trash" size={20} />, onSelect: () => setDialog('delete'), danger: true },
+            ]}
+          />
+        }
+      />
 
       <div className="note-head">
         <span className="subject-sticker">{note.subject}</span>
@@ -64,23 +75,6 @@ export default function NoteView({
           </li>
         ))}
       </ol>
-
-      <div className="danger-zone">
-        {!showMore ? (
-          <button className="text-btn quiet" onClick={() => setShowMore(true)} aria-label={t.more}>
-            <Icon name="dots" size={22} />
-          </button>
-        ) : (
-          <>
-            <button className="text-btn" onClick={() => setDialog('rename')}>
-              <Icon name="pencil" size={18} /> {t.rename}
-            </button>
-            <button className="text-btn danger" onClick={() => setDialog('delete')}>
-              <Icon name="trash" size={18} /> {t.deleteLesson}
-            </button>
-          </>
-        )}
-      </div>
 
       <PromptDialog
         open={dialog === 'rename'}

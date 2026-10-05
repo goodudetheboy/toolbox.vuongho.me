@@ -815,14 +815,6 @@ button {
   padding: 0 6px;
 }
 
-.danger-zone {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 36px;
-}
-
 /* ---------- study: read */
 
 .study-title {
@@ -1338,6 +1330,10 @@ button {
 .menu-item:hover,
 .menu-item:focus-visible {
   background: var(--sky);
+}
+
+.menu-item.danger {
+  color: var(--coral);
 }
 
 .progress-stats {
