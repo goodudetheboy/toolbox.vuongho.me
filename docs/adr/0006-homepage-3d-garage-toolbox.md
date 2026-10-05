@@ -44,7 +44,7 @@ site need.
   (point-to-point constraint), the lid slam rattles them, and closing the
   box tweens anything displaced back to its slot first.
 - `apps/homepage/src/tools.ts` is the single tool registry; each entry picks
-  a `model` (`marker`, `microphone`, `compass`, fallback `wrench`) so a new
+  a `model` (`marker`, `microphone`, `compass`, `duck`, fallback `wrench`) so a new
   tool shows up in the box even without a bespoke prop.
 - Accessibility/fallbacks: a "List view" overlay with the old card list,
   the same list as the whole page when WebGL is unavailable, visually
@@ -76,7 +76,9 @@ site need.
   `localStorage` (`toolbox.view`). Switching back to the list pauses the
   scene's render loop rather than disposing it.
 - List tiles and the info panel use `ToolIcon.tsx`: SVG drawings of the
-  same props (marker, microphone, compass, wrench fallback).
+  same props (marker, microphone, compass, duck, wrench fallback). A prop
+  can set `showQuat` for how it faces the camera when picked up (the duck
+  stays upright instead of the lying-tool default).
 
 ## Addendum 2026-09-28: list view by default everywhere
 

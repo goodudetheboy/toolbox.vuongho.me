@@ -401,7 +401,8 @@ export class ToolboxScene {
     const dir = new THREE.Vector3();
     this.camera.getWorldDirection(dir);
     const to = this.camera.position.clone().add(dir.multiplyScalar(0.22));
-    const toQ = this.camera.quaternion.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 - 0.35, 0, it.prop.restQuat.equals(new THREE.Quaternion()) ? 0 : -Math.PI / 2 + 0.25)));
+    const show = it.prop.showQuat ?? new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 - 0.35, 0, it.prop.restQuat.equals(new THREE.Quaternion()) ? 0 : -Math.PI / 2 + 0.25));
+    const toQ = this.camera.quaternion.clone().multiply(show);
     this.tweenItem(it, new CANNON.Vec3(to.x, to.y, to.z), new CANNON.Quaternion(toQ.x, toQ.y, toQ.z, toQ.w), 0.7, 0.05);
     this.cb.onLaunch(tool);
   }

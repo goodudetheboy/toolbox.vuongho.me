@@ -412,6 +412,8 @@ export interface Prop {
   restHalfHeight: number;
   /** rest orientation (lying down) */
   restQuat: THREE.Quaternion;
+  /** orientation relative to the camera when picked up; default suits a lying prop */
+  showQuat?: THREE.Quaternion;
   update?: (dt: number, body: CANNON.Body) => void;
 }
 
@@ -510,6 +512,42 @@ export function buildProp(kind: ToolModel | 'screwdriver' | 'nut', m: Mats): Pro
           angle += vel * dt;
           needle.rotation.y = angle;
         },
+      };
+    }
+    case 'duck': {
+      // Upright, facing +X. Body origin is the middle of the base cylinder.
+      const yellow = new THREE.MeshPhysicalMaterial({ color: 0xffcc1a, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.25 });
+      const orange = new THREE.MeshPhysicalMaterial({ color: 0xff7a12, roughness: 0.35, clearcoat: 0.5 });
+      const eye = new THREE.MeshPhysicalMaterial({ color: 0x111111, roughness: 0.15, clearcoat: 1 });
+      const body = mesh(new THREE.SphereGeometry(0.024, 40, 28), yellow, 0, 0, 0);
+      body.scale.set(1.25, 0.85, 1);
+      g.add(body);
+      const tail = mesh(new THREE.ConeGeometry(0.009, 0.02, 24), yellow, -0.028, 0.011, 0);
+      tail.rotation.z = 0.9;
+      g.add(tail);
+      for (const z of [-1, 1]) {
+        const wing = mesh(new THREE.SphereGeometry(0.012, 24, 16), yellow, -0.004, 0.004, z * 0.0195);
+        wing.scale.set(1.4, 0.7, 0.45);
+        wing.rotation.z = 0.25;
+        g.add(wing);
+        g.add(mesh(new THREE.SphereGeometry(0.0024, 12, 8), eye, 0.025, 0.033, z * 0.0085));
+      }
+      g.add(mesh(new THREE.SphereGeometry(0.015, 36, 24), yellow, 0.015, 0.027, 0));
+      const beak = mesh(new THREE.SphereGeometry(0.0075, 24, 16), orange, 0.03, 0.023, 0);
+      beak.scale.set(1.45, 0.45, 1.05);
+      g.add(beak);
+      return {
+        group: shadow(g),
+        shapes: [
+          { shape: new CANNON.Cylinder(0.024, 0.024, 0.04, 12) },
+          { shape: new CANNON.Sphere(0.015), offset: new CANNON.Vec3(0.015, 0.027, 0) },
+        ],
+        mass: 0.05,
+        restHalfHeight: 0.02,
+        // Turned a little toward the viewer so it reads as a duck in profile.
+        restQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.5, 0)),
+        // Picked up: upright, three-quarter view facing the camera.
+        showQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3, -Math.PI / 2 + 0.6, 0)),
       };
     }
     case 'screwdriver': {

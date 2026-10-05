@@ -1,7 +1,7 @@
 // Each tool is rendered as a physical object inside the 3D toolbox. `model`
 // picks which prop represents it; tools without a dedicated prop fall back
 // to a generic wrench so a newly added tool still shows up.
-export type ToolModel = 'marker' | 'microphone' | 'compass' | 'wrench';
+export type ToolModel = 'marker' | 'microphone' | 'compass' | 'duck' | 'wrench';
 
 export interface Tool {
   name: string;
@@ -33,6 +33,7 @@ export const tools: Tool[] = [
     name: 'Study Assistant',
     description: 'Split a study note into parts, then recite each one from memory with Biggu listening and hinting.',
     href: '/study-assistant/',
-    model: 'wrench',
+    // Rubber duck debugging: explain it out loud to someone who just listens.
+    model: 'duck',
   },
 ];

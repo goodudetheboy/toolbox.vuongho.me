@@ -32,6 +32,11 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
           <stop offset="0.55" stopColor="#c9a24a" />
           <stop offset="1" stopColor="#8a6a24" />
         </radialGradient>
+        <radialGradient id={g('duck')} cx="0.4" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#fff3a6" />
+          <stop offset="0.45" stopColor="#ffcc1a" />
+          <stop offset="1" stopColor="#e59a00" />
+        </radialGradient>
         <pattern id={g('mesh')} width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <path d="M0 0H2.4M0 0V2.4" stroke="#5d6368" strokeWidth="0.5" fill="none" />
         </pattern>
@@ -92,6 +97,20 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
           </g>
           <circle cx="32" cy="36" r="1.6" fill={url('brass')} />
           <ellipse cx="25" cy="27" rx="7" ry="3.5" fill="#fff" opacity="0.25" transform="rotate(-30 25 27)" />
+        </g>
+      )}
+
+      {model === 'duck' && (
+        <g>
+          <path d="M8 38 C6 30 10 26 14 30 C18 24 28 26 34 30 C40 33 50 32 54 38 C57 48 46 56 32 56 C18 56 9 50 8 38 Z" fill={url('duck')} />
+          <path d="M11 33 L5 26 L15 30 Z" fill={url('duck')} />
+          <circle cx="40" cy="22" r="11" fill={url('duck')} />
+          <path d="M49 22 C55 20 60 22 60 25 C57 27 52 28 48 27 Z" fill="#ff7a12" />
+          <path d="M49 25.5 C53 26 56 26 59 25" stroke="#c4520a" strokeWidth="0.8" fill="none" />
+          <circle cx="43" cy="19" r="2" fill="#111" />
+          <circle cx="43.6" cy="18.4" r="0.6" fill="#fff" />
+          <path d="M20 40 C26 36 34 37 38 42 C32 46 24 46 20 40 Z" fill="#e59a00" opacity="0.45" />
+          <ellipse cx="35" cy="16" rx="4.5" ry="2.2" fill="#fff" opacity="0.5" transform="rotate(-25 35 16)" />
         </g>
       )}
 
