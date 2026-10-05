@@ -9,7 +9,8 @@ export type Route =
   | { name: 'new' }
   | { name: 'note'; noteId: string }
   | { name: 'chunk'; noteId: string; index: number }
-  | { name: 'edit'; noteId: string; index: number };
+  | { name: 'edit'; noteId: string; index: number }
+  | { name: 'progress'; noteId: string; index: number };
 
 const BASE = import.meta.env.BASE_URL; // "/study-assistant/"
 
@@ -25,6 +26,8 @@ export function routePath(route: Route): string {
       return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}`;
     case 'edit':
       return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}/edit`;
+    case 'progress':
+      return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}/progress`;
   }
 }
 
@@ -37,6 +40,7 @@ export function parseRoute(pathname: string): Route {
     const n = Number.parseInt(parts[2] ?? '', 10);
     if (parts.length === 3 && n > 0) return { name: 'chunk', noteId, index: n - 1 };
     if (parts.length === 4 && n > 0 && parts[3] === 'edit') return { name: 'edit', noteId, index: n - 1 };
+    if (parts.length === 4 && n > 0 && parts[3] === 'progress') return { name: 'progress', noteId, index: n - 1 };
     if (parts.length === 2) return { name: 'note', noteId };
   }
   return { name: 'home' };

@@ -102,7 +102,7 @@ export default function NoteView({
         danger
         mood="sleepy"
         onConfirm={async () => {
-          await notesStore.deleteNote(user.uid, note.id);
+          await notesStore.deleteNote(user.uid, note);
           closeDialog();
           onBack();
         }}

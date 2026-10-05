@@ -58,7 +58,8 @@ jobs:
       - run: npm run build
       - run: npm run combine
 
-      - run: npx firebase-tools deploy --only hosting --project vuonghome
-
+      # Rules before hosting: new app code may need paths the old rules don't allow yet.
       - name: Deploy Firestore security rules
         run: npx firebase-tools deploy --only firestore:rules --project vuonghome
+
+      - run: npx firebase-tools deploy --only hosting --project vuonghome

@@ -203,3 +203,30 @@ request.
   part was edited since that try the hash no longer matches and the row says
   so instead of showing misaligned colors. Attempts from before marks
   existed show the score but don't open.
+
+## Addendum 2026-10-05 — attempts as their own documents; Progress screen; offline cache
+
+Supersedes the storage half of "score history per part" above. History
+inside the note document grew without bound, and every write to a note
+re-sends the whole document to every listener (the home list listens to
+all notes) — bad on mobile data.
+
+- Each attempt is its own document:
+  `users/{uid}/notes/{noteId}/parts/{part}/attempts/{id}` =
+  `{ at, percent, hints, marks?, textHash? }`. The note keeps only
+  `lastScore`, `bestScore` and a `tries` count per chunk. Recording a try is
+  one batch (attempt doc + chunk scores). Per-part subcollection so the
+  query is a plain `orderBy('at','desc')` — no composite index to deploy.
+- Progress is its own screen (`/n/:id/:part/progress`, button with the try
+  count in the read card's header), paginated 10 per page with Newer/Older
+  using a `startAfter(at)` cursor; each fetch asks for 11 so the last row's
+  ▲/▼ and "is there an older page" come free. Loaded pages are kept in
+  memory, so paging back re-downloads nothing.
+- Old `note.history` / `chunk.history` are moved into attempt docs once
+  (App effect → `migrateLegacyHistory`, ids `legacy-<at>` so it's
+  idempotent), atomically with deleting the old fields.
+- Deleting a note deletes its attempts first (Firestore doesn't cascade).
+- Rules: the note match became `/users/{uid}/notes/{noteId}/{path=**}`.
+- Firestore persistent local cache (IndexedDB, multi-tab): reopening the
+  app reads from the device and the listener resumes with a token, so
+  only changed notes are re-downloaded.

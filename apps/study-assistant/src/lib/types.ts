@@ -4,11 +4,13 @@ export interface Chunk {
   markdown: string;
   lastScore?: number;
   bestScore?: number;
-  /** Every recorded recitation of this part, oldest first. */
+  /** How many recitations are recorded (the attempts themselves are separate documents, see notes.ts). */
+  tries?: number;
+  /** Old on-chunk history — read only to migrate it into attempt documents. */
   history?: Attempt[];
 }
 
-/** One recorded recitation of a part, kept on its chunk for the progress history. */
+/** One recorded recitation of a part — its own Firestore document (see notes.ts). */
 export interface Attempt {
   at: number;
   percent: number;
@@ -31,7 +33,7 @@ export interface Note {
   /** Hard terms from the note — biases live speech recognition toward them. */
   glossary: string[];
   chunks: Chunk[];
-  /** Old note-level score history — read-only, new attempts go on `Chunk.history`. */
+  /** Old note-level score history — read only to migrate it into attempt documents. */
   history?: LegacyAttempt[];
   createdAt: number;
   updatedAt: number;

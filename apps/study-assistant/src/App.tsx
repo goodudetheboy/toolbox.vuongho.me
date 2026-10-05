@@ -1,12 +1,13 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Biggu from './components/Biggu';
 import { useAuth } from './lib/auth';
-import { notesStore } from './lib/notes';
+import { hasLegacyHistory, notesStore } from './lib/notes';
 import { useRoute } from './lib/router';
 import type { Note } from './lib/types';
 import Home from './screens/Home';
 import NewNote from './screens/NewNote';
 import NoteView from './screens/NoteView';
+import Progress from './screens/Progress';
 import SignIn from './screens/SignIn';
 import Study from './screens/Study';
 import { t } from './strings';
@@ -32,6 +33,17 @@ export default function App() {
     });
   }, [user]);
 
+  // Notes saved by older versions kept score history on the note; move it out once.
+  const migrated = useRef(new Set<string>());
+  useEffect(() => {
+    if (!user || !notes) return;
+    for (const n of notes) {
+      if (!hasLegacyHistory(n) || migrated.current.has(n.id)) continue;
+      migrated.current.add(n.id);
+      notesStore.migrateLegacyHistory(user.uid, n).catch(() => migrated.current.delete(n.id));
+    }
+  }, [user, notes]);
+
   if (loading) {
     return (
       <main className="screen center">
@@ -56,7 +68,7 @@ export default function App() {
     );
   }
 
-  if (route.name === 'note' || route.name === 'chunk' || route.name === 'edit') {
+  if (route.name === 'note' || route.name === 'chunk' || route.name === 'edit' || route.name === 'progress') {
     const note = notes?.find((n) => n.id === route.noteId);
     if (!notes) {
       return (
@@ -94,6 +106,17 @@ export default function App() {
             onDone={() => goBack(back)}
           />
         </Suspense>
+      );
+    }
+    if (route.name === 'progress') {
+      return (
+        <Progress
+          key={`${note.id}-${route.index}`}
+          user={user}
+          note={note}
+          index={route.index}
+          onBack={() => goBack({ name: 'chunk', noteId: note.id, index: route.index })}
+        />
       );
     }
     if (route.name === 'chunk') {

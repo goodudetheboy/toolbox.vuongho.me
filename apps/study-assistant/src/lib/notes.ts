@@ -2,52 +2,83 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
+  getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
+  startAfter,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
 import type { Attempt, Chunk, NewNote, Note } from './types';
 
 // All of a user's notes live under users/{uid}/notes/{noteId}; each note keeps its
-// chunks (and their scores) inline — one document per note keeps sync simple and
-// stays far below Firestore's 1 MB document limit for any realistic study note.
+// chunks (titles, text, last/best score, try count) inline — one small document per
+// note keeps the home list a single listener.
+//
+// Recitation attempts do NOT live on the note: they grow without bound, and every
+// change to a note re-sends the whole note document to every open listener. They're
+// separate documents at users/{uid}/notes/{noteId}/parts/{part}/attempts/{id},
+// only fetched a page at a time when she opens a part's progress screen
+// (single-field `at` ordering, so no composite index is needed).
 
 type Unsubscribe = () => void;
 
 interface NotesStore {
   subscribeNotes(uid: string, cb: (notes: Note[]) => void, onError: (e: Error) => void): Unsubscribe;
-  subscribeNote(uid: string, id: string, cb: (note: Note | null) => void, onError: (e: Error) => void): Unsubscribe;
   createNote(uid: string, note: NewNote): Promise<string>;
   updateChunk(uid: string, note: Note, index: number, patch: Partial<Chunk>): Promise<void>;
-  /** Saves a finished recitation of part `index`: its last/best score plus a history entry. */
+  /** Saves a finished recitation of part `index`: its own attempt document plus the part's last/best/tries. */
   recordAttempt(uid: string, note: Note, index: number, attempt: Attempt): Promise<void>;
+  /** Up to `size + 1` attempts of one part, newest first, older than `before` (an `at`) when given. */
+  pageAttempts(uid: string, noteId: string, part: number, size: number, before?: number): Promise<Attempt[]>;
+  /** Moves history stored on the note by older versions into attempt documents. Idempotent. */
+  migrateLegacyHistory(uid: string, note: Note): Promise<void>;
   updateNote(uid: string, id: string, patch: Partial<Pick<Note, 'title' | 'chunks'>>): Promise<void>;
-  deleteNote(uid: string, id: string): Promise<void>;
+  deleteNote(uid: string, note: Note): Promise<void>;
 }
 
 function withChunkPatch(note: Note, index: number, patch: Partial<Chunk>): Chunk[] {
   return note.chunks.map((c, i) => (i === index ? { ...c, ...patch } : c));
 }
 
-function attemptPatch(note: Note, index: number, a: Attempt): Partial<Chunk> {
-  const c = note.chunks[index];
-  return {
-    lastScore: a.percent,
-    bestScore: Math.max(a.percent, c?.bestScore ?? 0),
-    history: [...chunkHistory(note, index), a],
-  };
+function scorePatch(c: Chunk | undefined, a: Attempt): Partial<Chunk> {
+  return { lastScore: a.percent, bestScore: Math.max(a.percent, c?.bestScore ?? 0), tries: (c?.tries ?? 0) + 1 };
 }
 
-/** A part's attempts, oldest first — its own plus any from the old note-level history. */
-export function chunkHistory(note: Note, index: number): Attempt[] {
-  const own = note.chunks[index]?.history;
-  if (own) return own;
-  return (note.history ?? []).filter((a) => a.part === index).map(({ at, percent, hints }) => ({ at, percent, hints }));
+export function hasLegacyHistory(note: Note): boolean {
+  return note.history !== undefined || note.chunks.some((c) => c.history !== undefined);
 }
+
+/** Old on-note history, grouped by part and de-duplicated (chunk.history may repeat note.history). */
+function legacyByPart(note: Note): Map<number, Attempt[]> {
+  const out = new Map<number, Attempt[]>();
+  const add = (part: number, a: Attempt) => {
+    const list = out.get(part) ?? [];
+    if (!list.some((x) => x.at === a.at)) list.push(a);
+    out.set(part, list);
+  };
+  for (const { part, ...a } of note.history ?? []) add(part, a);
+  note.chunks.forEach((c, i) => c.history?.forEach((a) => add(i, a)));
+  return out;
+}
+
+/** The note's chunks with old history stripped and try counts bumped by what was moved out. */
+function migratedChunks(note: Note, moved: Map<number, Attempt[]>): Chunk[] {
+  return note.chunks.map((c, i) => {
+    const { history: _drop, ...rest } = c;
+    const n = moved.get(i)?.length ?? 0;
+    return n ? { ...rest, tries: (c.tries ?? 0) + n } : rest;
+  });
+}
+
+const attemptsCol = (uid: string, noteId: string, part: number) =>
+  collection(db, 'users', uid, 'notes', noteId, 'parts', String(part), 'attempts');
 
 const firestoreStore: NotesStore = {
   subscribeNotes(uid, cb, onError) {
@@ -55,13 +86,6 @@ const firestoreStore: NotesStore = {
     return onSnapshot(
       q,
       (snap) => cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Note, 'id'>), id: d.id }))),
-      onError,
-    );
-  },
-  subscribeNote(uid, id, cb, onError) {
-    return onSnapshot(
-      doc(db, 'users', uid, 'notes', id),
-      (snap) => cb(snap.exists() ? { ...(snap.data() as Omit<Note, 'id'>), id: snap.id } : null),
       onError,
     );
   },
@@ -77,48 +101,86 @@ const firestoreStore: NotesStore = {
     });
   },
   async recordAttempt(uid, note, index, attempt) {
-    await updateDoc(doc(db, 'users', uid, 'notes', note.id), {
-      chunks: withChunkPatch(note, index, attemptPatch(note, index, attempt)),
+    const batch = writeBatch(db);
+    batch.set(doc(attemptsCol(uid, note.id, index)), attempt);
+    batch.update(doc(db, 'users', uid, 'notes', note.id), {
+      chunks: withChunkPatch(note, index, scorePatch(note.chunks[index], attempt)),
       updatedAt: Date.now(),
     });
+    await batch.commit();
+  },
+  async pageAttempts(uid, noteId, part, size, before) {
+    const q = query(
+      attemptsCol(uid, noteId, part),
+      orderBy('at', 'desc'),
+      ...(before !== undefined ? [startAfter(before)] : []),
+      limit(size + 1),
+    );
+    return (await getDocs(q)).docs.map((d) => d.data() as Attempt);
+  },
+  async migrateLegacyHistory(uid, note) {
+    if (!hasLegacyHistory(note)) return;
+    const moved = legacyByPart(note);
+    const batch = writeBatch(db); // a few dozen writes at most — well under the 500 cap
+    // Deterministic ids, so a migration that runs twice (two tabs) doesn't duplicate tries.
+    for (const [part, list] of moved) for (const a of list) batch.set(doc(attemptsCol(uid, note.id, part), `legacy-${a.at}`), a);
+    batch.update(doc(db, 'users', uid, 'notes', note.id), { chunks: migratedChunks(note, moved), history: deleteField() });
+    await batch.commit();
   },
   async updateNote(uid, id, patch) {
     await updateDoc(doc(db, 'users', uid, 'notes', id), { ...patch, updatedAt: Date.now() });
   },
-  async deleteNote(uid, id) {
-    await deleteDoc(doc(db, 'users', uid, 'notes', id));
+  async deleteNote(uid, note) {
+    // Firestore doesn't delete subcollections with their parent — clear each part's attempts first.
+    for (let i = 0; i < note.chunks.length; i++) {
+      const snap = await getDocs(attemptsCol(uid, note.id, i));
+      for (let j = 0; j < snap.docs.length; j += 400) {
+        const batch = writeBatch(db);
+        snap.docs.slice(j, j + 400).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+    await deleteDoc(doc(db, 'users', uid, 'notes', note.id));
   },
 };
 
 // ---- dev-only in-memory store (VITE_MOCK=1), persisted to localStorage for convenience
 
 const MOCK_KEY = 'study-assistant:mock-notes';
+const MOCK_ATTEMPTS_KEY = 'study-assistant:mock-attempts';
+type MockAttempts = Record<string, Attempt[]>; // "noteId/part" → attempts, any order
 const listeners = new Set<() => void>();
-function mockLoad(): Note[] {
+function mockRead<T>(key: string, fallback: T): T {
   try {
-    return JSON.parse(localStorage.getItem(MOCK_KEY) || '[]') as Note[];
+    return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback;
   } catch {
-    return [];
+    return fallback;
   }
 }
-function mockSave(notes: Note[]) {
+function mockWrite(key: string, value: unknown) {
   try {
-    localStorage.setItem(MOCK_KEY, JSON.stringify(notes));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore
   }
+}
+const mockLoad = () => mockRead<Note[]>(MOCK_KEY, []);
+function mockSave(notes: Note[]) {
+  mockWrite(MOCK_KEY, notes);
   listeners.forEach((l) => l());
 }
+function mockAddAttempts(noteId: string, part: number, list: Attempt[]) {
+  const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
+  const key = `${noteId}/${part}`;
+  const have = all[key] ?? [];
+  all[key] = [...have, ...list.filter((a) => !have.some((h) => h.at === a.at))];
+  mockWrite(MOCK_ATTEMPTS_KEY, all);
+}
+const mockUpdate = (id: string, f: (n: Note) => Note) => mockSave(mockLoad().map((n) => (n.id === id ? f(n) : n)));
 
 const mockStore: NotesStore = {
   subscribeNotes(_uid, cb) {
     const emit = () => cb(mockLoad().sort((a, b) => b.updatedAt - a.updatedAt));
-    listeners.add(emit);
-    emit();
-    return () => listeners.delete(emit);
-  },
-  subscribeNote(_uid, id, cb) {
-    const emit = () => cb(mockLoad().find((n) => n.id === id) ?? null);
     listeners.add(emit);
     emit();
     return () => listeners.delete(emit);
@@ -130,30 +192,37 @@ const mockStore: NotesStore = {
     return id;
   },
   async updateChunk(_uid, note, index, patch) {
-    mockSave(
-      mockLoad().map((n) =>
-        n.id === note.id ? { ...n, chunks: withChunkPatch(n, index, patch), updatedAt: Date.now() } : n,
-      ),
-    );
+    mockUpdate(note.id, (n) => ({ ...n, chunks: withChunkPatch(n, index, patch), updatedAt: Date.now() }));
   },
   async recordAttempt(_uid, note, index, attempt) {
-    mockSave(
-      mockLoad().map((n) =>
-        n.id === note.id
-          ? {
-              ...n,
-              chunks: withChunkPatch(n, index, attemptPatch(n, index, attempt)),
-              updatedAt: Date.now(),
-            }
-          : n,
-      ),
-    );
+    mockAddAttempts(note.id, index, [attempt]);
+    mockUpdate(note.id, (n) => ({
+      ...n,
+      chunks: withChunkPatch(n, index, scorePatch(n.chunks[index], attempt)),
+      updatedAt: Date.now(),
+    }));
+  },
+  async pageAttempts(_uid, noteId, part, size, before) {
+    const list = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {})[`${noteId}/${part}`] ?? [];
+    return list
+      .filter((a) => before === undefined || a.at < before)
+      .sort((a, b) => b.at - a.at)
+      .slice(0, size + 1);
+  },
+  async migrateLegacyHistory(_uid, note) {
+    if (!hasLegacyHistory(note)) return;
+    const moved = legacyByPart(note);
+    for (const [part, list] of moved) mockAddAttempts(note.id, part, list);
+    mockUpdate(note.id, ({ history: _drop, ...n }) => ({ ...n, chunks: migratedChunks(note, moved) }));
   },
   async updateNote(_uid, id, patch) {
-    mockSave(mockLoad().map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)));
+    mockUpdate(id, (n) => ({ ...n, ...patch, updatedAt: Date.now() }));
   },
-  async deleteNote(_uid, id) {
-    mockSave(mockLoad().filter((n) => n.id !== id));
+  async deleteNote(_uid, note) {
+    const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
+    for (const key of Object.keys(all)) if (key.startsWith(`${note.id}/`)) delete all[key];
+    mockWrite(MOCK_ATTEMPTS_KEY, all);
+    mockSave(mockLoad().filter((n) => n.id !== note.id));
   },
 };
 

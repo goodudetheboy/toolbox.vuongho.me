@@ -1257,17 +1257,91 @@ button {
   color: var(--ink-soft);
 }
 
-/* ---------- part: progress history */
+/* ---------- part: progress screen */
 
-.history {
-  margin-top: 30px;
+.read-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.history-title {
-  font-size: 1.5rem;
+.count-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sky-deep);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+}
+
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 8px 0 22px;
+}
+
+.stat {
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 16px;
+  padding: 12px 6px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 108px;
+}
+
+.stat-num {
+  font-size: 2.6rem;
+  line-height: 58px;
   color: var(--sky-ink);
-  margin: 0 4px 10px;
 }
+
+.stat-empty {
+  font-size: 2rem;
+  line-height: 58px;
+  color: var(--ink-soft);
+}
+
+.stat-label {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.progress-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 0;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.pager .btn {
+  min-height: 46px;
+  padding: 0 16px;
+}
+
+.pager-pos {
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
 
 .history-empty {
   margin: 0 4px;

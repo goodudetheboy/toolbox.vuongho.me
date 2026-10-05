@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 // Public web app config — safe to commit (same shared config as trip-planner);
 // access control is enforced by Firestore security rules and the API's allowlist.
@@ -19,4 +19,12 @@ export const auth = getAuth(app);
 
 // Named database per the toolbox-wide per-tool Firestore convention
 // (../../../../docs/adr/0004-per-tool-backend-and-firestore-naming.md).
-export const db = getFirestore(app, 'toolbox-study-assistant');
+//
+// Persistent local cache (IndexedDB): notes open instantly from the device, and when
+// the app reopens the listener resumes from a token, so the server only sends notes
+// that changed since — not every note again. Matters on mobile data.
+export const db = initializeFirestore(
+  app,
+  { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) },
+  'toolbox-study-assistant',
+);

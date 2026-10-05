@@ -29,7 +29,9 @@ One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).
   on-device pause detection, hint prefetch/show/speak, scoring.
 - `src/lib/mic.ts` (AudioWorklet → 16 kHz PCM), `live.ts` (Gemini Live with
   ephemeral token), `sound.ts` (plays hint audio), `api.ts`, `notes.ts`
-  (Firestore), `importNote.ts` (files → /prepare input).
+  (Firestore: notes + per-part attempt subcollections, paged; see the
+  storage comment at its top), `importNote.ts` (files → /prepare input).
+- `src/screens/Progress.tsx` — a part's paginated try history.
 - `src/screens/EditPart.tsx` + `src/lib/richText.ts` — part editor (rich
   text ⇄ Markdown via marked/turndown), lazy-loaded.
 - `src/components/Biggu.tsx` — the mascot SVG, moods via props.

@@ -11,7 +11,8 @@ service cloud.firestore {
         request.auth.token.email in ['hochivuong2002@gmail.com', 'tling241004@gmail.com'];
     }
 
-    match /users/{uid}/notes/{noteId} {
+    // The note itself plus its subcollections (parts/{part}/attempts/{id}).
+    match /users/{uid}/notes/{noteId}/{path=**} {
       allow read, write: if allowed() && request.auth.uid == uid;
     }
   }

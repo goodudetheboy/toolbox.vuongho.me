@@ -2,10 +2,9 @@ import { useMemo } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
-import ProgressHistory from '../components/ProgressHistory';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
-import { chunkHistory, notesStore } from '../lib/notes';
+import { notesStore } from '../lib/notes';
 import { encodeMarks, textHash } from '../lib/marks';
 import { HINT_LIMITS, useHintLimit } from '../lib/settings';
 import type { Route } from '../lib/router';
@@ -82,9 +81,15 @@ export default function Study({
             <div className="read-label hand">
               <Icon name="book" size={22} /> {t.read}
             </div>
-            <button className="text-btn" onClick={() => navigate({ name: 'edit', noteId: note.id, index })}>
-              <Icon name="pencil" size={18} /> {t.edit}
-            </button>
+            <span className="read-actions">
+              <button className="text-btn" onClick={() => navigate({ name: 'progress', noteId: note.id, index })}>
+                <Icon name="chart" size={18} /> {t.progress}
+                {!!chunk.tries && <span className="count-badge">{chunk.tries}</span>}
+              </button>
+              <button className="text-btn" onClick={() => navigate({ name: 'edit', noteId: note.id, index })}>
+                <Icon name="pencil" size={18} /> {t.edit}
+              </button>
+            </span>
           </div>
           <Markdown text={chunk.markdown} />
         </Paper>
@@ -101,7 +106,6 @@ export default function Study({
           </div>
         </div>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
-        <ProgressHistory history={chunkHistory(note, index)} markdown={chunk.markdown} tokens={tokens} />
         <div className="bottom-action with-biggu">
           <Biggu mood="read" size={84} className="corner-biggu" />
           <button className="btn btn-primary btn-big btn-mic" onClick={rec.start}>
