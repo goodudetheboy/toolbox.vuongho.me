@@ -15,15 +15,14 @@ homepage.
   `CLAUDE.md`, `docs/adr/`, and `docs/progress/` — see "Docs are split
   per-app" below. Current tools: `pdf-redactor`, `audio-transcriber`,
   `trip-planner`, `study-assistant` (the only one with a Cloud Run backend,
-  `apps/study-assistant/api/`, deployed by CI when enabled).
+  `apps/study-assistant/api/`, deployed by CI).
 - `scripts/combine-dist.mjs` — merges every app's `dist/` into one root
   `dist/` before deploy (homepage at root, each tool under `/<tool-name>/`)
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the
   shared `vuonghome` GCP project
 - `.github/workflows/deploy.yml` — CI/CD, deploys `dist/` to Firebase
-  Hosting on push to `main`; also (gated on the repo variable
-  `STUDY_ASSISTANT_ENABLED`) deploys the study-assistant Cloud Run API and
-  publishes Firestore rules
+  Hosting on push to `main`; also deploys the study-assistant Cloud Run API
+  (when its code changed) and publishes Firestore rules
 - `docs/` — toolbox-wide only, see below
 
 ## Docs are split per-app — read the right `CLAUDE.md`/`docs/` for the job

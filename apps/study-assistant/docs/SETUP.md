@@ -1,9 +1,9 @@
 # Study Assistant — one-time Google Cloud setup (no terminal needed)
 
 Everything here is clicks in the Google Cloud console, Firebase console and
-GitHub. Do the steps in order; it takes about 15 minutes. Until step 7 is
-done, CI keeps deploying the rest of the toolbox exactly as before and the
-study assistant page shows "The server isn't set up yet" when adding a note.
+GitHub. Do the steps in order; it takes about 15 minutes. CI deploys the
+study assistant's server on every push to `main` (when its code changed), so
+these steps must stay in place — if any is undone, the whole Deploy run fails.
 
 Project: **vuonghome** (project number `727499475710`). Region: **us-central1**.
 
@@ -91,15 +91,12 @@ Only these two Google accounts can use the study assistant:
 edit both `apps/study-assistant/firestore.rules` and `ALLOWED_EMAILS` in
 `.github/workflows/deploy.yml`.
 
-## 7. Switch it on in GitHub
+## 7. Deploy
 
-1. GitHub repo → **Settings → Secrets and variables → Actions → Variables**
-   tab → **New repository variable**
-   - Name: `STUDY_ASSISTANT_ENABLED`
-   - Value: `true`
-2. **Actions → Deploy →** open the latest run → **Re-run all jobs**.
-   The first run takes ~5–8 minutes (it builds the server). Later pushes
-   only rebuild the server when its code changes.
+GitHub repo → **Actions → Deploy →** open the latest run → **Re-run all
+jobs** (or push anything to `main`). The first run takes ~5–8 minutes (it
+builds the server). Later pushes only rebuild the server when its code
+changes.
 
 ## 8. Try it
 
@@ -114,8 +111,8 @@ open a part, **I'm ready — recite**, allow the microphone, and talk.
 - **Deploy run fails at "Deploy study-assistant API"** — the log names the
   missing permission; add that role to the deploy account (step 4a). A
   message about the secret means step 3 or 4b.
-- **"The server isn't set up yet"** — the variable from step 7 isn't set, or
-  the last Deploy run happened before it was set (re-run it).
+- **"The server isn't set up yet"** — the last Deploy run didn't get as far
+  as deploying the server; open it in GitHub Actions and fix the failing step.
 - **"This account isn't on the list yet"** — signed in with another Google
   account; sign out and pick an allowed one.
 - **"Something went wrong" when splitting a note** — check the server's logs:

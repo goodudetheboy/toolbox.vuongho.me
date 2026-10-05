@@ -24,15 +24,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # study-assistant has a Cloud Run backend (holds the Gemini key). These steps only run
-      # once its one-time Google Cloud setup is done and the repo variable
-      # STUDY_ASSISTANT_ENABLED is set to "true" — see apps/study-assistant/docs/SETUP.md.
-      # Until then the rest of the toolbox deploys exactly as before.
+      # study-assistant has a Cloud Run backend (holds the Gemini key); its one-time
+      # Google Cloud setup is in apps/study-assistant/docs/SETUP.md.
       - uses: google-github-actions/setup-gcloud@v2
-        if: vars.STUDY_ASSISTANT_ENABLED == 'true'
 
       - name: Deploy study-assistant API (only when it changed, or doesn't exist yet)
-        if: vars.STUDY_ASSISTANT_ENABLED == 'true'
         env:
           BEFORE: ${{ github.event.before }}
         run: |
@@ -65,5 +61,4 @@ jobs:
       - run: npx firebase-tools deploy --only hosting --project vuonghome
 
       - name: Deploy Firestore security rules
-        if: vars.STUDY_ASSISTANT_ENABLED == 'true'
         run: npx firebase-tools deploy --only firestore:rules --project vuonghome

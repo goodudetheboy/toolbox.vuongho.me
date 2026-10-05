@@ -91,3 +91,12 @@ deploying before the one-time console setup (`docs/SETUP.md`) is done.
   custom vocabulary, the matcher's tolerance (`wordsMatch`) and the scoring
   prompt.
 - Cost is per use (Gemini + Cloud Run scale to zero); max 3 instances.
+
+## Addendum 2026-10-05 — no more enable flag
+
+The CI steps were first gated on a repo variable `STUDY_ASSISTANT_ENABLED` so
+the toolbox kept deploying before the one-time setup was done. With setup
+complete, the user asked for the flag to go: the API deploy and Firestore
+rules publish now run on every push to `main`. Trade-off: if the cloud setup
+(secret, IAM roles, database) is ever undone, the whole Deploy run fails, not
+just the study assistant.
