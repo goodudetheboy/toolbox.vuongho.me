@@ -11,7 +11,8 @@ cleans it up and splits it into readable Markdown parts → read a part → reci
 while Gemini Live transcribes; pause ~3 s (or tap Hint) and Biggu (a
 brown-grey tabby mascot) shows a short cue for the idea she's
 stuck on → Gemini grades how much of the part's ideas she got (paraphrase is
-fine) and highlights the details she missed. Parts can be edited
+fine) and highlights the details she missed. Each part keeps its score
+history; tapping a past try shows its colored words. Parts can be edited
 (rich text or Markdown). Notes sync via Firestore. Only two allowlisted Google accounts.
 Full design: [ADR 0001](docs/adr/0001-study-assistant-architecture.md).
 One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).

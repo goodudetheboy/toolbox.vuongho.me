@@ -4,15 +4,24 @@ export interface Chunk {
   markdown: string;
   lastScore?: number;
   bestScore?: number;
+  /** Every recorded recitation of this part, oldest first. */
+  history?: Attempt[];
 }
 
-/** One recorded recitation of a part, kept on the note for the progress history. */
+/** One recorded recitation of a part, kept on its chunk for the progress history. */
 export interface Attempt {
   at: number;
-  /** Part index at the time (parts can be renamed but not reordered). */
-  part: number;
   percent: number;
   hints: number;
+  /** One letter per recitable word: s(aid) / h(inted) / m(issed) — see `lib/marks.ts`. */
+  marks?: string;
+  /** Hash of the part's Markdown when recited; `marks` only line up while it still matches. */
+  textHash?: string;
+}
+
+/** Note-level attempt from before history moved onto chunks; `part` is the chunk index. */
+export interface LegacyAttempt extends Attempt {
+  part: number;
 }
 
 export interface Note {
@@ -22,8 +31,8 @@ export interface Note {
   /** Hard terms from the note — biases live speech recognition toward them. */
   glossary: string[];
   chunks: Chunk[];
-  /** Every recorded score, oldest first (missing on notes from before history existed). */
-  history?: Attempt[];
+  /** Old note-level score history — read-only, new attempts go on `Chunk.history`. */
+  history?: LegacyAttempt[];
   createdAt: number;
   updatedAt: number;
 }

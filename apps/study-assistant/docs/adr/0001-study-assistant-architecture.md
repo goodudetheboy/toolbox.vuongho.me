@@ -181,3 +181,25 @@ now only the offline fallback. Label: "N% of the ideas".
   write as the part's last/best score). The note page shows a Progress list,
   newest first, with ▲/▼ versus that part's previous try. The result shows
   how many hints were taken.
+
+## Addendum 2026-10-05 — score history per part, with each try's words
+
+Supersedes the note-level history in the previous addendum, at the user's
+request.
+
+- Attempts now live on the part: `chunks[i].history: [{ at, percent, hints,
+  marks, textHash }]`, written in the same `chunks` update as last/best
+  score (no `arrayUnion` — the whole `chunks` array is rewritten anyway).
+  Old `note.history` entries are left in place and read as a fallback
+  (`chunkHistory` in `src/lib/notes.ts`); a part's first new attempt copies
+  them onto the chunk.
+- The Progress list moved from the note page to the part's read screen.
+  Tapping a row opens that try's colored text (Got it / Hinted / Missed) so
+  she can see what to go back over.
+- To keep the note document small (1 MB Firestore limit) an attempt stores
+  only `marks` — one letter per recitable word (`s`/`h`/`m`,
+  `src/lib/marks.ts`) — plus an 8-char hash of the part's Markdown, not a
+  copy of the text. The words are re-derived from the current part; if the
+  part was edited since that try the hash no longer matches and the row says
+  so instead of showing misaligned colors. Attempts from before marks
+  existed show the score but don't open.

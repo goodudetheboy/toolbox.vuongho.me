@@ -1,13 +1,16 @@
 import { useMemo } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
 import Markdown from '../components/Markdown';
+import MarkedWords from '../components/MarkedWords';
+import ProgressHistory from '../components/ProgressHistory';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
-import { notesStore } from '../lib/notes';
+import { chunkHistory, notesStore } from '../lib/notes';
+import { encodeMarks, textHash } from '../lib/marks';
 import { HINT_LIMITS, useHintLimit } from '../lib/settings';
 import type { Route } from '../lib/router';
 import type { AppUser, Note } from '../lib/types';
-import { HINT_VISIBLE_MS, useRecitation, type WordStatus } from '../lib/useRecitation';
+import { HINT_VISIBLE_MS, useRecitation } from '../lib/useRecitation';
 import { tokenize } from '../lib/words';
 import { t } from '../strings';
 
@@ -38,7 +41,13 @@ export default function Study({
   async function finish() {
     const result = await rec.stop();
     await notesStore
-      .recordAttempt(user.uid, note, { at: Date.now(), part: index, percent: result.percent, hints: result.hints })
+      .recordAttempt(user.uid, note, index, {
+        at: Date.now(),
+        percent: result.percent,
+        hints: result.hints,
+        marks: encodeMarks(result.statuses),
+        textHash: textHash(chunk.markdown),
+      })
       .catch(() => {});
   }
 
@@ -92,6 +101,7 @@ export default function Study({
           </div>
         </div>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
+        <ProgressHistory history={chunkHistory(note, index)} markdown={chunk.markdown} tokens={tokens} />
         <div className="bottom-action with-biggu">
           <Biggu mood="read" size={84} className="corner-biggu" />
           <button className="btn btn-primary btn-big btn-mic" onClick={rec.start}>
@@ -171,10 +181,6 @@ export default function Study({
   // ---- result
   const { percent, statuses, hints } = rec.result;
   const mood: BigguMood = percent >= 90 ? 'cheer' : percent >= 70 ? 'proud' : percent >= 40 ? 'wave' : 'sleepy';
-  const lines: { word: string; status: WordStatus }[][] = [];
-  tokens.forEach((tk, i) => {
-    (lines[tk.line] ??= []).push({ word: tk.display, status: statuses[i] });
-  });
 
   return (
     <main className="screen">
@@ -192,28 +198,7 @@ export default function Study({
         </Paper>
       </div>
 
-      {/* Every word is colored; only the colors that actually appear get a label. */}
-      <div className="legend">
-        {(['said', 'hinted', 'missed'] as const)
-          .filter((k) => statuses.includes(k))
-          .map((k) => (
-            <span key={k} className={`lg ${k}`}>
-              {t[k]}
-            </span>
-          ))}
-      </div>
-
-      <Paper tilt={-0.4} lined className="result-card">
-        {lines.map((line, li) => (
-          <p key={li} className="result-line">
-            {line.map((w, wi) => (
-              <span key={wi} className={`w w-${w.status}`}>
-                {w.word}{' '}
-              </span>
-            ))}
-          </p>
-        ))}
-      </Paper>
+      <MarkedWords tokens={tokens} statuses={statuses} />
 
       <div className="bottom-action two">
         <button className="btn" onClick={() => rec.reset()}>
