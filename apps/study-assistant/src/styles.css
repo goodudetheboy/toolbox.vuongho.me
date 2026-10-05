@@ -1038,17 +1038,11 @@ button {
   margin: 4px 0 0;
 }
 
-.biggu-waves path {
-  animation: wave 1.2s infinite ease-in-out;
-}
-
-.biggu-waves path:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-@keyframes wave {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
+.biggu {
+  /* the paper cutout's shadow on the desk */
+  filter: drop-shadow(2px 4px 4px rgba(59, 91, 122, 0.28));
+  object-fit: contain;
+  user-select: none;
 }
 
 /* ---------- study: result */
@@ -1119,7 +1113,7 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bob, .dots-loader span, .biggu-waves path, .hint-bubble {
+  .bob, .dots-loader span, .hint-bubble {
     animation: none;
   }
 }
@@ -1639,7 +1633,7 @@ button {
 }
 
 /* Unpicked faces fade back a little so the chosen one reads as "selected". */
-.thumb svg {
+.thumb img {
   opacity: 0.55;
   transition: opacity 0.15s;
 }
@@ -1650,7 +1644,7 @@ button {
 .thumb-up.on { background: #a9dfca; }
 .thumb-down.on { background: #f7b7c8; }
 
-.thumb.on svg {
+.thumb.on img {
   opacity: 1;
 }
 

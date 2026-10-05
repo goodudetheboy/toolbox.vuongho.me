@@ -69,7 +69,7 @@ web config/Auth as trip-planner.
 
 **UI.** English, light-blue scrapbook style of its own (graph paper, washi
 tape, polaroids, index cards, stamps) with Biggu, a brown-grey tabby drawn
-in SVG as a die-cut sticker in eight moods. Progressive disclosure: each
+in SVG as a die-cut sticker in eight moods. *(Now illustrations — see addendum "Biggu illustrations".)* Progressive disclosure: each
 screen shows one main action; inputs and options appear only once they're
 needed.
 
@@ -252,7 +252,7 @@ all notes) — bad on mobile data.
   first session after install.
 - `useRegisterSW({ immediate: true })`: without it registration waits for
   window `load`, which has already fired by the time React mounts.
-- Icons generated from `public/favicon.svg` on the app's sky blue (192, 512,
+- Icons generated from `public/favicon.svg` *(since replaced, see "Biggu illustrations")* on the app's sky blue (192, 512,
   maskable 512 with the cat inside the safe zone, 180 apple-touch-icon).
 - Hosting's `no-cache` on `/study-assistant/**` stays: it also keeps
   `sw.js` itself from being cached, which update checks rely on.
@@ -274,3 +274,26 @@ all notes) — bad on mobile data.
   `model`; the client ignores them except for feedback. The attempt and
   its feedback share a client-generated id (`crypto.randomUUID()`).
 - Not stored: audio. Only the transcript.
+
+## Addendum 2026-10-05 — Biggu illustrations (supersedes "in SVG" above)
+
+Biggu now looks like the real Biggu (a brown-grey mackerel tabby, from a
+photo). He's drawn as colored-pencil paper cutouts with a white hand-cut
+border, collage-style: semi-realistic but clearly drawn.
+
+- One Gemini-generated image per mood (`gemini-3-pro-image`), each made
+  from the photo plus one approved style reference so the set stays
+  consistent. `src/assets/biggu/*.webp`: 400 px for the moods, 112 px for
+  the happy/sad feedback faces. `Biggu` and `BigguFace` keep their props
+  and just render an `<img>`. Props and decorations (book, lightbulb,
+  hearts, Zs, thought bubble) are baked into the image, so the CSS-animated
+  listen waves are gone.
+- Gemini can't output transparency, so each image is drawn on flat
+  chroma-key green and keyed out (`art/process.py`). The sticker shadow is
+  a CSS `drop-shadow` on `.biggu`.
+- App icons (PWA 192/512/maskable, apple-touch, favicon) use the same head
+  on the app's sky blue. `favicon.svg` is replaced by `favicon.png`.
+- Reproducible: `art/generate.sh [mood…]` holds the prompts, references and
+  processing. Review the output by eye before committing: generations vary.
+- Cost: about 300 KB of images, precached by the service worker (`webp`
+  added to the glob), where the SVGs were close to free.

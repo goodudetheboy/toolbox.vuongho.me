@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
+import faceHappy from '../assets/biggu/face-happy.webp';
+import faceSad from '../assets/biggu/face-sad.webp';
 
 // Scrapbook pieces: washi tape, torn-paper cards, stamps and doodles.
 
@@ -87,40 +89,9 @@ export function Star({ size = 22, color = '#FFD25E', style }: { size?: number; c
   );
 }
 
-/** Biggu's head (same drawing as the app icon) looking happy or sad — the feedback "thumbs", without emoji. */
+/** Biggu's head looking happy or sad — the feedback "thumbs", without emoji. */
 export function BigguFace({ mood, size = 34 }: { mood: 'happy' | 'sad'; size?: number }) {
-  const line = '#3A2D24';
-  const fur = '#9A8878';
-  const pink = '#E9A0A6';
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden className="doodle">
-      <path d="M8 30 L12 6 L28 18 Z M56 30 L52 6 L36 18 Z" fill={fur} stroke={line} strokeWidth="3" strokeLinejoin="round" />
-      <ellipse cx="32" cy="36" rx="26" ry="22" fill={fur} stroke={line} strokeWidth="3" />
-      <path d="M26 20 l2 6 4-4 4 4 2-6" stroke="#5C4B3F" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M29.5 40 h5 l-2.5 2.6z" fill={pink} />
-      {mood === 'happy' ? (
-        <>
-          {/* smiling eyes, blush, open smile */}
-          <path d="M17.5 36 q5.5 -7 11 0 M35.5 36 q5.5 -7 11 0" stroke={line} strokeWidth="3" fill="none" strokeLinecap="round" />
-          <ellipse cx="15" cy="42" rx="4" ry="2.4" fill={pink} opacity="0.8" />
-          <ellipse cx="49" cy="42" rx="4" ry="2.4" fill={pink} opacity="0.8" />
-          <path d="M25 45 q7 9 14 0 z" fill="#7A3B3B" stroke={line} strokeWidth="2.4" strokeLinejoin="round" />
-          <path d="M28.5 48.4 q3.5 2.6 7 0" fill={pink} />
-        </>
-      ) : (
-        <>
-          {/* worried brows (rising toward the middle), shiny eyes, frown, a tear */}
-          <path d="M17 32.5 L25.5 29 M47 32.5 L38.5 29" stroke={line} strokeWidth="2.8" strokeLinecap="round" />
-          <ellipse cx="22.5" cy="37.5" rx="3.3" ry="3.8" fill="#2B211B" />
-          <ellipse cx="41.5" cy="37.5" rx="3.3" ry="3.8" fill="#2B211B" />
-          <circle cx="23.6" cy="36.3" r="1.1" fill="#fff" />
-          <circle cx="42.6" cy="36.3" r="1.1" fill="#fff" />
-          <path d="M26 50 q6 -6 12 0" stroke={line} strokeWidth="2.6" fill="none" strokeLinecap="round" />
-          <path d="M19 43 q-2.4 3.6 0 5 q2.4 -1.4 0 -5z" fill="#8EC5EC" stroke="#4FA3E0" strokeWidth="1" />
-        </>
-      )}
-    </svg>
-  );
+  return <img src={mood === 'happy' ? faceHappy : faceSad} width={size} height={size} alt="" draggable={false} />;
 }
 
 export function Heart({ size = 20, style }: { size?: number; style?: CSSProperties }) {

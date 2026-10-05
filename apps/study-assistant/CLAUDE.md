@@ -34,7 +34,8 @@ One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).
 - `src/screens/Progress.tsx` — a part's paginated try history.
 - `src/screens/EditPart.tsx` + `src/lib/richText.ts` — part editor (rich
   text ⇄ Markdown via marked/turndown), lazy-loaded.
-- `src/components/Biggu.tsx` — the mascot SVG, moods via props.
+- `src/components/Biggu.tsx` — the mascot, one illustration per mood
+  (`src/assets/biggu/`); regenerate with `art/generate.sh`.
 - `src/strings.ts` — all UI text (English).
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/study-assistant/`),
   `src/components/UpdateToast.tsx` (registers the worker, offers updates —

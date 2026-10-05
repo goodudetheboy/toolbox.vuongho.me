@@ -34,7 +34,7 @@ export default defineConfig({
       workbox: {
         // Everything, lazy chunks included (~380 kB gzipped, once): splitting the Word importer
         // out pulled shared CommonJS helpers into its chunk and made every load fetch it.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
         // The Firebase-heavy main chunk is ~1 MB; the default 2 MB cap is fine but make it explicit.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         // Deep links (/study-assistant/n/…) open the cached shell, like Hosting's rewrite does.
