@@ -1,7 +1,7 @@
 // Run: npm test -w apps/study-assistant  (esbuild-bundled, node:test)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { align, markdownLines, nextHint, tokenize, wordsMatch } from './words';
+import { align, markdownLines, nextHint, phraseFrom, tokenize, wordsMatch } from './words';
 
 const md = '## The heart wall\n\nThe heart wall has three layers: the **epicardium**, the **myocardium** and the **endocardium**.';
 
@@ -42,4 +42,15 @@ test('hint is the next unsaid word after where she is', () => {
   const a = align(tokens, 'the heart wall has');
   assert.deepEqual(nextHint(tokens, a, 1).map((i) => tokens[i].display), ['three']);
   assert.deepEqual(nextHint(tokens, a, 3).map((i) => tokens[i].display), ['three', 'layers:', 'the']);
+});
+
+test('fallback hint phrase stops at the clause or line end', () => {
+  const tokens = tokenize('An erythrocyte carries oxygen. It lives 120 days.\n\n- next line');
+  assert.deepEqual(phraseFrom(tokens, 0).map((i) => tokens[i].display), ['An', 'erythrocyte', 'carries', 'oxygen.']);
+  assert.deepEqual(phraseFrom(tokens, 4).map((i) => tokens[i].display), ['It', 'lives', '120', 'days.']);
+  assert.equal(phraseFrom(tokenize(Array(20).fill('word').join(' ')), 0).length, 10);
+});
+
+test('backslash escapes from the editor are plain text', () => {
+  assert.deepEqual(markdownLines('1\\. Give **2\\*3** mg\\_kg'), ['1. Give 2*3 mg_kg']);
 });

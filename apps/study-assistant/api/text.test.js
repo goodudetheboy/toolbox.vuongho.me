@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sequenceSimilarity, words } from './text.js';
+import { cleanMarkdown, sequenceSimilarity, words } from './text.js';
 
 test('words strips markdown, html and punctuation', () => {
   assert.deepEqual(words('## The **Heart**\n- Pumps blood (4 chambers).'), [
@@ -21,4 +21,9 @@ test('sequenceSimilarity drops for paraphrase', () => {
   const source = words('The heart pumps blood through the body using four chambers.');
   const output = words('Blood is moved around by the heart, which has 4 chambers.');
   assert.ok(sequenceSimilarity(source, output) < 0.7);
+});
+
+test('cleanMarkdown unwraps code and keeps nested lists', () => {
+  assert.equal(cleanMarkdown('```markdown\n## A\n\n    some text\n```'), '## A\n\nsome text');
+  assert.equal(cleanMarkdown('- a\n    - b'), '- a\n    - b');
 });

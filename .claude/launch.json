@@ -24,6 +24,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:trip-planner"],
       "port": 5176
+    },
+    {
+      "name": "study-assistant-mock",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "apps/study-assistant", "--", "--port", "5177", "--strictPort"],
+      "env": { "VITE_MOCK": "1" },
+      "port": 5177
     }
   ]
 }

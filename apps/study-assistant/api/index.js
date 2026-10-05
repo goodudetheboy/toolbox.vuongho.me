@@ -10,7 +10,7 @@ import http from 'node:http';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { sequenceSimilarity, words } from './text.js';
+import { cleanMarkdown, sequenceSimilarity, words } from './text.js';
 
 const PORT = Number(process.env.PORT || 8080);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -53,15 +53,19 @@ RULES — follow all of them:
 1. VERBATIM. Keep every word of the note exactly as written, in the original order. Never paraphrase,
    summarize, translate, correct spelling, add words or drop words. For photos and PDFs, transcribe exactly
    what is written; you may skip page numbers and running headers/footers that repeat on every page.
-2. FORMAT as Markdown so it is easy to read. If the note already has structure (headings, bullet or
-   numbered lists, tables, bold), keep that structure. If it is unstructured, add structure using
-   formatting only: a heading (#, ##, ###) only for a line that already reads like a heading, bullet lists
-   for enumerations, a table only when the source is tabular. Never invent heading text and never change
-   the words while formatting.
-   BOLD: if the note already uses bold, keep exactly its bold and add none. If it has no bold at all, put
-   **bold** around the key terms and short phrases that are critical to understanding each chunk (usually
-   1-4 per chunk: the defining terms, numbers and relationships an exam would ask about). Bold only
-   existing words; do not over-bold.
+2. FORMAT — make it easy to read on a phone. Ignore the original layout (line breaks, indentation, spacing,
+   bullet symbols, PDF columns, how it was typed) and lay the words out again as clean, well-structured
+   Markdown, choosing whatever structure reads best:
+   - a heading (##, ###) for a line that acts as a heading or label;
+   - bullet lists for enumerations, numbered lists for steps or ordered sequences, nested lists for sub-points;
+   - "term: definition" or "term – definition" lines as a bullet list item starting with the **term**;
+   - a table when the content compares items across the same attributes (e.g. drug, dose, side effects);
+   - short paragraphs, with a blank line between blocks.
+   Formatting only: never add, drop, reorder or change words to do it — turning a run-on line into a list
+   just moves the line breaks. Never use code blocks, block quotes or HTML; indent only nested list items.
+   BOLD the key terms and short phrases critical to each chunk (usually 1-4 per chunk: the defining terms,
+   numbers and relationships an exam would ask about), plus anything the original already had in bold.
+   Bold only existing words; do not over-bold.
 3. CHUNK. Split the note into chunks she can memorize in one sitting: one idea per chunk, usually 30-90
    words. Never split a sentence. Keep a heading with the content under it. Keep a short list together.
    The chunks, in order, must cover the whole note with no gaps and no overlap.
@@ -157,7 +161,12 @@ async function prepare(body) {
       }
     }
   }
-  return { ...result, glossary: result.glossary.slice(0, 40), fidelity };
+  return {
+    ...result,
+    chunks: result.chunks.map((c) => ({ ...c, markdown: cleanMarkdown(c.markdown) })),
+    glossary: result.glossary.slice(0, 40),
+    fidelity,
+  };
 }
 
 // ---------------------------------------------------------------- live token
@@ -210,6 +219,58 @@ async function speak(body) {
   return { data: audio.data, mimeType: audio.mime_type || 'audio/wav' };
 }
 
+// ---------------------------------------------------------------- hint
+
+const HINT_SCHEMA = {
+  type: 'object',
+  properties: {
+    hint: { type: 'string' },
+    covers: { type: 'array', items: { type: 'integer' } },
+  },
+  required: ['hint', 'covers'],
+};
+const HINT_MAX_WORDS = 10;
+
+async function hint(body) {
+  const passage = Array.isArray(body.words) ? body.words.map(String) : [];
+  if (passage.length === 0 || passage.length > 2000) throw new HttpError(400, 'Bad passage');
+  const from = Number(body.from);
+  if (!Number.isInteger(from) || from < 0 || from >= passage.length) throw new HttpError(400, 'Bad position');
+  const said = new Set((Array.isArray(body.said) ? body.said : []).filter(Number.isInteger));
+  const transcript = String(body.transcript || '').slice(-600);
+
+  const numbered = passage.map((w, i) => `${i}:${w}${said.has(i) ? '✓' : ''}`).join(' ');
+  const result = await generateJson({
+    instruction: `A nursing student is reciting a passage of her study notes from memory and has gone quiet —
+she is stuck. Her first language is Vietnamese. Give her a short cue so she can pick the passage back up.
+
+- Find the idea she is stuck on: the part of the passage starting at the given word index that she has
+  not said yet (words she already said are marked ✓). That is usually the next term, the next part of a
+  definition, a list item, a number or a relationship.
+- "hint": a cue of at most ${HINT_MAX_WORDS} words (aim for 3-8) built from the passage's own key words for
+  that idea — the concept itself, not the grammar around it. E.g. if she is defining a term and forgot the
+  second half of the definition, give the key words of that missing half. Never give just a filler word
+  ("the", "is", "and", "which"). Drop filler; keep the content words in the passage's wording and order so
+  she recognizes it. Only cover the next idea — do not give away the rest of the passage, and do not repeat
+  what she already said. No quotes, no ending punctuation.
+- "covers": the indices of the passage words your cue gives away.`,
+    input: `Passage (index:word, ✓ = already said):\n${numbered}\n\nShe is stuck at word ${from}.\n\nThe last thing she said:\n${transcript || '(nothing yet)'}`,
+    schema: HINT_SCHEMA,
+  });
+  const text = String(result.hint || '')
+    .replace(/["“”]/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, HINT_MAX_WORDS)
+    .join(' ')
+    .replace(/[.,;:!?]+$/, '');
+  const covers = [...new Set(result.covers)]
+    .filter((i) => Number.isInteger(i) && i >= 0 && i < passage.length && !said.has(i))
+    .sort((a, b) => a - b)
+    .slice(0, 2 * HINT_MAX_WORDS);
+  return { hint: text, covers };
+}
+
 // ---------------------------------------------------------------- score
 
 const SCORE_SCHEMA = {
@@ -250,7 +311,7 @@ For each numbered word of the passage, decide whether she said it.
 
 // ---------------------------------------------------------------- http
 
-const ROUTES = { '/prepare': prepare, '/live-token': liveToken, '/speak': speak, '/score': score };
+const ROUTES = { '/prepare': prepare, '/live-token': liveToken, '/speak': speak, '/hint': hint, '/score': score };
 
 async function authenticate(req) {
   const header = req.headers.authorization || '';

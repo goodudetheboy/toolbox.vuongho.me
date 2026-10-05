@@ -3,15 +3,17 @@ import { api } from './api';
 import { startLive, type LiveSession } from './live';
 import { startMic, type MicHandle } from './mic';
 import { decodeSpeech, play } from './sound';
-import { align, nextHint, type Token } from './words';
+import { align, nextHint, phraseFrom, type Token } from './words';
 
 // The talking-mode loop: microphone → Gemini Live transcript → on-device word
 // tracking. Pauses are detected on the device (not by Gemini) so the hint fires
-// on time: after PREFETCH_MS of quiet the hint audio is fetched in the
-// background, after HINT_MS it's shown and spoken. First hint is the next word;
-// if she's still stuck, the next three. Hinted words never count as remembered.
+// on time: after PREFETCH_MS of quiet the hint (text + audio) is fetched in the
+// background, after HINT_MS it's shown and spoken. She can also ask with the
+// Hint button any time. First hint is a short cue for the idea she's stuck on
+// (Gemini picks the key words, ≤10); if she's still stuck, the note's exact next
+// words. Words a hint gives away never count as remembered.
 
-const PREFETCH_MS = 1500;
+const PREFETCH_MS = 1000;
 const HINT_MS = 3000;
 const TICK_MS = 200;
 
@@ -22,6 +24,8 @@ export interface Hint {
   indices: number[];
   text: string;
 }
+
+type PlannedHint = Hint & { audio: Promise<AudioBuffer | null> };
 
 export interface Result {
   statuses: WordStatus[];
@@ -36,6 +40,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [heard, setHeard] = useState('');
   const [hint, setHint] = useState<Hint | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<'mic' | 'other' | null>(null);
 
@@ -49,6 +54,10 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
   const hintLevel = useRef(0);
   const hinted = useRef(new Set<number>());
   const speechCache = useRef(new Map<string, Promise<AudioBuffer | null>>());
+  const hintCache = useRef(new Map<string, Promise<PlannedHint | null>>());
+  const hintBusy = useRef(false);
+  const heardRef = useRef(heard);
+  heardRef.current = heard;
   const noiseFloor = useRef(0.01);
   const alignmentRef = useRef(alignment);
   alignmentRef.current = alignment;
@@ -86,31 +95,78 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     return p;
   }, []);
 
-  // Pause detector + hint scheduler.
+  /** The hint for where she's stuck right now at this level (0 = cue, 1 = exact words), fetched once. */
+  const planHint = useCallback(
+    (level: number): Promise<PlannedHint | null> | null => {
+      const al = alignmentRef.current;
+      const from = nextHint(tokens, al, 1)[0];
+      if (from === undefined) return null;
+      const key = `${from}:${level}`;
+      let p = hintCache.current.get(key);
+      if (!p) {
+        const exact = (): Hint => {
+          const indices = phraseFrom(tokens, from);
+          return { indices, text: cleanForSpeech(indices.map((i) => tokens[i].display)) };
+        };
+        const picked: Promise<Hint> =
+          level === 0
+            ? api
+                .hint({ words: tokens.map((tk) => tk.display), said: [...al.said], from, transcript: heardRef.current })
+                .then((r) => (r.hint ? { text: r.hint, indices: r.covers.length ? r.covers : [from] } : exact()))
+                .catch(exact)
+            : Promise.resolve(exact());
+        p = picked.then((h) => (h.text ? { ...h, audio: speech(h.text) } : null));
+        hintCache.current.set(key, p);
+      }
+      return p;
+    },
+    [tokens, speech],
+  );
+
+  /** Shows and speaks the next hint. Auto hints are dropped if she starts talking while it loads. */
+  const giveHint = useCallback(
+    async (manual: boolean) => {
+      if (hintBusy.current) return;
+      const pending = planHint(Math.min(hintLevel.current, 1));
+      if (!pending) return;
+      hintBusy.current = true;
+      const quietSince = lastActivity.current;
+      setHintLoading(true);
+      try {
+        const planned = await pending;
+        if (!planned || !micRef.current || (!manual && lastActivity.current !== quietSince)) return;
+        hintLevel.current = Math.min(hintLevel.current + 1, 2);
+        planned.indices.forEach((i) => hinted.current.add(i));
+        setHint({ indices: planned.indices, text: planned.text });
+        setHintLoading(false);
+        const buffer = await planned.audio;
+        if (buffer && ctxRef.current) await play(ctxRef.current, buffer);
+      } finally {
+        hintBusy.current = false;
+        setHintLoading(false);
+        // Don't count the wait or the hint's own playback as quiet time.
+        lastActivity.current = Date.now();
+      }
+    },
+    [planHint],
+  );
+
+  // Pause detector: prefetch, then hint. After both hints, wait for her to speak again.
   useEffect(() => {
     if (phase !== 'listening') return;
-    const timer = window.setInterval(async () => {
-      if (hintLevel.current >= 2) return; // both hints given; wait for her to speak again
+    const timer = window.setInterval(() => {
+      if (hintLevel.current >= 2 || hintBusy.current) return;
       const quiet = Date.now() - lastActivity.current;
       if (quiet < PREFETCH_MS) return;
-      const indices = nextHint(tokens, alignmentRef.current, hintLevel.current === 0 ? 1 : 3);
-      if (indices.length === 0) return;
-      const text = cleanForSpeech(indices.map((i) => tokens[i].display));
-      if (!text) return;
-      const audio = speech(text);
-      if (quiet < HINT_MS) return;
-
-      hintLevel.current += 1;
-      indices.forEach((i) => hinted.current.add(i));
-      setHint({ indices, text });
-      // Don't count the hint's own playback as quiet time.
-      lastActivity.current = Date.now() + 10_000;
-      const buffer = await audio;
-      if (buffer && ctxRef.current) await play(ctxRef.current, buffer);
-      lastActivity.current = Date.now();
+      planHint(hintLevel.current);
+      if (quiet >= HINT_MS) void giveHint(false);
     }, TICK_MS);
     return () => window.clearInterval(timer);
-  }, [phase, tokens, speech]);
+  }, [phase, planHint, giveHint]);
+
+  const askHint = useCallback(() => {
+    if (phase === 'listening') void giveHint(true);
+  }, [phase, giveHint]);
 
   const start = useCallback(async () => {
     setError(null);
@@ -118,6 +174,7 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
     setHint(null);
     setResult(null);
     hinted.current = new Set();
+    hintCache.current = new Map();
     hintLevel.current = 0;
     setPhase('connecting');
     try {
@@ -209,5 +266,5 @@ export function useRecitation(tokens: Token[], vocabulary: string[]) {
 
   const progress = tokens.length ? alignment.said.size / tokens.length : 0;
 
-  return { phase, heard, hint, result, error, progress, start, stop, reset };
+  return { phase, heard, hint, hintLoading, result, error, progress, start, stop, reset, askHint };
 }

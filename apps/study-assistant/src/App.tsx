@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Biggu from './components/Biggu';
 import { useAuth } from './lib/auth';
 import { notesStore } from './lib/notes';
@@ -10,6 +10,9 @@ import NoteView from './screens/NoteView';
 import SignIn from './screens/SignIn';
 import Study from './screens/Study';
 import { t } from './strings';
+
+// The editor pulls in marked + turndown; only load them when she edits.
+const EditPart = lazy(() => import('./screens/EditPart'));
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -53,7 +56,7 @@ export default function App() {
     );
   }
 
-  if (route.name === 'note' || route.name === 'chunk') {
+  if (route.name === 'note' || route.name === 'chunk' || route.name === 'edit') {
     const note = notes?.find((n) => n.id === route.noteId);
     if (!notes) {
       return (
@@ -62,7 +65,7 @@ export default function App() {
         </main>
       );
     }
-    if (!note || (route.name === 'chunk' && !note.chunks[route.index])) {
+    if (!note || (route.name !== 'note' && !note.chunks[route.index])) {
       return (
         <main className="screen center">
           <Biggu mood="think" size={160} />
@@ -71,6 +74,26 @@ export default function App() {
             {t.back}
           </button>
         </main>
+      );
+    }
+    if (route.name === 'edit') {
+      const back = { name: 'chunk', noteId: note.id, index: route.index } as const;
+      return (
+        <Suspense
+          fallback={
+            <main className="screen center">
+              <Biggu mood="think" size={160} className="bob" />
+            </main>
+          }
+        >
+          <EditPart
+            key={`${note.id}-${route.index}`}
+            user={user}
+            note={note}
+            index={route.index}
+            onDone={() => goBack(back)}
+          />
+        </Suspense>
       );
     }
     if (route.name === 'chunk') {

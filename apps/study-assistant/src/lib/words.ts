@@ -23,7 +23,8 @@ export function markdownLines(md: string): string[] {
         .replace(/^\s*([-*+]|\d+[.)])\s+/, '') // list markers
         .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // links/images → their text
         .replace(/\|/g, ' ') // table cell borders
-        .replace(/(\*\*|__|\*|_|~~|`)/g, '') // emphasis/code marks
+        .replace(/(?<!\\)(\*\*|__|\*|_|~~|`)/g, '') // emphasis/code marks
+        .replace(/\\([^\p{L}\p{N}\s])/gu, '$1') // backslash escapes from the editor ("1\.", "\*")
         .trim(),
     )
     .filter(Boolean);
@@ -182,5 +183,19 @@ export function nextHint(tokens: Token[], alignment: Alignment, count: number): 
   if (start < 0) return [];
   const out: number[] = [];
   for (let j = start; j < tokens.length && out.length < count; j++) out.push(j);
+  return out;
+}
+
+/**
+ * Up to `max` token indices from `start`, stopping at the end of a sentence or
+ * clause (once there are a few words) or of the line — the verbatim fallback hint.
+ */
+export function phraseFrom(tokens: Token[], start: number, max = 10): number[] {
+  const out: number[] = [];
+  for (let j = start; j < tokens.length && out.length < max; j++) {
+    if (out.length > 0 && tokens[j].line !== tokens[start].line) break;
+    out.push(j);
+    if (out.length >= 3 && /[.;:!?]$/.test(tokens[j].display)) break;
+  }
   return out;
 }

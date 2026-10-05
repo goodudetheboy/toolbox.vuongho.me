@@ -68,16 +68,27 @@ export default function NoteView({
             <Icon name="dots" size={22} />
           </button>
         ) : (
-          <button
-            className="text-btn danger"
-            onClick={async () => {
-              if (!window.confirm(t.confirmDelete)) return;
-              await notesStore.deleteNote(user.uid, note.id);
-              onBack();
-            }}
-          >
-            <Icon name="trash" size={18} /> {t.deleteLesson}
-          </button>
+          <>
+            <button
+              className="text-btn"
+              onClick={async () => {
+                const title = window.prompt(t.renamePrompt, note.title)?.trim();
+                if (title && title !== note.title) await notesStore.updateNote(user.uid, note.id, { title });
+              }}
+            >
+              <Icon name="pencil" size={18} /> {t.rename}
+            </button>
+            <button
+              className="text-btn danger"
+              onClick={async () => {
+                if (!window.confirm(t.confirmDelete)) return;
+                await notesStore.deleteNote(user.uid, note.id);
+                onBack();
+              }}
+            >
+              <Icon name="trash" size={18} /> {t.deleteLesson}
+            </button>
+          </>
         )}
       </div>
 

@@ -724,6 +724,8 @@ button {
 .danger-zone {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 36px;
 }
 
@@ -829,7 +831,7 @@ button {
   position: relative;
   display: flex;
   justify-content: center;
-  margin-top: 110px;
+  margin-top: 150px;
 }
 
 .hint-bubble {
@@ -840,15 +842,24 @@ button {
   background: #fff;
   border: 3px solid var(--outline);
   border-radius: 20px;
-  padding: 10px 20px;
-  font-size: 2.1rem;
-  white-space: nowrap;
-  max-width: 92vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 10px 18px;
+  /* A cue of up to ~10 words: wraps to a few lines rather than truncating. */
+  font-size: 1.6rem;
+  line-height: 1.2;
+  text-align: center;
+  width: max-content;
+  max-width: min(88vw, 380px);
   box-shadow: 0 4px 0 var(--outline);
   animation: pop 0.25s ease-out;
   color: var(--sky-ink);
+}
+
+.hint-loading {
+  padding: 16px 22px;
+}
+
+.btn-hint {
+  background: var(--yellow);
 }
 
 .hint-bubble::after {
@@ -975,4 +986,101 @@ button {
   .bob, .dots-loader span, .biggu-waves path, .hint-bubble {
     animation: none;
   }
+}
+
+/* ---------- edit a part */
+
+.read-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.edit-screen .field-label {
+  display: block;
+  margin: 14px 4px 6px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.text-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 3px solid var(--outline);
+  border-radius: 14px;
+  background: #fff;
+  font: 700 1.1rem var(--body);
+  color: var(--ink);
+}
+
+.seg {
+  display: flex;
+  margin: 16px 0 12px;
+  border: 3px solid var(--outline);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.seg button {
+  flex: 1;
+  min-height: 44px;
+  border: none;
+  background: none;
+  font: 800 1rem var(--body);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.seg button.on {
+  background: var(--sky-deep);
+  color: #fff;
+}
+
+.edit-card {
+  padding: 14px 16px 18px;
+}
+
+.rich-toolbar {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 2px dashed var(--paper-line);
+}
+
+.rich-toolbar button {
+  min-width: 42px;
+  height: 40px;
+  border: 2px solid var(--outline);
+  border-radius: 10px;
+  background: #fff;
+  font: 800 1rem var(--body);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.rich-toolbar button:active {
+  background: var(--yellow);
+}
+
+.rich-editor {
+  min-height: 40dvh;
+  outline: none;
+}
+
+.md-editor {
+  width: 100%;
+  min-height: 40dvh;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  font: 500 0.98rem/1.55 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--ink);
+}
+
+.preview-card {
+  opacity: 0.95;
 }

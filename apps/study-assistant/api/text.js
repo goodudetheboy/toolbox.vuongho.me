@@ -30,3 +30,12 @@ export function sequenceSimilarity(a, b) {
   }
   return (2 * prev[b.length]) / (a.length + b.length);
 }
+
+/** Unwraps code fences and outdents 4+-space lines (not list items), which Markdown would show as raw code. */
+export function cleanMarkdown(md) {
+  return String(md)
+    .replace(/^\s*```[\w-]*\s*$/gm, '')
+    .replace(/^(?: {4,}|\t+)(?![-*+] |\d+[.)] )/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}

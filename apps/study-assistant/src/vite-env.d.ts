@@ -6,3 +6,8 @@ interface ImportMetaEnv {
   /** Dev only: "1" swaps Firebase + the API for in-memory fakes (UI work without a key). */
   readonly VITE_MOCK?: string;
 }
+
+declare module 'turndown-plugin-gfm' {
+  import type TurndownService from 'turndown';
+  export const gfm: TurndownService.Plugin;
+}

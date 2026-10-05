@@ -54,6 +54,22 @@ export interface ScoreResponse {
   close: number[];
 }
 
+export interface HintRequest {
+  words: string[];
+  /** Indices she has already said. */
+  said: number[];
+  /** First word she hasn't said, where she's stuck. */
+  from: number;
+  transcript: string;
+}
+
+export interface HintResponse {
+  /** A short cue (≤10 words) for the idea she's stuck on. */
+  hint: string;
+  /** Passage word indices the cue gives away. */
+  covers: number[];
+}
+
 export interface SpeakResponse {
   data: string;
   mimeType: string;
@@ -63,6 +79,7 @@ const real = {
   prepare: (input: PrepareInput) => post<Prepared>('/prepare', input),
   liveToken: (vocabulary: string[]) => post<LiveTokenResponse>('/live-token', { vocabulary }),
   speak: (text: string) => post<SpeakResponse>('/speak', { text }),
+  hint: (req: HintRequest) => post<HintResponse>('/hint', req),
   score: (words: string[], transcript: string) => post<ScoreResponse>('/score', { words, transcript }),
 };
 
@@ -103,6 +120,16 @@ const mock: Api = {
     await delay(300);
     // 0.4 s of a soft 440 Hz beep as 16-bit PCM WAV, so hint playback can be exercised.
     return { data: mockBeepWav(), mimeType: 'audio/wav' };
+  },
+  async hint({ words, from }) {
+    await delay(700);
+    // Rough stand-in for Gemini: the next few content words, skipping filler.
+    const filler = new Set(['the', 'a', 'an', 'and', 'of', 'to', 'is', 'has', 'from', 'using', 'with']);
+    const covers: number[] = [];
+    for (let i = from; i < words.length && covers.length < 5; i++) {
+      if (!filler.has(words[i].toLowerCase().replace(/[^a-z]/g, ''))) covers.push(i);
+    }
+    return { hint: covers.map((i) => words[i].replace(/[.,;:]+$/, '')).join(' '), covers };
   },
   async score(words, transcript) {
     await delay(500);

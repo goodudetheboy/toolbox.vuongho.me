@@ -100,3 +100,32 @@ complete, the user asked for the flag to go: the API deploy and Firestore
 rules publish now run on every push to `main`. Trade-off: if the cloud setup
 (secret, IAM roles, database) is ever undone, the whole Deploy run fails, not
 just the study assistant.
+
+## Addendum 2026-10-05 — concept hints, Hint button, reformatting, editing
+
+Supersedes the hint and formatting parts of the Decision above, at the
+user's request:
+
+- **Hints are concept cues, not single words.** One word (often "the") didn't
+  help. The first hint now comes from a new `/hint` endpoint: Gemini gets the
+  numbered passage with the words she's said marked and returns a cue of at
+  most 10 words — the key words of the idea she's stuck on (e.g. the missing
+  half of a definition), in the note's own wording, no filler — plus the
+  indices it gives away (those count as hinted). If she's still stuck, the
+  second hint is the note's exact next words (≤10, to the clause end), made
+  on-device. If `/hint` fails, the exact words are used straight away.
+  Prefetch moved to 1 s of quiet so the extra Gemini round trip mostly fits
+  before the 3 s mark. Cost: one small text call per stall.
+- **Hint button** on the talking screen, next to Done: same hint on demand,
+  any time; tapping again escalates to the exact words.
+- **Reformat, don't preserve.** `/prepare` no longer keeps the source's
+  structure; it lays the (still verbatim) words out again as readable
+  Markdown — headings, lists, term/definition items, tables — and always
+  bolds key terms. Code fences / 4-space indents (which render as raw text)
+  are stripped server-side.
+- **Editing.** Each part can be edited (title + text) from its read screen,
+  in a Rich text mode (contenteditable over HTML from `marked`, back to
+  Markdown with `turndown`) or a Markdown mode (textarea + live preview).
+  Markdown stays the stored format. The editor is a lazy chunk so the main
+  bundle doesn't carry the converters. Notes can be renamed from the note
+  page's "…" menu. Edits keep the part's scores.

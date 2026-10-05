@@ -71,8 +71,13 @@ export default function Study({
       <main className="screen">
         {header}
         <Paper tilt={-0.6} tape="pink" className="read-card">
-          <div className="read-label hand">
-            <Icon name="book" size={22} /> {t.read}
+          <div className="read-head">
+            <div className="read-label hand">
+              <Icon name="book" size={22} /> {t.read}
+            </div>
+            <button className="text-btn" onClick={() => navigate({ name: 'edit', noteId: note.id, index })}>
+              <Icon name="pencil" size={18} /> {t.edit}
+            </button>
           </div>
           <Markdown text={chunk.markdown} />
         </Paper>
@@ -94,11 +99,25 @@ export default function Study({
       <main className="screen center listening">
         {header}
         <div className="listen-stage">
-          <Biggu mood={rec.hint ? 'hint' : rec.phase === 'connecting' ? 'think' : 'listen'} size={190} className={rec.hint ? '' : 'bob'} />
-          {rec.hint && (
-            <div className="hint-bubble hand" role="status" aria-live="assertive">
+          <Biggu
+            mood={rec.hint ? 'hint' : rec.phase === 'connecting' || rec.hintLoading ? 'think' : 'listen'}
+            size={190}
+            className={rec.hint ? '' : 'bob'}
+          />
+          {rec.hint ? (
+            <div key={rec.hint.text} className="hint-bubble hand" role="status" aria-live="assertive">
               {rec.hint.text}
             </div>
+          ) : (
+            rec.hintLoading && (
+              <div className="hint-bubble hint-loading" aria-label={t.thinking}>
+                <span className="dots-loader">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </div>
+            )
           )}
         </div>
         <p className="big-status hand">{rec.phase === 'connecting' ? t.connecting : t.listening}</p>
@@ -107,8 +126,11 @@ export default function Study({
           <div className="progress-fill" style={{ width: `${Math.round(rec.progress * 100)}%` }} />
         </div>
         <p className="heard-line">{lastHeard || ' '}</p>
-        <div className="bottom-action">
-          <button className="btn btn-stop btn-big" onClick={finish} disabled={rec.phase !== 'listening'}>
+        <div className="bottom-action two">
+          <button className="btn btn-hint" onClick={rec.askHint} disabled={rec.phase !== 'listening' || rec.hintLoading}>
+            <Icon name="bulb" size={26} /> {t.hintButton}
+          </button>
+          <button className="btn btn-stop" onClick={finish} disabled={rec.phase !== 'listening'}>
             <Icon name="stop" size={26} /> {t.done}
           </button>
         </div>

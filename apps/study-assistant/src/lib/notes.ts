@@ -23,6 +23,7 @@ interface NotesStore {
   subscribeNote(uid: string, id: string, cb: (note: Note | null) => void, onError: (e: Error) => void): Unsubscribe;
   createNote(uid: string, note: NewNote): Promise<string>;
   updateChunk(uid: string, note: Note, index: number, patch: Partial<Chunk>): Promise<void>;
+  updateNote(uid: string, id: string, patch: Partial<Pick<Note, 'title' | 'chunks'>>): Promise<void>;
   deleteNote(uid: string, id: string): Promise<void>;
 }
 
@@ -56,6 +57,9 @@ const firestoreStore: NotesStore = {
       chunks: withChunkPatch(note, index, patch),
       updatedAt: Date.now(),
     });
+  },
+  async updateNote(uid, id, patch) {
+    await updateDoc(doc(db, 'users', uid, 'notes', id), { ...patch, updatedAt: Date.now() });
   },
   async deleteNote(uid, id) {
     await deleteDoc(doc(db, 'users', uid, 'notes', id));
@@ -107,6 +111,9 @@ const mockStore: NotesStore = {
         n.id === note.id ? { ...n, chunks: withChunkPatch(n, index, patch), updatedAt: Date.now() } : n,
       ),
     );
+  },
+  async updateNote(_uid, id, patch) {
+    mockSave(mockLoad().map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)));
   },
   async deleteNote(_uid, id) {
     mockSave(mockLoad().filter((n) => n.id !== id));
