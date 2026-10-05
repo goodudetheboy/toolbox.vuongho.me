@@ -21,8 +21,12 @@ def cutout(name):
 
 for m in 'wave read listen hint cheer proud sleepy think'.split():
     cutout(m).resize((400, 400), Image.LANCZOS).save(f'{app}/src/assets/biggu/{m}.webp', quality=82, method=6)
-for f in ('happy', 'sad', 'head'):
+for f in ('happy', 'sad'):
     cutout(f).resize((160, 160), Image.LANCZOS).save(f'{app}/src/assets/biggu/face-{f}.webp', quality=85, method=6)
+# Home-header heads, one picked at random per visit (raw-head is the calm / app-icon one)
+for f in ('head', 'head-wink', 'head-blep', 'head-tilt', 'head-content', 'head-smug', 'head-excited'):
+    name = 'calm' if f == 'head' else f[5:]
+    cutout(f).resize((160, 160), Image.LANCZOS).save(f'{app}/src/assets/biggu/heads/{name}.webp', quality=85, method=6)
 
 head = cutout('head')
 def icon(size, frac, path, bg=(0xDC, 0xEF, 0xFB, 255)):

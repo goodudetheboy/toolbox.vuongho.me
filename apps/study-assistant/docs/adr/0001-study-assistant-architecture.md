@@ -284,8 +284,9 @@ border, collage-style: semi-realistic but clearly drawn.
 - One Gemini-generated image per mood (`gemini-3-pro-image`), each made
   from the photo plus one approved style reference so the set stays
   consistent. `src/assets/biggu/*.webp`: 400 px for the moods, 160 px for
-  the heads (happy/sad feedback faces, plus a calm head for the Home
-  header). `Biggu` and `BigguFace` keep their props
+  the heads (happy/sad feedback faces; `heads/*.webp` — calm, wink, blep,
+  tilt, content, smug, excited — one picked at random per visit for the
+  Home header, `RandomBigguHead`). `Biggu` and `BigguFace` keep their props
   and just render an `<img>`. Props and decorations (book, lightbulb,
   hearts, Zs, thought bubble) are baked into the image, so the CSS-animated
   listen waves are gone.

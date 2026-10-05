@@ -1,7 +1,6 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import faceHappy from '../assets/biggu/face-happy.webp';
 import faceSad from '../assets/biggu/face-sad.webp';
-import faceHead from '../assets/biggu/face-head.webp';
 
 // Scrapbook pieces: washi tape, torn-paper cards, stamps and doodles.
 
@@ -90,11 +89,20 @@ export function Star({ size = 22, color = '#FFD25E', style }: { size?: number; c
   );
 }
 
-const FACES = { happy: faceHappy, sad: faceSad, calm: faceHead };
+const FACES = { happy: faceHappy, sad: faceSad };
 
-/** Biggu's head: happy / sad are the feedback "thumbs" (no emoji); calm is the app-icon head. */
-export function BigguFace({ mood, size = 34, className }: { mood: keyof typeof FACES; size?: number; className?: string }) {
-  return <img className={className} src={FACES[mood]} width={size} height={size} alt="" draggable={false} />;
+/** Biggu's head looking happy or sad — the feedback "thumbs", without emoji. */
+export function BigguFace({ mood, size = 34 }: { mood: keyof typeof FACES; size?: number }) {
+  return <img src={FACES[mood]} width={size} height={size} alt="" draggable={false} />;
+}
+
+// Every head in assets/biggu/heads (calm, wink, blep, tilt, …) — the Home header picks one per visit.
+const HEADS = Object.values(import.meta.glob<string>('../assets/biggu/heads/*.webp', { eager: true, import: 'default' }));
+
+/** Biggu's head with a random cute expression, chosen once when it mounts. */
+export function RandomBigguHead({ size = 52, className }: { size?: number; className?: string }) {
+  const [src] = useState(() => HEADS[Math.floor(Math.random() * HEADS.length)]);
+  return <img className={className} src={src} width={size} height={size} alt="" draggable={false} />;
 }
 
 export function Heart({ size = 20, style }: { size?: number; style?: CSSProperties }) {

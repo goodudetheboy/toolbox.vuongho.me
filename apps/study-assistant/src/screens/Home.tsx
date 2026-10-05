@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import Biggu from '../components/Biggu';
-import { BigguFace, Icon, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
+import { Icon, RandomBigguHead, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { signOut } from '../lib/auth';
 import type { Route } from '../lib/router';
@@ -24,7 +24,7 @@ export default function Home({ notes, navigate }: { notes: Note[] | null; naviga
       align="left"
       title={
         <span className="brand">
-          <BigguFace mood="calm" size={52} className="biggu" /> <span className="hand">{t.appName}</span>
+          <RandomBigguHead size={52} className="biggu" /> <span className="hand">{t.appName}</span>
         </span>
       }
       right={

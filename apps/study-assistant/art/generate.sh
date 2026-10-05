@@ -22,9 +22,17 @@ declare -A POSE=(
   [happy]="Head only (no body), facing the viewer, very happy: eyes squeezed into joyful curves, rosy blush on cheeks, open smiling mouth."
   [sad]="Head only (no body), facing the viewer, sad: worried eyebrows, big glossy eyes, small frown, one tear on the cheek."
   [head]="Head only (no body), facing the viewer, friendly relaxed expression with a slight smile, eyes open — this will be an app icon."
+  # Header heads: generated with raw-head.png (not style-ref.png) as the first reference so they match it.
+  [head-wink]="Head only (no body), facing the viewer, same framing as the first reference. Expression: a playful wink — one eye closed, the other open, a little smile."
+  [head-blep]="Head only (no body), facing the viewer, same framing as the first reference. Expression: a cute 'blep': the tip of a small pink tongue poking out, eyes open and innocent."
+  [head-tilt]="Head only (no body), same framing as the first reference. Expression: curious, head tilted to one side, eyes big and round, ears forward."
+  [head-content]="Head only (no body), facing the viewer, same framing as the first reference. Expression: blissfully content, eyes closed in slow happy curves, tiny smile, soft rosy cheeks, like purring."
+  [head-smug]="Head only (no body), facing the viewer, same framing as the first reference. Expression: a cheeky smug look, eyes half-lidded, one corner of the mouth up."
+  [head-excited]="Head only (no body), facing the viewer, same framing as the first reference. Expression: excited and delighted, eyes wide and sparkly, small open-mouth smile, ears perked up."
 )
 for m in "${@:-${!POSE[@]}}"; do
-  node gen.mjs "$OUT/raw-$m.png" "$CAT ${POSE[$m]} $STYLE" style-ref.png biggu-photo.jpg &
+  ref=style-ref.png; [[ $m == head-* ]] && ref="$OUT/raw-head.png"   # run 'head' first if regenerating these
+  node gen.mjs "$OUT/raw-$m.png" "$CAT ${POSE[$m]} $STYLE" "$ref" biggu-photo.jpg &
 done
 wait
 "${PY:-python3}" process.py "$OUT" "$APP"
