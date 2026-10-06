@@ -72,6 +72,29 @@ button {
   position: relative;
 }
 
+/* Screen changes (router.ts): only the screen slides; the graph-paper desk stays put.
+   Deeper slides in from the right, back from the left, replace just fades. */
+.screen {
+  view-transition-name: screen;
+}
+
+::view-transition-group(screen),
+::view-transition-old(screen),
+::view-transition-new(screen) {
+  animation-duration: 0.26s;
+  animation-timing-function: cubic-bezier(0.25, 0.8, 0.35, 1);
+}
+
+html[data-nav='forward']::view-transition-old(screen) { animation-name: screen-out-left; }
+html[data-nav='forward']::view-transition-new(screen) { animation-name: screen-in-right; }
+html[data-nav='back']::view-transition-old(screen) { animation-name: screen-out-right; }
+html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-left; }
+
+@keyframes screen-out-left { to { opacity: 0; transform: translateX(-48px); } }
+@keyframes screen-out-right { to { opacity: 0; transform: translateX(48px); } }
+@keyframes screen-in-right { from { opacity: 0; transform: translateX(48px); } }
+@keyframes screen-in-left { from { opacity: 0; transform: translateX(-48px); } }
+
 .screen.center {
   display: flex;
   flex-direction: column;

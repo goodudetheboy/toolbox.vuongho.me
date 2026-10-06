@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 // Tiny History-API router (same shape as pdf-redactor's and trip-planner's — the
 // apps share no code). Firebase Hosting rewrites every `/study-assistant/**`
@@ -46,25 +47,63 @@ export function parseRoute(pathname: string): Route {
   return { name: 'home' };
 }
 
+type Direction = 'forward' | 'back' | 'swap';
+
+// Position of the current entry in our own pushes, kept in history.state so a
+// popstate can tell back from forward. Entries we didn't push count as 0.
+const entryIndex = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let transitionId = 0;
+
+/** Swap screens inside a View Transition; `html[data-nav]` picks the slide direction in styles.css. */
+function transition(direction: Direction, update: () => void) {
+  if (!document.startViewTransition || reducedMotion.matches) {
+    update();
+    return;
+  }
+  const id = ++transitionId;
+  const root = document.documentElement;
+  root.dataset.nav = direction;
+  const vt = document.startViewTransition(() => flushSync(update));
+  vt.finished.finally(() => {
+    if (id === transitionId) delete root.dataset.nav;
+  });
+}
+
 export function useRoute() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname));
+  const current = useRef(entryIndex());
 
   useEffect(() => {
-    const onPop = () => setRoute(parseRoute(window.location.pathname));
+    const onPop = (e: PopStateEvent) => {
+      const next = entryIndex();
+      const direction = next < current.current ? 'back' : 'forward';
+      current.current = next;
+      const update = () => setRoute(parseRoute(window.location.pathname));
+      // iOS/Safari swipe-back already animated the page — don't slide it a second time.
+      if ((e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition) update();
+      else transition(direction, update);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const navigate = useCallback((next: Route, options: { replace?: boolean } = {}) => {
+  const navigate = useCallback((next: Route, options: { replace?: boolean; back?: boolean } = {}) => {
     const path = routePath(next);
     if (options.replace) {
       window.history.replaceState(window.history.state, '', path);
-    } else {
-      // `inApp` marks entries we pushed ourselves, so `goBack` knows history.back() stays inside the app.
-      window.history.pushState({ inApp: true }, '', path);
-      window.scrollTo(0, 0);
+      transition(options.back ? 'back' : 'swap', () => setRoute(next));
+      return;
     }
-    setRoute(next);
+    // `inApp` marks entries we pushed ourselves, so `goBack` knows history.back() stays inside the app.
+    const idx = entryIndex() + 1;
+    window.history.pushState({ inApp: true, idx }, '', path);
+    current.current = idx;
+    transition('forward', () => {
+      window.scrollTo(0, 0);
+      setRoute(next);
+    });
   }, []);
 
   /** In-app back arrow: real history.back() when the previous entry is ours, else go to `fallback`. */
@@ -73,7 +112,7 @@ export function useRoute() {
       if ((window.history.state as { inApp?: boolean } | null)?.inApp) {
         window.history.back();
       } else {
-        navigate(fallback, { replace: true });
+        navigate(fallback, { replace: true, back: true });
       }
     },
     [navigate],
