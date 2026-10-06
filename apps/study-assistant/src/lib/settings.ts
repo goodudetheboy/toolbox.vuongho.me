@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 
 export const HINT_LIMITS = [3, 5, 10, 20, Infinity] as const;
 const HINT_LIMIT_KEY = 'study-assistant:hint-limit';
-const DEFAULT_HINT_LIMIT = 10;
+const DEFAULT_HINT_LIMIT = 5;
 
 function load(): number {
   try {

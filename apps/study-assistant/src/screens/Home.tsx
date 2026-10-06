@@ -18,7 +18,7 @@ export function noteScore(note: Note): number | undefined {
   return Math.round(scores.reduce<number>((a, s) => a + (s ?? 0), 0) / scores.length);
 }
 
-export default function Home({ notes, navigate }: { notes: Note[] | null; navigate: (r: Route) => void }) {
+export default function Home({ notes, admin, navigate }: { notes: Note[] | null; admin: boolean; navigate: (r: Route) => void }) {
   const topBar = (
     <TopBar
       align="left"
@@ -28,9 +28,16 @@ export default function Home({ notes, navigate }: { notes: Note[] | null; naviga
         </span>
       }
       right={
-        <button className="text-btn quiet" onClick={() => signOut()}>
-          {t.signOut}
-        </button>
+        <span>
+          {admin && (
+            <button className="text-btn quiet" onClick={() => navigate({ name: 'admin' })}>
+              {t.admin.link}
+            </button>
+          )}
+          <button className="text-btn quiet" onClick={() => signOut()}>
+            {t.signOut}
+          </button>
+        </span>
       }
     />
   );

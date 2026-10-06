@@ -8,6 +8,7 @@ import { flushSync } from 'react-dom';
 export type Route =
   | { name: 'home' }
   | { name: 'new' }
+  | { name: 'admin' }
   | { name: 'note'; noteId: string }
   | { name: 'chunk'; noteId: string; index: number }
   | { name: 'edit'; noteId: string; index: number }
@@ -21,6 +22,8 @@ export function routePath(route: Route): string {
       return BASE;
     case 'new':
       return `${BASE}new`;
+    case 'admin':
+      return `${BASE}admin`;
     case 'note':
       return `${BASE}n/${encodeURIComponent(route.noteId)}`;
     case 'chunk':
@@ -36,6 +39,7 @@ export function parseRoute(pathname: string): Route {
   const rest = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname.replace(/^\//, '');
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 1 && parts[0] === 'new') return { name: 'new' };
+  if (parts.length === 1 && parts[0] === 'admin') return { name: 'admin' };
   if (parts[0] === 'n' && parts[1]) {
     const noteId = decodeURIComponent(parts[1]);
     const n = Number.parseInt(parts[2] ?? '', 10);

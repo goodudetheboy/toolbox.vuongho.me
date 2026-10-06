@@ -1732,3 +1732,125 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   min-height: 44px;
   padding: 0 20px;
 }
+
+/* ---------- admin: feedback viewer (screens/Admin.tsx) */
+
+.stat-num.good { color: var(--green); }
+.stat-num.off { color: var(--coral); }
+
+.admin-reasons {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 16px;
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+}
+
+.admin-reasons li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-reasons b {
+  color: var(--coral);
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-toolbar .text-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.admin-face {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--outline);
+}
+
+.admin-face.up { background: #cdeedd; }
+.admin-face.down { background: #fbd0d5; }
+
+.admin-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.admin-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fbd0d5;
+}
+
+.admin-comment {
+  margin-top: 4px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail h4 {
+  margin: 14px 0 6px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.admin-quote {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--sky-deep);
+  background: #fff;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.admin-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.admin-list .good { color: var(--green); }
+.admin-list .mid { color: var(--amber); }
+.admin-list .off { color: var(--coral); }
+
+.admin-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.admin-meta dt {
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.admin-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

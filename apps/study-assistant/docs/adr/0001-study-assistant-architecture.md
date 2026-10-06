@@ -172,7 +172,7 @@ now only the offline fallback. Label: "N% of the ideas".
 - Result: every word gets a color — Got it / Hinted / Missed. The "Say it
   clearer" (mispronounced) category is gone (`/score` no longer asks for
   it).
-- Hint limit per recitation: 3 / 5 / 10 / 20 / ∞, default 10, picked on the
+- Hint limit per recitation: 3 / 5 / 10 / 20 / ∞, default 5 (was 10 until 2026-10-06), picked on the
   read screen and kept per device (localStorage, `src/lib/settings.ts`). The
   Hint button shows how many are left; at 0 both auto and manual hints stop.
   Hints stay on screen 5 s (was 3 s).
@@ -274,6 +274,12 @@ all notes) — bad on mobile data.
   `model`; the client ignores them except for feedback. The attempt and
   its feedback share a client-generated id (`crypto.randomUUID()`).
 - Not stored: audio. Only the transcript.
+- *2026-10-06:* admin viewer at `/study-assistant/admin` (lazy `screens/Admin.tsx`,
+  linked from Home only for `ADMIN_EMAIL`). Reads every `users/*/feedback`
+  via a collection-group query; `firestore.rules` grants that read to
+  hochivuong2002@gmail.com only (`match /{path=**}/feedback/{id}`). Sorted
+  client-side so no collection-group index is needed. New records also store
+  the rater's `email`. A "Download JSONL" button exports the filtered set for tuning.
 
 ## Addendum 2026-10-05 — Biggu illustrations (supersedes "in SVG" above)
 

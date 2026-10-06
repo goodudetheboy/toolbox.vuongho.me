@@ -11,6 +11,12 @@ service cloud.firestore {
         request.auth.token.email in ['hochivuong2002@gmail.com', 'tling241004@gmail.com'];
     }
 
+    // The admin page (/study-assistant/admin) reads everyone's feedback. Keep in sync
+    // with ADMIN_EMAIL in src/lib/feedback.ts.
+    function admin() {
+      return allowed() && request.auth.token.email == 'hochivuong2002@gmail.com';
+    }
+
     // The note itself plus its subcollections (parts/{part}/attempts/{id}).
     match /users/{uid}/notes/{noteId}/{path=**} {
       allow read, write: if allowed() && request.auth.uid == uid;
@@ -19,6 +25,11 @@ service cloud.firestore {
     // Session feedback (👍/👎 + context), kept apart from notes so it outlives them.
     match /users/{uid}/feedback/{attemptId} {
       allow read, write: if allowed() && request.auth.uid == uid;
+    }
+
+    // Collection-group read of every users/*/feedback for the admin page.
+    match /{path=**}/feedback/{attemptId} {
+      allow read: if admin();
     }
   }
 }

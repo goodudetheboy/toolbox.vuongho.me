@@ -227,6 +227,7 @@ export default function Study({
           onSave={(rating, reasons, comment) =>
             saveFeedback(
               user.uid,
+              user.email,
               sessionContext({
                 attemptId,
                 note,

@@ -1,4 +1,4 @@
-import { doc, setDoc } from 'firebase/firestore';
+import { collectionGroup, doc, getDocs, setDoc } from 'firebase/firestore';
 import type { GradedIdea } from './api';
 import { db } from './firebase';
 import { encodeMarks } from './marks';
@@ -23,6 +23,8 @@ export interface FeedbackRecord {
   /** Only for 👎: what felt off. */
   reasons: DownReason[];
   comment: string;
+  /** Who rated it (added after the first records; older ones only have the uid in their path). */
+  email?: string | null;
   noteId: string;
   noteTitle: string;
   subject: string;
@@ -84,12 +86,13 @@ const MOCK_KEY = 'study-assistant:mock-feedback';
 
 export async function saveFeedback(
   uid: string,
+  email: string | null,
   ctx: SessionContext,
   rating: Rating,
   reasons: DownReason[],
   comment: string,
 ): Promise<void> {
-  const record: FeedbackRecord = { schema: 1, ...ctx, createdAt: Date.now(), rating, reasons, comment: comment.trim() };
+  const record: FeedbackRecord = { schema: 1, ...ctx, createdAt: Date.now(), email, rating, reasons, comment: comment.trim() };
   if (MOCK) {
     try {
       const all = JSON.parse(localStorage.getItem(MOCK_KEY) || '{}') as Record<string, FeedbackRecord>;
@@ -101,4 +104,28 @@ export async function saveFeedback(
     return;
   }
   await setDoc(doc(db, 'users', uid, 'feedback', ctx.attemptId), record);
+}
+
+// ---- admin: read everyone's feedback (firestore.rules lets only this account do it)
+
+export const ADMIN_EMAIL = 'hochivuong2002@gmail.com';
+
+export const isAdmin = (email: string | null | undefined) => MOCK || email === ADMIN_EMAIL;
+
+export interface FeedbackEntry {
+  uid: string;
+  record: FeedbackRecord;
+}
+
+/** Every user's feedback, newest first. Sorted here — a collection-group orderBy would need its own index. */
+export async function listAllFeedback(): Promise<FeedbackEntry[]> {
+  let entries: FeedbackEntry[];
+  if (MOCK) {
+    const all = JSON.parse(localStorage.getItem(MOCK_KEY) || '{}') as Record<string, FeedbackRecord>;
+    entries = Object.values(all).map((record) => ({ uid: 'mock-user', record }));
+  } else {
+    const snap = await getDocs(collectionGroup(db, 'feedback'));
+    entries = snap.docs.map((d) => ({ uid: d.ref.parent.parent?.id ?? '?', record: d.data() as FeedbackRecord }));
+  }
+  return entries.sort((a, b) => b.record.createdAt - a.record.createdAt);
 }

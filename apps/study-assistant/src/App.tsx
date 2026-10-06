@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Biggu from './components/Biggu';
 import { useAuth } from './lib/auth';
+import { isAdmin } from './lib/feedback';
 import { hasLegacyHistory, notesStore } from './lib/notes';
 import { useRoute } from './lib/router';
 import type { Note } from './lib/types';
@@ -14,6 +15,8 @@ import { t } from './strings';
 
 // The editor pulls in marked + turndown; only load them when she edits.
 const EditPart = lazy(() => import('./screens/EditPart'));
+// Admin-only feedback viewer — no reason to ship it to her phone up front.
+const Admin = lazy(() => import('./screens/Admin'));
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -65,6 +68,20 @@ export default function App() {
           navigate({ name: 'note', noteId }, { replace: true });
         }}
       />
+    );
+  }
+
+  if (route.name === 'admin') {
+    return (
+      <Suspense
+        fallback={
+          <main className="screen center">
+            <Biggu mood="think" size={160} className="bob" />
+          </main>
+        }
+      >
+        <Admin user={user} onBack={() => goBack(home)} />
+      </Suspense>
     );
   }
 
@@ -142,5 +159,5 @@ export default function App() {
     );
   }
 
-  return <Home notes={notes} navigate={navigate} />;
+  return <Home notes={notes} admin={isAdmin(user.email)} navigate={navigate} />;
 }
