@@ -30,8 +30,8 @@ export default function Home({ notes, admin, navigate }: { notes: Note[] | null;
       right={
         <span>
           {admin && (
-            <button className="text-btn quiet" onClick={() => navigate({ name: 'admin' })}>
-              {t.admin.link}
+            <button className="text-btn quiet" onClick={() => navigate({ name: 'admin', tab: 'feedback' })}>
+              {t.admin.title}
             </button>
           )}
           <button className="text-btn quiet" onClick={() => signOut()}>

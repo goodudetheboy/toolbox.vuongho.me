@@ -5,10 +5,12 @@ import { flushSync } from 'react-dom';
 // apps share no code). Firebase Hosting rewrites every `/study-assistant/**`
 // miss to this app's index.html, so deep links survive a reload.
 
+export type AdminTab = 'feedback' | 'usage';
+
 export type Route =
   | { name: 'home' }
   | { name: 'new' }
-  | { name: 'admin' }
+  | { name: 'admin'; tab: AdminTab }
   | { name: 'note'; noteId: string }
   | { name: 'chunk'; noteId: string; index: number }
   | { name: 'edit'; noteId: string; index: number }
@@ -23,7 +25,7 @@ export function routePath(route: Route): string {
     case 'new':
       return `${BASE}new`;
     case 'admin':
-      return `${BASE}admin`;
+      return route.tab === 'feedback' ? `${BASE}admin` : `${BASE}admin/${route.tab}`;
     case 'note':
       return `${BASE}n/${encodeURIComponent(route.noteId)}`;
     case 'chunk':
@@ -39,7 +41,7 @@ export function parseRoute(pathname: string): Route {
   const rest = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname.replace(/^\//, '');
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 1 && parts[0] === 'new') return { name: 'new' };
-  if (parts.length === 1 && parts[0] === 'admin') return { name: 'admin' };
+  if (parts[0] === 'admin' && parts.length <= 2) return { name: 'admin', tab: parts[1] === 'usage' ? 'usage' : 'feedback' };
   if (parts[0] === 'n' && parts[1]) {
     const noteId = decodeURIComponent(parts[1]);
     const n = Number.parseInt(parts[2] ?? '', 10);

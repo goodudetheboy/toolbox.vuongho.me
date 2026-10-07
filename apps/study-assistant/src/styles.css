@@ -1854,3 +1854,152 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.admin-tabs {
+  margin-top: 4px;
+}
+
+.admin-who {
+  margin-bottom: 12px;
+}
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 560px) {
+  .admin-kpis { grid-template-columns: repeat(4, 1fr); }
+}
+
+.admin-kpis .stat-label {
+  text-align: center;
+}
+
+.admin-card {
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 16px;
+  padding: 12px 14px 14px;
+  margin-bottom: 16px;
+}
+
+.admin-h {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.admin-readout {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.admin-bars {
+  display: flex;
+  align-items: stretch;
+  height: 120px;
+  border-bottom: 1px solid var(--paper-line);
+}
+
+.admin-bar {
+  flex: 1;
+  min-width: 0;
+  padding: 0 1px; /* 2px gap between bars; the button is the (taller) hit target */
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
+}
+
+.admin-bar span {
+  display: block;
+  width: 100%;
+  background: var(--sky-deep);
+  border-radius: 4px 4px 0 0;
+}
+
+.admin-bar span.zero {
+  height: 0 !important;
+}
+
+.admin-bar.on span,
+.admin-bar:hover span {
+  background: var(--sky-ink);
+}
+
+.admin-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+/* Middle label = the y max, so the bars have a scale without gridlines. */
+.admin-axis span:nth-child(2)::before {
+  content: 'max ';
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 6px 8px;
+  text-align: right;
+}
+
+.admin-table thead th {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-weight: 800;
+}
+
+.admin-table tbody th {
+  text-align: left;
+  font-weight: 800;
+}
+
+.admin-table tbody tr + tr {
+  border-top: 2px dashed var(--paper-line);
+}
+
+.admin-top {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.admin-top li > * {
+  vertical-align: top;
+}
+
+.admin-top li {
+  font-weight: 600;
+}
+
+.admin-top-title {
+  overflow-wrap: anywhere;
+}
+
+.admin-top b {
+  float: right;
+  margin-left: 10px;
+  color: var(--sky-ink);
+}

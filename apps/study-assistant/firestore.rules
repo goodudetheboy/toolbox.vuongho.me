@@ -17,6 +17,12 @@ service cloud.firestore {
       return allowed() && request.auth.token.email == 'hochivuong2002@gmail.com';
     }
 
+    // Profile (email, name, last seen, app opens) — for the admin page's usage tab.
+    match /users/{uid} {
+      allow read, write: if allowed() && request.auth.uid == uid;
+      allow read: if admin();
+    }
+
     // The note itself plus its subcollections (parts/{part}/attempts/{id}).
     match /users/{uid}/notes/{noteId}/{path=**} {
       allow read, write: if allowed() && request.auth.uid == uid;
@@ -27,8 +33,14 @@ service cloud.firestore {
       allow read, write: if allowed() && request.auth.uid == uid;
     }
 
-    // Collection-group read of every users/*/feedback for the admin page.
+    // Collection-group reads for the admin page: every user's feedback, notes and attempts.
     match /{path=**}/feedback/{attemptId} {
+      allow read: if admin();
+    }
+    match /{path=**}/notes/{noteId} {
+      allow read: if admin();
+    }
+    match /{path=**}/attempts/{attemptId} {
       allow read: if admin();
     }
   }

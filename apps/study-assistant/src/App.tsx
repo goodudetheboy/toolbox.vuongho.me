@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth';
 import { isAdmin } from './lib/feedback';
 import { hasLegacyHistory, notesStore } from './lib/notes';
 import { useRoute } from './lib/router';
+import { touchProfile } from './lib/usage';
 import type { Note } from './lib/types';
 import Home from './screens/Home';
 import NewNote from './screens/NewNote';
@@ -25,6 +26,11 @@ export default function App() {
   const [denied, setDenied] = useState(false);
   // Shown once on the note page right after a pasted/Word note came back not quite word-for-word.
   const [fidelityWarningFor, setFidelityWarningFor] = useState<string | null>(null);
+
+  // Last-seen + open count for the admin usage tab; a failed write doesn't matter.
+  useEffect(() => {
+    if (user) touchProfile(user).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     setNotes(null);
@@ -80,7 +86,7 @@ export default function App() {
           </main>
         }
       >
-        <Admin user={user} onBack={() => goBack(home)} />
+        <Admin user={user} tab={route.tab} navigate={navigate} onBack={() => goBack(home)} />
       </Suspense>
     );
   }

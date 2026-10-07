@@ -280,6 +280,15 @@ all notes) — bad on mobile data.
   hochivuong2002@gmail.com only (`match /{path=**}/feedback/{id}`). Sorted
   client-side so no collection-group index is needed. New records also store
   the rater's `email`. A "Download JSONL" button exports the filtered set for tuning.
+- *2026-10-07:* the admin page has tabs: Feedback (`/admin`) and Usage
+  (`/admin/usage`, `lib/usage.ts`). Usage comes from data the app already
+  stores (collection-group reads of `notes` and `attempts`, admin-only in
+  the rules) plus one new doc per user, `users/{uid}` = `{ email, name,
+  lastSeenAt, opens }`. The app writes it on every load (merge, `opens` uses
+  `increment`). It shows sessions in the last 7 and 30 days, active days,
+  average score, a sessions-per-day bar chart, a per-person table and the
+  most practiced parts, with a filter for each person. Gemini/API call counts
+  aren't included because they only exist in the Cloud Run logs.
 
 ## Addendum 2026-10-05 — Biggu illustrations (supersedes "in SVG" above)
 
