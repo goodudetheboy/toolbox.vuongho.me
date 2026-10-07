@@ -17,7 +17,7 @@ export const t = {
       { title: 'Exam coming up?', text: 'Make an **exam cram sheet** from your notes. Biggu picks what you most need to reread.' },
     ],
     purr: 'Tap him for a purr!',
-    skip: 'Skip',
+    previous: 'Previous',
     next: 'Next',
     done: 'Got it',
     start: "Let's go",

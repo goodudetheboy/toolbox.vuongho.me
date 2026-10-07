@@ -502,7 +502,7 @@ Biggu instead. The words sit on a crooked lined-paper scrap with a numbered
 sticker; key words get the notes' yellow highlighter, and the colors card uses
 the result screen's green, yellow and red. Tapping the last picture makes Biggu
 purr. On short phones the picture shrinks so Skip / Next stay on screen. Swiping is native
-horizontal scroll-snap, with dots and Skip / Next below. We chose this over a
+horizontal scroll-snap, with dots and Previous / Next below (Previous replaced Skip on 2026-10-07 at the user's request). We chose this over a
 help page (long text isn't read on a phone) and over a tooltip tour of the real
 screens (it breaks whenever the layout changes). They show up in three places:
 

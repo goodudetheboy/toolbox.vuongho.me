@@ -30,12 +30,9 @@ function rich(text: string): ReactNode[] {
 export default function GuideCards({
   finishLabel,
   onFinish,
-  onSkip,
 }: {
   finishLabel: string;
   onFinish: () => void;
-  /** Leave without finishing. Omitted → Skip jumps to the last card. */
-  onSkip?: () => void;
 }) {
   const cards = t.guide.cards;
   const last = cards.length - 1;
@@ -103,17 +100,15 @@ export default function GuideCards({
       </div>
 
       <div className="guide-actions">
+        <button className="btn" onClick={() => go(at - 1)} disabled={at === 0}>
+          {t.guide.previous}
+        </button>
         {at < last ? (
-          <>
-            <button className="btn" onClick={() => (onSkip ? onSkip() : go(last))}>
-              {t.guide.skip}
-            </button>
-            <button className="btn btn-primary" onClick={() => go(at + 1)}>
-              {t.guide.next}
-            </button>
-          </>
+          <button className="btn btn-primary" onClick={() => go(at + 1)}>
+            {t.guide.next}
+          </button>
         ) : (
-          <button className="btn btn-primary btn-big" onClick={onFinish}>
+          <button className="btn btn-primary" onClick={onFinish}>
             {finishLabel}
           </button>
         )}

@@ -108,7 +108,7 @@ export default function App() {
     return (
       <main className="screen">
         <TopBar onBack={() => goBack(home)} title={<span className="hand">{t.howItWorks}</span>} />
-        <GuideCards finishLabel={t.guide.done} onFinish={leave} onSkip={leave} />
+        <GuideCards finishLabel={t.guide.done} onFinish={leave} />
       </main>
     );
   }
@@ -119,7 +119,7 @@ export default function App() {
     return (
       <main className="screen">
         <TopBar title={<span className="hand">{t.howItWorks}</span>} />
-        <GuideCards finishLabel={t.guide.start} onFinish={guideDone} onSkip={guideDone} />
+        <GuideCards finishLabel={t.guide.start} onFinish={guideDone} />
       </main>
     );
   }
