@@ -114,7 +114,7 @@ export function Heart({ size = 20, style }: { size?: number; style?: CSSProperti
 }
 
 /** Hand-drawn style icons for the big buttons. */
-export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'file' | 'camera' | 'back' | 'plus' | 'retry' | 'next' | 'dots' | 'trash' | 'book' | 'bulb' | 'pencil' | 'chart' | 'check' | 'calendar' | 'search' | 'filter' | 'user' | 'chat' | 'logout' | 'shield'; size?: number }) {
+export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'file' | 'camera' | 'back' | 'plus' | 'retry' | 'next' | 'dots' | 'trash' | 'book' | 'bulb' | 'pencil' | 'chart' | 'check' | 'calendar' | 'search' | 'filter' | 'user' | 'chat' | 'logout' | 'shield' | 'close'; size?: number }) {
   const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   const paths: Record<typeof name, ReactNode> = {
     mic: (
@@ -123,6 +123,7 @@ export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'fi
         <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" {...p} />
       </>
     ),
+    close: <path d="M6 6l12 12M18 6L6 18" {...p} />,
     stop: <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" />,
     paste: (
       <>

@@ -18,6 +18,7 @@ export const t = {
     ],
     purr: 'Tap him for a purr!',
     previous: 'Previous',
+    close: 'Close',
     next: 'Next',
     done: 'Got it',
     start: "Let's go",

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Biggu from './components/Biggu';
 import GuideCards from './components/GuideCards';
+import { Icon } from './components/Scrap';
 import TopBar from './components/TopBar';
 import { useAuth } from './lib/auth';
 import { dropPartFromExams, examsStore } from './lib/exams';
@@ -100,6 +101,12 @@ export default function App() {
     setGuideSeen(true);
   };
 
+  const closeGuide = (onClose: () => void) => (
+    <button className="icon-btn" onClick={onClose} aria-label={t.guide.close}>
+      <Icon name="close" />
+    </button>
+  );
+
   if (route.name === 'howItWorks') {
     const leave = () => {
       guideDone();
@@ -107,7 +114,7 @@ export default function App() {
     };
     return (
       <main className="screen">
-        <TopBar onBack={() => goBack(home)} title={<span className="hand">{t.howItWorks}</span>} />
+        <TopBar title={<span className="hand">{t.howItWorks}</span>} right={closeGuide(leave)} />
         <GuideCards finishLabel={t.guide.done} onFinish={leave} />
       </main>
     );
@@ -118,7 +125,7 @@ export default function App() {
   if ((route.name === 'home' || route.name === 'exams') && guideSeen === false && notes && notes.length > 0) {
     return (
       <main className="screen">
-        <TopBar title={<span className="hand">{t.howItWorks}</span>} />
+        <TopBar title={<span className="hand">{t.howItWorks}</span>} right={closeGuide(guideDone)} />
         <GuideCards finishLabel={t.guide.start} onFinish={guideDone} />
       </main>
     );
