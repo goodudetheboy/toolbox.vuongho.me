@@ -64,6 +64,28 @@ export async function deleteTags(uid: string, noteId: string, parts: number): Pr
   await Promise.all(Array.from({ length: parts }, (_, i) => deleteDoc(partDoc(uid, noteId, i))));
 }
 
+/** After part `index` of a `total`-part note is deleted: drop its tags, move later parts' down one. */
+export async function shiftTagsAfterDelete(uid: string, noteId: string, index: number, total: number): Promise<void> {
+  if (MOCK) {
+    const all = mockAll();
+    delete all[`${noteId}/${index}`];
+    for (let j = index + 1; j < total; j++) {
+      const k = `${noteId}/${j}`;
+      if (all[k]) all[`${noteId}/${j - 1}`] = all[k];
+      else delete all[`${noteId}/${j - 1}`];
+      delete all[k];
+    }
+    localStorage.setItem(MOCK_KEY, JSON.stringify(all));
+    return;
+  }
+  await deleteDoc(partDoc(uid, noteId, index));
+  for (let j = index + 1; j < total; j++) {
+    const snap = await getDoc(partDoc(uid, noteId, j));
+    if (snap.exists()) await setDoc(partDoc(uid, noteId, j - 1), snap.data());
+    await deleteDoc(partDoc(uid, noteId, j));
+  }
+}
+
 /** Used when Gemini can't be reached: one idea per displayed line, all "supporting". */
 export function fallbackTags(tokens: Token[]): TaggedIdea[] {
   const ideas: TaggedIdea[] = [];

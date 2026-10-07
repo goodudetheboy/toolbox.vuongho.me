@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Biggu from './components/Biggu';
 import { useAuth } from './lib/auth';
-import { examsStore } from './lib/exams';
+import { dropPartFromExams, examsStore } from './lib/exams';
 import { isAdmin } from './lib/feedback';
 import { hasLegacyHistory, notesStore } from './lib/notes';
 import { useRoute } from './lib/router';
@@ -221,6 +221,19 @@ export default function App() {
           highlight={route.highlight}
           navigate={navigate}
           onBack={() => goBack({ name: 'note', noteId: note.id })}
+          onDeletePart={
+            note.chunks.length > 1
+              ? () => {
+                  const index = route.index;
+                  // Leave first, so this screen never shows the part that slides into this slot.
+                  goBack({ name: 'note', noteId: note.id });
+                  void Promise.all([
+                    notesStore.deleteChunk(user.uid, note, index),
+                    dropPartFromExams(user.uid, exams ?? [], note.id, index),
+                  ]).catch(() => {});
+                }
+              : undefined
+          }
         />
       );
     }

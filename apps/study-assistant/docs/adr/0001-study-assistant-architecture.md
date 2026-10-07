@@ -383,3 +383,16 @@ most useful passages to read just before the exam, in the note's own words.
   can do it - Vpork"), with Vpork's face drawn in Biggu's style
   (`src/assets/vpork.webp`, made with `art/generate.sh vpork`; the source
   selfie isn't committed, so pass it as `VPORK_PHOTO`).
+
+## Addendum 2026-10-07 — deleting a part
+
+A part's ⋯ menu has "Delete this part" (hidden when it's the note's only
+part; "Delete this note" covers that). Attempts and exam tags are stored
+by part number (`parts/{n}/…`), so deleting part *i* removes its data and
+moves every later part's attempts and tag doc down one (copy + delete,
+batched). Exams that picked specific parts are renumbered, and an exam
+left with no parts of the note drops it. The note document is updated
+first, so the UI is right at once. If the move is interrupted, the worst
+case is a later part showing a neighbour's old tries. Those tries' text
+hashes won't match, so their colored words and cram ranking ignore them.
+Old feedback records keep their old part number; they're self-contained.

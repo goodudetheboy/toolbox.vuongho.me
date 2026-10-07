@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
+import { ConfirmDialog } from '../components/Dialog';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
 import Menu from '../components/Menu';
@@ -25,6 +26,7 @@ export default function Study({
   highlight,
   navigate,
   onBack,
+  onDeletePart,
 }: {
   user: AppUser;
   note: Note;
@@ -33,6 +35,8 @@ export default function Study({
   highlight?: [number, number];
   navigate: (r: Route, opts?: { replace?: boolean }) => void;
   onBack: () => void;
+  /** Deletes this part (App leaves this screen first). Absent when it's the note's only part. */
+  onDeletePart?: () => void;
 }) {
   const chunk = note.chunks[index];
   const tokens = useMemo(() => tokenize(chunk.markdown), [chunk.markdown]);
@@ -44,6 +48,7 @@ export default function Study({
   const [hintLimit, setHintLimit] = useHintLimit();
   const rec = useRecitation(tokens, vocabulary, hintLimit);
   const isLast = index === note.chunks.length - 1;
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Coming from a cram-sheet card: mark that passage on the reading card and bring it into view.
   const readRef = useRef<HTMLDivElement>(null);
@@ -105,6 +110,9 @@ export default function Study({
                 icon: <Icon name="chart" size={20} />,
                 onSelect: () => navigate({ name: 'progress', noteId: note.id, index }),
               },
+              ...(onDeletePart
+                ? [{ label: t.deletePart, icon: <Icon name="trash" size={20} />, onSelect: () => setConfirmDelete(true), danger: true }]
+                : []),
             ]}
           />
         ) : undefined
@@ -149,6 +157,19 @@ export default function Study({
             <Icon name="mic" size={30} /> {t.startSpeaking}
           </button>
         </div>
+        <ConfirmDialog
+          open={confirmDelete}
+          title={t.confirmDeletePart}
+          message={t.confirmDeletePartBody(chunk.title)}
+          confirmLabel={t.delete}
+          danger
+          mood="sleepy"
+          onConfirm={() => {
+            setConfirmDelete(false);
+            onDeletePart?.();
+          }}
+          onCancel={() => setConfirmDelete(false)}
+        />
       </main>
     );
   }

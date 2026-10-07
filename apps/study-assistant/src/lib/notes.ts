@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
-import { deleteTags } from './tags';
+import { deleteTags, shiftTagsAfterDelete } from './tags';
 import type { Attempt, Chunk, NewNote, Note } from './types';
 
 // All of a user's notes live under users/{uid}/notes/{noteId}; each note keeps its
@@ -42,6 +42,12 @@ interface NotesStore {
   migrateLegacyHistory(uid: string, note: Note): Promise<void>;
   updateNote(uid: string, id: string, patch: Partial<Pick<Note, 'title' | 'chunks'>>): Promise<void>;
   deleteNote(uid: string, note: Note): Promise<void>;
+  /**
+   * Deletes part `index` (never the only one). Per-part data is stored by part number, so the
+   * later parts' attempts and exam tags move down one. The note is updated first, so what she
+   * sees is right at once; the rest follows.
+   */
+  deleteChunk(uid: string, note: Note, index: number): Promise<void>;
 }
 
 function withChunkPatch(note: Note, index: number, patch: Partial<Chunk>): Chunk[] {
@@ -144,6 +150,34 @@ const firestoreStore: NotesStore = {
     await deleteTags(uid, note.id, note.chunks.length);
     await deleteDoc(doc(db, 'users', uid, 'notes', note.id));
   },
+  async deleteChunk(uid, note, index) {
+    const total = note.chunks.length;
+    if (total < 2 || !note.chunks[index]) return;
+    await updateDoc(doc(db, 'users', uid, 'notes', note.id), {
+      chunks: note.chunks.filter((_, i) => i !== index),
+      updatedAt: Date.now(),
+    });
+    // This part's tries go; each later part's tries move to the part number before it.
+    const commit = async (ops: ((b: ReturnType<typeof writeBatch>) => void)[]) => {
+      for (let j = 0; j < ops.length; j += 400) {
+        const batch = writeBatch(db);
+        ops.slice(j, j + 400).forEach((op) => op(batch));
+        await batch.commit();
+      }
+    };
+    const gone = await getDocs(attemptsCol(uid, note.id, index));
+    await commit(gone.docs.map((d) => (b) => b.delete(d.ref)));
+    for (let j = index + 1; j < total; j++) {
+      const snap = await getDocs(attemptsCol(uid, note.id, j));
+      await commit(
+        snap.docs.flatMap((d) => [
+          (b: ReturnType<typeof writeBatch>) => b.set(doc(attemptsCol(uid, note.id, j - 1), d.id), d.data()),
+          (b: ReturnType<typeof writeBatch>) => b.delete(d.ref),
+        ]),
+      );
+    }
+    await shiftTagsAfterDelete(uid, note.id, index, total);
+  },
 };
 
 // ---- dev-only in-memory store (VITE_MOCK=1), persisted to localStorage for convenience
@@ -226,6 +260,21 @@ const mockStore: NotesStore = {
     mockWrite(MOCK_ATTEMPTS_KEY, all);
     await deleteTags(_uid, note.id, note.chunks.length);
     mockSave(mockLoad().filter((n) => n.id !== note.id));
+  },
+  async deleteChunk(uid, note, index) {
+    const total = note.chunks.length;
+    if (total < 2 || !note.chunks[index]) return;
+    mockUpdate(note.id, (n) => ({ ...n, chunks: n.chunks.filter((_, i) => i !== index), updatedAt: Date.now() }));
+    const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
+    delete all[`${note.id}/${index}`];
+    for (let j = index + 1; j < total; j++) {
+      const k = `${note.id}/${j}`;
+      if (all[k]) all[`${note.id}/${j - 1}`] = all[k];
+      else delete all[`${note.id}/${j - 1}`];
+      delete all[k];
+    }
+    mockWrite(MOCK_ATTEMPTS_KEY, all);
+    await shiftTagsAfterDelete(uid, note.id, index, total);
   },
 };
 

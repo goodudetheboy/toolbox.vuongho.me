@@ -107,3 +107,18 @@ export function examParts(exam: Exam, notes: Note[]): { note: Note; part: number
 
 /** How many of the exam's notes still exist. */
 export const examNoteCount = (exam: Exam, notes: Note[]) => exam.notes.filter((p) => notes.some((n) => n.id === p.noteId)).length;
+
+/** After part `index` of a note is deleted: renumber exams that picked specific parts of it. */
+export async function dropPartFromExams(uid: string, exams: Exam[], noteId: string, index: number): Promise<void> {
+  await Promise.all(
+    exams.map((exam) => {
+      const pick = exam.notes.find((p) => p.noteId === noteId);
+      if (!pick?.parts) return null; // whole note (or not on it): nothing to renumber
+      const parts = pick.parts.filter((i) => i !== index).map((i) => (i > index ? i - 1 : i));
+      const notes = parts.length
+        ? exam.notes.map((p) => (p.noteId === noteId ? { noteId, parts } : p))
+        : exam.notes.filter((p) => p.noteId !== noteId);
+      return examsStore.update(uid, exam.id, { notes });
+    }),
+  );
+}
