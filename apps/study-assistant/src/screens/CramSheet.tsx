@@ -179,6 +179,11 @@ export default function CramSheet({
     }
   }
 
+  function resetTicks() {
+    setTicks(new Set());
+    clearTicks(exam.id);
+  }
+
   function toggleTick(key: string) {
     const next = new Set(ticks);
     if (!next.delete(key)) next.add(key);
@@ -199,6 +204,10 @@ export default function CramSheet({
                 icon: <Icon name="pencil" size={20} />,
                 onSelect: () => navigate({ name: 'editExam', examId: exam.id }),
               },
+              // Only when something on this sheet is checked.
+              ...(ideas?.some((x) => ticks.has(x.key))
+                ? [{ label: t.uncheckAll, icon: <Icon name="retry" size={20} />, onSelect: resetTicks }]
+                : []),
               {
                 label: t.deleteExam,
                 icon: <Icon name="trash" size={20} />,

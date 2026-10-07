@@ -357,6 +357,8 @@ most useful passages to read just before the exam, in the note's own words.
 - **"I remember this" ticks are device-local** (`localStorage`, per exam,
   keyed with the part's text hash). They fade the passage but don't skip,
   reorder or sync anything.
+  The sheet's ⋯ menu has "Uncheck all" (shown only while something on the
+  sheet is checked), which clears them for that exam.
 - **UI:** Home gets "My notes | Exams" tabs, and the last-used tab is
   remembered. Exams are calendar polaroids. The exam form has a note
   search, and its parts count opens a per-part picker. The note page's ⋯

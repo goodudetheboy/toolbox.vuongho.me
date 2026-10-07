@@ -87,6 +87,7 @@ export const t = {
   mostImportant: 'Most important',
   sortBy: 'Sort',
   rememberThis: 'I remember this',
+  uncheckAll: 'Uncheck all',
   cheers: [
     "You're doing pawsome!",
     'Biggu believes in you.',
