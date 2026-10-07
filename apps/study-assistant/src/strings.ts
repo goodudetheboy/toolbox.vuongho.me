@@ -64,7 +64,7 @@ export const t = {
   feedbackCommentPlaceholder: 'Anything else? (optional)',
   feedbackSend: 'Send',
   tabNotes: 'My notes',
-  tabExams: 'Exams',
+  tabExams: 'Exam cram sheets',
   newExam: 'New exam',
   editExam: 'Edit exam',
   examName: "What's the exam?",

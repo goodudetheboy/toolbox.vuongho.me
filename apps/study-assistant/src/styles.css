@@ -145,6 +145,18 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   white-space: nowrap;
 }
 
+/* On a narrow phone the name gives way ("Study with Bi…") instead of running under the buttons. */
+.brand {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.brand > .hand {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .icon-btn,
 .icon-btn-spacer {
   width: 48px;
