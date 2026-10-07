@@ -314,3 +314,48 @@ border, collage-style: semi-realistic but clearly drawn.
   processing. Review the output by eye before committing: generations vary.
 - Cost: about 300 KB of images, precached by the service worker (`webp`
   added to the glob), where the SVGs were close to free.
+
+## Addendum 2026-10-07 — exams and cram sheets
+
+An **exam** is a name, a date and the notes it covers (whole notes or picked
+parts), at `users/{uid}/exams/{id}`. Opening it shows a **cram sheet**: the
+most useful passages to read just before the exam, in the note's own words.
+
+- **Gemini tags, code ranks.** A new `/tag` endpoint splits each part into
+  ideas (word ranges into `tokenize(markdown)`, the same words attempt
+  marks use) and rates each idea's importance: 3 core, 2 supporting,
+  1 filler. `sanitizeTags` makes the ranges cover every word exactly once.
+  The ranking against her grades is plain code (`src/lib/cram.ts`, unit-tested):
+  `relevance = importance × weakness`, where weakness is each try's miss
+  rate (a hinted word counts half), weighted 0.7× per older try over the
+  last 10 tries of the current text, smoothed with two pretend 50% tries
+  (never tried = 0.5). The same inputs always give the same order; ties
+  keep exam order. "Most important" sorts by importance alone.
+- **Tags are stored beside the part, not on the note:**
+  `users/{uid}/notes/{noteId}/parts/{part}` = `{ ideas, ideasHash, model }`.
+  Writing them never rewrites the note document, so they can't race score
+  updates, and Home's listener never downloads them. `ideasHash` is
+  `textHash` of the markdown that was *sent*, so an edit made while a
+  request is in flight still counts as stale.
+- **When tagging happens:** in the background after a note is created and
+  after a part is saved. As a safety net, the cram sheet re-tags any part
+  whose hash doesn't match (existing notes, edits, failed calls) in one
+  batch. If Gemini fails, it falls back to one idea per line at
+  importance 2, unsaved, so the sheet always works.
+  *Deviation from the original plan:* tagging was going to ride along in
+  `/prepare`'s response. It's a separate call because the word indices must
+  come from the app's own tokenizer.
+- **No stored sheet and no length setting.** The sheet is rebuilt from tags
+  and tries each time it opens. It shows about 5 minutes (≈1000 words) at a
+  time; "I have more time, give meow more!" adds the next 5 minutes of the
+  same ranked list. The ranking is frozen while the sheet is open: only a
+  change to which text is on the exam rebuilds it.
+- **"I remember this" ticks are device-local** (`localStorage`, per exam,
+  keyed with the part's text hash). They fade the passage but don't skip,
+  reorder or sync anything.
+- **UI:** Home gets "My notes | Exams" tabs, and the last-used tab is
+  remembered. Exams are calendar polaroids. The exam form has a note
+  search, and its parts count opens a per-part picker. The note page's ⋯
+  menu has "Add to exam". The cram sheet's ⋯ has Edit / Delete exam.
+  Everything reuses the part screen's pieces (taped `Paper`, `.md` text
+  with bold highlighted, Biggu beside the big button).

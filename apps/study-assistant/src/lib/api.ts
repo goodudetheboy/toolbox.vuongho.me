@@ -1,6 +1,6 @@
 import { idToken } from './auth';
 import { MOCK } from './mock';
-import type { NewNote } from './types';
+import type { NewNote, TaggedIdea } from './types';
 
 // Calls to toolbox-study-assistant-api (Cloud Run). Its URL is injected at build
 // time by CI (VITE_STUDY_API_URL); everything authenticates with the user's
@@ -84,6 +84,12 @@ export interface HintResponse {
   covers: number[];
 }
 
+export interface TagResponse {
+  /** One list per part sent, covering every word once (sanitized server-side). */
+  parts: { ideas: TaggedIdea[] }[];
+  model: string;
+}
+
 export interface SpeakResponse {
   data: string;
   mimeType: string;
@@ -96,6 +102,8 @@ const real = {
   hint: (req: HintRequest) => post<HintResponse>('/hint', req),
   score: (words: string[], transcript: string, hinted: number[]) =>
     post<ScoreResponse>('/score', { words, transcript, hinted }),
+  /** Idea split + exam importance for up to 40 parts at once (lib/tags.ts). */
+  tag: (parts: { words: string[] }[]) => post<TagResponse>('/tag', { parts }),
 };
 
 export type Api = typeof real;
@@ -159,6 +167,24 @@ const mock: Api = {
     };
   },
 
+  async tag(parts) {
+    await delay(600);
+    // Stand-in for Gemini: an idea ends at a word ending a sentence or clause; importance cycles 3, 2, 1.
+    return {
+      model: 'mock',
+      parts: parts.map(({ words }) => {
+        const ideas: TaggedIdea[] = [];
+        let start = 0;
+        words.forEach((w, i) => {
+          if (/[.;:]$/.test(w) || i === words.length - 1) {
+            ideas.push({ start, end: i, importance: ([3, 2, 1] as const)[ideas.length % 3] });
+            start = i + 1;
+          }
+        });
+        return { ideas };
+      }),
+    };
+  },
 };
 
 function mockBeepWav(): string {

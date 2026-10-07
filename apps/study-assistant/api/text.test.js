@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanMarkdown, gradeIdeas, sanitizeIdeas, sequenceSimilarity, words } from './text.js';
+import { cleanMarkdown, gradeIdeas, sanitizeIdeas, sanitizeTags, sequenceSimilarity, words } from './text.js';
 
 test('words strips markdown, html and punctuation', () => {
   assert.deepEqual(words('## The **Heart**\n- Pumps blood (4 chambers).'), [
@@ -52,4 +52,26 @@ test('sanitizeIdeas drops out-of-range ideas and indices, clamps scores', () => 
     { start: 0, end: 2, score: 100, missed: [1] },
     { start: 3, end: 4, score: 0, missed: [] },
   ]);
+});
+
+test('sanitizeTags covers every word once, in order', () => {
+  // overlap, a gap (5-6), out-of-range end, bad importance, an idea inside another
+  const tags = sanitizeTags(
+    [
+      { start: 7, end: 20, importance: 2 },
+      { start: 0, end: 3, importance: 3 },
+      { start: 2, end: 4, importance: 9 },
+      { start: 1, end: 2, importance: 2 },
+      { start: 'x', end: 2, importance: 2 },
+    ],
+    10,
+  );
+  assert.deepEqual(tags, [
+    { start: 0, end: 3, importance: 3 },
+    { start: 4, end: 4, importance: 3 },
+    { start: 5, end: 6, importance: 1 },
+    { start: 7, end: 9, importance: 2 },
+  ]);
+  assert.deepEqual(sanitizeTags(null, 3), [{ start: 0, end: 2, importance: 1 }]);
+  assert.deepEqual(sanitizeTags([], 0), []);
 });

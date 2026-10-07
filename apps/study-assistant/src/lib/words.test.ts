@@ -54,3 +54,16 @@ test('fallback hint phrase stops at the clause or line end', () => {
 test('backslash escapes from the editor are plain text', () => {
   assert.deepEqual(markdownLines('1\\. Give **2\\*3** mg\\_kg'), ['1. Give 2*3 mg_kg']);
 });
+
+test('tokenize flags bold words without changing the word list', () => {
+  const tokens = tokenize('The **heart wall** has **three**: a, b\n\n- **term**: meaning\n\n****');
+  assert.deepEqual(
+    tokens.map((t) => `${t.display}${t.bold ? '*' : ''}`),
+    ['The', 'heart*', 'wall*', 'has', 'three:*', 'a,', 'b', 'term:*', 'meaning'],
+  );
+  assert.deepEqual(tokens.map((t) => t.line), [0, 0, 0, 0, 0, 0, 0, 1, 1]);
+  assert.deepEqual(
+    tokenize(md).map((t) => t.display),
+    markdownLines(md.split('\n').slice(1).join('\n')).join(' ').split(/\s+/),
+  );
+});

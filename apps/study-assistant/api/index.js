@@ -10,7 +10,7 @@ import http from 'node:http';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words, sanitizeIdeas } from './text.js';
+import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words, sanitizeIdeas, sanitizeTags } from './text.js';
 
 const PORT = Number(process.env.PORT || 8080);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -340,9 +340,74 @@ paraphrase and a different order. None of that is a mistake.
   return { ...gradeIdeas(result, passage.length), ideas: sanitizeIdeas(result, passage.length), model: TEXT_MODEL };
 }
 
+// ---------------------------------------------------------------- tag
+
+const TAG_SCHEMA = {
+  type: 'object',
+  properties: {
+    parts: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          part: { type: 'integer' },
+          ideas: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                start: { type: 'integer' },
+                end: { type: 'integer' },
+                importance: { type: 'integer' },
+              },
+              required: ['start', 'end', 'importance'],
+            },
+          },
+        },
+        required: ['part', 'ideas'],
+      },
+    },
+  },
+  required: ['parts'],
+};
+const TAG_MAX_PARTS = 40;
+
+/**
+ * Exam cram sheets: splits each part into its ideas and tags how important each is for an exam.
+ * Done once per part (the app saves it with a hash of the part's text and only asks again after an
+ * edit); the cram sheet's ranking against her grades is plain code in the app, not a model call.
+ */
+async function tag(body) {
+  const parts = (Array.isArray(body.parts) ? body.parts : []).map((p) =>
+    Array.isArray(p?.words) ? p.words.map(String) : [],
+  );
+  if (parts.length === 0 || parts.length > TAG_MAX_PARTS) throw new HttpError(400, 'Bad parts');
+  if (parts.some((w) => w.length === 0 || w.length > 2000)) throw new HttpError(400, 'Bad passage');
+
+  const numbered = parts.map((w, p) => `Part ${p}:\n${w.map((x, i) => `${i}:${x}`).join(' ')}`).join('\n\n');
+  const result = await generateJson({
+    instruction: `A nursing student is preparing for an exam from her study notes. Each part of her notes is
+given as numbered words. For EACH part:
+
+1. Split it into its ideas, in order, covering every word exactly once: "start" and "end" are inclusive
+   word indices within that part. An idea is one fact, definition, list, step or relationship (usually
+   4-25 words). Never split a sentence in the middle of a fact.
+2. Give each idea an "importance" for the exam:
+   3 = core: a definition, key fact, number, list or relationship an exam is likely to ask about;
+   2 = supporting: useful detail or explanation around a core idea;
+   1 = filler: examples, asides, transitions, things an exam would not ask.
+Return one entry per part with "part" set to its number.`,
+    input: numbered,
+    schema: TAG_SCHEMA,
+  });
+
+  const byPart = new Map((Array.isArray(result.parts) ? result.parts : []).map((p) => [p.part, p.ideas]));
+  return { parts: parts.map((w, p) => ({ ideas: sanitizeTags(byPart.get(p), w.length) })), model: TEXT_MODEL };
+}
+
 // ---------------------------------------------------------------- http
 
-const ROUTES = { '/prepare': prepare, '/live-token': liveToken, '/speak': speak, '/hint': hint, '/score': score };
+const ROUTES = { '/prepare': prepare, '/live-token': liveToken, '/speak': speak, '/hint': hint, '/score': score, '/tag': tag };
 
 async function authenticate(req) {
   const header = req.headers.authorization || '';

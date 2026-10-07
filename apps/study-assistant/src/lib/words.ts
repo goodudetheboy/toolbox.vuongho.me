@@ -9,10 +9,18 @@ export interface Token {
   norm: string;
   /** Which displayed line (paragraph, list item, table row) it belongs to. */
   line: number;
+  /** Inside **bold** in the note (its key phrases) — the exam cram sheet highlights these. */
+  bold?: boolean;
 }
 
-/** Markdown → one plain-text string per visible line (headings, list items, table rows…). */
-export function markdownLines(md: string): string[] {
+/** Stands in for a bold marker (`**` / `__`) while a line is being cleaned, so tokenize can track it. */
+const BOLD = '\u0001';
+
+/**
+ * Markdown → one plain-text string per visible line (headings, list items, table rows…).
+ * `keepBold` leaves a BOLD marker where each `**`/`__` was (for tokenize only).
+ */
+export function markdownLines(md: string, keepBold = false): string[] {
   return md
     .split('\n')
     .filter((l) => !/^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l)) // table separator rows
@@ -23,11 +31,13 @@ export function markdownLines(md: string): string[] {
         .replace(/^\s*([-*+]|\d+[.)])\s+/, '') // list markers
         .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // links/images → their text
         .replace(/\|/g, ' ') // table cell borders
-        .replace(/(?<!\\)(\*\*|__|\*|_|~~|`)/g, '') // emphasis/code marks
+        .replace(/(?<!\\)(\*\*|__)/g, keepBold ? BOLD : '') // bold marks
+        .replace(/(?<!\\)(\*|_|~~|`)/g, '') // other emphasis/code marks
         .replace(/\\([^\p{L}\p{N}\s])/gu, '$1') // backslash escapes from the editor ("1\.", "\*")
         .trim(),
     )
-    .filter(Boolean);
+    // A line that was only bold marks is empty, with or without keepBold (keeps `line` numbers equal).
+    .filter((l) => l.replaceAll(BOLD, '').trim());
 }
 
 export function normalize(word: string): string {
@@ -48,10 +58,16 @@ export function tokenize(md: string): Token[] {
     .filter((l) => !/^\s{0,3}#{1,6}\s/.test(l))
     .join('\n');
   const tokens: Token[] = [];
-  markdownLines(body.trim() ? body : md).forEach((line, lineIndex) => {
-    for (const display of line.split(/\s+/)) {
+  markdownLines(body.trim() ? body : md, true).forEach((line, lineIndex) => {
+    let bold = false; // bold doesn't carry across lines
+    for (const piece of line.split(/\s+/)) {
+      const marks = piece.split(BOLD).length - 1;
+      // A word counts as bold if any of it is: "**term**:" and "**two words**" both work.
+      const isBold = bold || marks > 0;
+      if (marks % 2) bold = !bold;
+      const display = piece.replaceAll(BOLD, '');
       const norm = normalize(display);
-      if (norm) tokens.push({ display, norm, line: lineIndex });
+      if (norm) tokens.push(isBold ? { display, norm, line: lineIndex, bold: true } : { display, norm, line: lineIndex });
     }
   });
   return tokens;

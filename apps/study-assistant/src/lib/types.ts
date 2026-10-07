@@ -46,3 +46,26 @@ export interface AppUser {
   email: string | null;
   name: string | null;
 }
+
+/** One idea in a part, tagged once by Gemini for exam cram sheets (see lib/tags.ts). */
+export interface TaggedIdea {
+  /** Inclusive word indices into tokenize(part markdown). */
+  start: number;
+  end: number;
+  /** 3 = core, 2 = supporting, 1 = filler. */
+  importance: 1 | 2 | 3;
+}
+
+/** An exam: a name, a date and the notes (or some of their parts) it covers. */
+export interface Exam {
+  id: string;
+  title: string;
+  /** Local calendar date, YYYY-MM-DD. */
+  date: string;
+  /** In the order she picked them. `parts: null` = the whole note, including parts added later. */
+  notes: { noteId: string; parts: number[] | null }[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type NewExam = Omit<Exam, 'id' | 'createdAt' | 'updatedAt'>;

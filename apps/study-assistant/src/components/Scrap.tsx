@@ -114,7 +114,7 @@ export function Heart({ size = 20, style }: { size?: number; style?: CSSProperti
 }
 
 /** Hand-drawn style icons for the big buttons. */
-export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'file' | 'camera' | 'back' | 'plus' | 'retry' | 'next' | 'dots' | 'trash' | 'book' | 'bulb' | 'pencil' | 'chart'; size?: number }) {
+export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'file' | 'camera' | 'back' | 'plus' | 'retry' | 'next' | 'dots' | 'trash' | 'book' | 'bulb' | 'pencil' | 'chart' | 'check' | 'calendar' | 'search'; size?: number }) {
   const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   const paths: Record<typeof name, ReactNode> = {
     mic: (
@@ -158,6 +158,14 @@ export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'fi
     bulb: <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z" {...p} />,
     chart: <path d="M4 20h16M7 16v-4M12 16V7M17 16v-6" {...p} />,
     book: <path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1zM12 6v14" {...p} />,
+    check: <path d="M5 12l5 5 9-10" {...p} strokeWidth={3} />,
+    calendar: <path d="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM4 10h16M9 3v4M15 3v4" {...p} />,
+    search: (
+      <>
+        <circle cx="11" cy="11" r="6.5" {...p} />
+        <path d="M16 16l4.5 4.5" {...p} />
+      </>
+    ),
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>

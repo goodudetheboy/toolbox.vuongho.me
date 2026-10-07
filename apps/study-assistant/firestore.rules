@@ -28,6 +28,11 @@ service cloud.firestore {
       allow read, write: if allowed() && request.auth.uid == uid;
     }
 
+    // Exams (name, date, which notes) for cram sheets.
+    match /users/{uid}/exams/{examId} {
+      allow read, write: if allowed() && request.auth.uid == uid;
+    }
+
     // Session feedback (👍/👎 + context), kept apart from notes so it outlives them.
     match /users/{uid}/feedback/{attemptId} {
       allow read, write: if allowed() && request.auth.uid == uid;

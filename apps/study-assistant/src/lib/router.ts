@@ -10,6 +10,10 @@ export type AdminTab = 'feedback' | 'usage';
 export type Route =
   | { name: 'home' }
   | { name: 'new' }
+  | { name: 'exams' }
+  | { name: 'newExam'; noteId?: string }
+  | { name: 'exam'; examId: string }
+  | { name: 'editExam'; examId: string }
   | { name: 'admin'; tab: AdminTab }
   | { name: 'note'; noteId: string }
   | { name: 'chunk'; noteId: string; index: number }
@@ -24,6 +28,14 @@ export function routePath(route: Route): string {
       return BASE;
     case 'new':
       return `${BASE}new`;
+    case 'exams':
+      return `${BASE}exams`;
+    case 'newExam':
+      return route.noteId ? `${BASE}exams/new/${encodeURIComponent(route.noteId)}` : `${BASE}exams/new`;
+    case 'exam':
+      return `${BASE}e/${encodeURIComponent(route.examId)}`;
+    case 'editExam':
+      return `${BASE}e/${encodeURIComponent(route.examId)}/edit`;
     case 'admin':
       return route.tab === 'feedback' ? `${BASE}admin` : `${BASE}admin/${route.tab}`;
     case 'note':
@@ -41,6 +53,15 @@ export function parseRoute(pathname: string): Route {
   const rest = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname.replace(/^\//, '');
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 1 && parts[0] === 'new') return { name: 'new' };
+  if (parts[0] === 'exams') {
+    if (parts.length === 1) return { name: 'exams' };
+    if (parts[1] === 'new' && parts.length <= 3) return parts[2] ? { name: 'newExam', noteId: decodeURIComponent(parts[2]) } : { name: 'newExam' };
+  }
+  if (parts[0] === 'e' && parts[1]) {
+    const examId = decodeURIComponent(parts[1]);
+    if (parts.length === 2) return { name: 'exam', examId };
+    if (parts.length === 3 && parts[2] === 'edit') return { name: 'editExam', examId };
+  }
   if (parts[0] === 'admin' && parts.length <= 2) return { name: 'admin', tab: parts[1] === 'usage' ? 'usage' : 'feedback' };
   if (parts[0] === 'n' && parts[1]) {
     const noteId = decodeURIComponent(parts[1]);

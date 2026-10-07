@@ -5,6 +5,7 @@ import TopBar from '../components/TopBar';
 import { api, ApiError, type PrepareInput } from '../lib/api';
 import { ImportError, inputFromFiles } from '../lib/importNote';
 import { notesStore } from '../lib/notes';
+import { tagInBackground } from '../lib/tags';
 import type { AppUser } from '../lib/types';
 import { t } from '../strings';
 
@@ -63,6 +64,8 @@ export default function NewNote({
         glossary: prepared.glossary,
         chunks: prepared.chunks.map((c) => ({ title: c.title, markdown: c.markdown })),
       });
+      // Exam importance tags, ready before she ever opens a cram sheet.
+      tagInBackground(user.uid, prepared.chunks.map((c, part) => ({ noteId, part, markdown: c.markdown })));
       onCreated(noteId, prepared.fidelity !== null && prepared.fidelity < 0.7);
     } catch (err) {
       setError(

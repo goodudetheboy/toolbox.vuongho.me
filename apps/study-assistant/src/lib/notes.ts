@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
+import { deleteTags } from './tags';
 import type { Attempt, Chunk, NewNote, Note } from './types';
 
 // All of a user's notes live under users/{uid}/notes/{noteId}; each note keeps its
@@ -140,6 +141,7 @@ const firestoreStore: NotesStore = {
         await batch.commit();
       }
     }
+    await deleteTags(uid, note.id, note.chunks.length);
     await deleteDoc(doc(db, 'users', uid, 'notes', note.id));
   },
 };
@@ -222,6 +224,7 @@ const mockStore: NotesStore = {
     const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
     for (const key of Object.keys(all)) if (key.startsWith(`${note.id}/`)) delete all[key];
     mockWrite(MOCK_ATTEMPTS_KEY, all);
+    await deleteTags(_uid, note.id, note.chunks.length);
     mockSave(mockLoad().filter((n) => n.id !== note.id));
   },
 };

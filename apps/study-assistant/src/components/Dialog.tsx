@@ -7,7 +7,7 @@ import { Paper } from './Scrap';
 // peeking over the top. Built on <dialog>.showModal() for the backdrop, focus
 // trap and Esc-to-cancel; everything visible is styled to match the app.
 
-function Modal({
+export function Modal({
   open,
   mood,
   title,

@@ -32,6 +32,11 @@ One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).
   (Firestore: notes + per-part attempt subcollections, paged; see the
   storage comment at its top), `importNote.ts` (files → /prepare input).
 - `src/screens/Progress.tsx` — a part's paginated try history.
+- Exams + cram sheets (ADR 0001 addendum 2026-10-07): `src/lib/exams.ts`
+  (store), `tags.ts` (Gemini importance tags per part, hash-checked),
+  `cram.ts` (deterministic ranking, unit-tested), `ticks.ts` (local
+  "I remember this"); screens `ExamForm.tsx`, `CramSheet.tsx`;
+  `components/AddToExamDialog.tsx`; API `/tag`.
 - `src/screens/EditPart.tsx` + `src/lib/richText.ts` — part editor (rich
   text ⇄ Markdown via marked/turndown), lazy-loaded.
 - `src/components/Biggu.tsx` — the mascot, one illustration per mood

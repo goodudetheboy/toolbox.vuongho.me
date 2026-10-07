@@ -3,6 +3,7 @@ import Markdown from '../components/Markdown';
 import { Paper } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
+import { tagInBackground } from '../lib/tags';
 import { htmlToMarkdown, markdownToHtml } from '../lib/richText';
 import type { AppUser, Note } from '../lib/types';
 import { t } from '../strings';
@@ -109,6 +110,8 @@ export default function EditPart({
     setFailed(false);
     try {
       await notesStore.updateChunk(user.uid, note, index, { title: title.trim() || chunk.title, markdown: md });
+      // Re-tag for exam cram sheets; if this fails the sheet re-tags it when it next opens.
+      if (md !== chunk.markdown) tagInBackground(user.uid, [{ noteId: note.id, part: index, markdown: md }]);
       onDone();
     } catch {
       setFailed(true);

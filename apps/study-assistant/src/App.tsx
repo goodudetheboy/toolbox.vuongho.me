@@ -1,12 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Biggu from './components/Biggu';
 import { useAuth } from './lib/auth';
+import { examsStore } from './lib/exams';
 import { isAdmin } from './lib/feedback';
 import { hasLegacyHistory, notesStore } from './lib/notes';
 import { useRoute } from './lib/router';
 import { touchProfile } from './lib/usage';
-import type { Note } from './lib/types';
-import Home from './screens/Home';
+import type { Exam, Note } from './lib/types';
+import CramSheet from './screens/CramSheet';
+import ExamForm from './screens/ExamForm';
+import Home, { savedHomeTab } from './screens/Home';
 import NewNote from './screens/NewNote';
 import NoteView from './screens/NoteView';
 import Progress from './screens/Progress';
@@ -23,6 +26,7 @@ export default function App() {
   const { user, loading } = useAuth();
   const { route, navigate, goBack } = useRoute();
   const [notes, setNotes] = useState<Note[] | null>(null);
+  const [exams, setExams] = useState<Exam[] | null>(null);
   const [denied, setDenied] = useState(false);
   // Shown once on the note page right after a pasted/Word note came back not quite word-for-word.
   const [fidelityWarningFor, setFidelityWarningFor] = useState<string | null>(null);
@@ -41,6 +45,18 @@ export default function App() {
       if ((err as { code?: string }).code === 'permission-denied') setDenied(true);
     });
   }, [user]);
+
+  useEffect(() => {
+    setExams(null);
+    if (!user) return;
+    return examsStore.subscribe(user.uid, setExams, () => setExams([]));
+  }, [user]);
+
+  // Opening the app on Home lands on the tab she used last.
+  useEffect(() => {
+    if (route.name === 'home' && savedHomeTab() === 'exams') navigate({ name: 'exams' }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on launch
+  }, []);
 
   // Notes saved by older versions kept score history on the note; move it out once.
   const migrated = useRef(new Set<string>());
@@ -89,6 +105,59 @@ export default function App() {
         <Admin user={user} tab={route.tab} navigate={navigate} onBack={() => goBack(home)} />
       </Suspense>
     );
+  }
+
+  const loadingScreen = (
+    <main className="screen center">
+      <Biggu mood="read" size={160} className="bob" />
+    </main>
+  );
+  const examsHome = { name: 'exams' } as const;
+
+  if (route.name === 'newExam' || route.name === 'editExam') {
+    if (!notes || !exams) return loadingScreen;
+    const exam = route.name === 'editExam' ? exams.find((x) => x.id === route.examId) : undefined;
+    if (route.name === 'editExam' && !exam) {
+      return (
+        <main className="screen center">
+          <Biggu mood="think" size={160} />
+          <p className="big-status hand">{t.examNotFound}</p>
+          <button className="btn" onClick={() => navigate(examsHome, { replace: true })}>
+            {t.back}
+          </button>
+        </main>
+      );
+    }
+    return (
+      <ExamForm
+        key={route.name === 'editExam' ? route.examId : `new-${route.noteId ?? ''}`}
+        user={user}
+        notes={notes}
+        exam={exam}
+        presetNoteId={route.name === 'newExam' ? route.noteId : undefined}
+        onSaved={(examId) =>
+          exam ? goBack({ name: 'exam', examId }) : navigate({ name: 'exam', examId }, { replace: true })
+        }
+        onBack={() => goBack(exam ? { name: 'exam', examId: exam.id } : examsHome)}
+      />
+    );
+  }
+
+  if (route.name === 'exam') {
+    if (!notes || !exams) return loadingScreen;
+    const exam = exams.find((x) => x.id === route.examId);
+    if (!exam) {
+      return (
+        <main className="screen center">
+          <Biggu mood="think" size={160} />
+          <p className="big-status hand">{t.examNotFound}</p>
+          <button className="btn" onClick={() => navigate(examsHome, { replace: true })}>
+            {t.back}
+          </button>
+        </main>
+      );
+    }
+    return <CramSheet key={exam.id} user={user} exam={exam} notes={notes} navigate={navigate} onBack={() => goBack(examsHome)} />;
   }
 
   if (route.name === 'note' || route.name === 'chunk' || route.name === 'edit' || route.name === 'progress') {
@@ -158,6 +227,7 @@ export default function App() {
       <NoteView
         user={user}
         note={note}
+        exams={exams ?? []}
         fidelityWarning={fidelityWarningFor === note.id}
         navigate={navigate}
         onBack={() => goBack(home)}
@@ -165,5 +235,13 @@ export default function App() {
     );
   }
 
-  return <Home notes={notes} admin={isAdmin(user.email)} navigate={navigate} />;
+  return (
+    <Home
+      notes={notes}
+      exams={exams}
+      tab={route.name === 'exams' ? 'exams' : 'notes'}
+      admin={isAdmin(user.email)}
+      navigate={navigate}
+    />
+  );
 }

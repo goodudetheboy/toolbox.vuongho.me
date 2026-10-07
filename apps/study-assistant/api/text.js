@@ -74,3 +74,31 @@ export function gradeIdeas(result, wordCount) {
   if (covered === 0) throw new Error('Gemini returned no ideas');
   return { percent: Math.round(weighted / covered), missed: [...missed].sort((a, b) => a - b) };
 }
+
+/**
+ * Gemini's importance tags for one part, made safe to rank with: in range, in order, no overlap,
+ * and every word in exactly one idea (a gap becomes its own importance-1 idea, so nothing in the
+ * part can drop off the exam cram sheet). Importance is clamped to 1-3.
+ */
+export function sanitizeTags(ideas, wordCount) {
+  if (!Number.isInteger(wordCount) || wordCount <= 0) return [];
+  const clean = (Array.isArray(ideas) ? ideas : [])
+    .filter((x) => Number.isInteger(x?.start) && Number.isInteger(x?.end))
+    .map((x) => ({
+      start: Math.max(0, x.start),
+      end: Math.min(wordCount - 1, x.end),
+      importance: Math.max(1, Math.min(3, Math.round(Number(x.importance)) || 1)),
+    }))
+    .filter((x) => x.end >= x.start)
+    .sort((a, b) => a.start - b.start || b.end - a.end);
+  const out = [];
+  let next = 0; // first word not yet in an idea
+  for (const x of clean) {
+    if (x.end < next) continue; // fully inside an earlier idea
+    if (x.start > next) out.push({ start: next, end: x.start - 1, importance: 1 });
+    out.push({ start: Math.max(x.start, next), end: x.end, importance: x.importance });
+    next = x.end + 1;
+  }
+  if (next < wordCount) out.push({ start: next, end: wordCount - 1, importance: 1 });
+  return out;
+}

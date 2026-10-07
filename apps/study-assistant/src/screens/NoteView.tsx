@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AddToExamDialog from '../components/AddToExamDialog';
 import Biggu from '../components/Biggu';
 import { ConfirmDialog, PromptDialog } from '../components/Dialog';
 import Menu from '../components/Menu';
@@ -6,7 +7,7 @@ import { Icon, ScoreStamp } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { notesStore } from '../lib/notes';
 import type { Route } from '../lib/router';
-import type { AppUser, Note } from '../lib/types';
+import type { AppUser, Exam, Note } from '../lib/types';
 import { t } from '../strings';
 
 /** The part to study next: the first one never tried, else the weakest. */
@@ -19,17 +20,19 @@ function nextUp(note: Note): number {
 export default function NoteView({
   user,
   note,
+  exams,
   fidelityWarning,
   navigate,
   onBack,
 }: {
   user: AppUser;
   note: Note;
+  exams: Exam[];
   fidelityWarning: boolean;
   navigate: (r: Route) => void;
   onBack: () => void;
 }) {
-  const [dialog, setDialog] = useState<'rename' | 'delete' | null>(null);
+  const [dialog, setDialog] = useState<'exam' | 'rename' | 'delete' | null>(null);
   const closeDialog = () => setDialog(null);
   const up = nextUp(note);
   const open = (index: number) => navigate({ name: 'chunk', noteId: note.id, index });
@@ -42,6 +45,7 @@ export default function NoteView({
         right={
           <Menu
             items={[
+              { label: t.addToExam, icon: <Icon name="calendar" size={20} />, onSelect: () => setDialog('exam') },
               { label: t.rename, icon: <Icon name="pencil" size={20} />, onSelect: () => setDialog('rename') },
               { label: t.deleteLesson, icon: <Icon name="trash" size={20} />, onSelect: () => setDialog('delete'), danger: true },
             ]}
@@ -76,6 +80,17 @@ export default function NoteView({
         ))}
       </ol>
 
+      <AddToExamDialog
+        open={dialog === 'exam'}
+        user={user}
+        note={note}
+        exams={exams}
+        onNewExam={() => {
+          closeDialog();
+          navigate({ name: 'newExam', noteId: note.id });
+        }}
+        onClose={closeDialog}
+      />
       <PromptDialog
         open={dialog === 'rename'}
         title={t.rename}

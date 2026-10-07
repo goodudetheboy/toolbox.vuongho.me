@@ -3,8 +3,9 @@ import Biggu from '../components/Biggu';
 import { Icon, RandomBigguHead, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { signOut } from '../lib/auth';
+import { daysUntil, examNoteCount, sortExams } from '../lib/exams';
 import type { Route } from '../lib/router';
-import type { Note } from '../lib/types';
+import type { Exam, Note } from '../lib/types';
 import { t } from '../strings';
 
 const TAPES: TapeColor[] = ['pink', 'mint', 'yellow', 'blue', 'lilac'];
@@ -18,7 +19,41 @@ export function noteScore(note: Note): number | undefined {
   return Math.round(scores.reduce<number>((a, s) => a + (s ?? 0), 0) / scores.length);
 }
 
-export default function Home({ notes, admin, navigate }: { notes: Note[] | null; admin: boolean; navigate: (r: Route) => void }) {
+export type HomeTab = 'notes' | 'exams';
+
+const TAB_KEY = 'study-assistant:home-tab';
+
+/** The tab she used last, so reopening the app lands where she left off. */
+export function savedHomeTab(): HomeTab {
+  try {
+    return localStorage.getItem(TAB_KEY) === 'exams' ? 'exams' : 'notes';
+  } catch {
+    return 'notes';
+  }
+}
+
+export default function Home({
+  notes,
+  exams,
+  tab,
+  admin,
+  navigate,
+}: {
+  notes: Note[] | null;
+  exams: Exam[] | null;
+  tab: HomeTab;
+  admin: boolean;
+  navigate: (r: Route, options?: { replace?: boolean }) => void;
+}) {
+  const pickTab = (next: HomeTab) => {
+    if (next === tab) return;
+    try {
+      localStorage.setItem(TAB_KEY, next);
+    } catch {
+      // just a preference
+    }
+    navigate({ name: next === 'exams' ? 'exams' : 'home' }, { replace: true });
+  };
   const topBar = (
     <TopBar
       align="left"
@@ -57,10 +92,73 @@ export default function Home({ notes, admin, navigate }: { notes: Note[] | null;
     );
   }
 
+  const tabs = (
+    <div className="seg home-tabs" role="tablist">
+      {(['notes', 'exams'] as const).map((k) => (
+        <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => pickTab(k)}>
+          {k === 'notes' ? t.tabNotes : t.tabExams}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (tab === 'exams') {
+    const list = exams ? sortExams(exams) : null;
+    return (
+      <main className="screen">
+        {topBar}
+        {tabs}
+        <div className="polaroid-grid">
+          <button className="polaroid polaroid-new" style={tilt(-1)} onClick={() => navigate({ name: 'newExam' })}>
+            <span className="polaroid-tape">
+              <Tape color="blue" pattern="stripes" width={80} />
+            </span>
+            <div className="polaroid-photo new">
+              <Icon name="plus" size={40} />
+            </div>
+            <div className="polaroid-body">
+              <div className="polaroid-caption hand">{t.newExam}</div>
+            </div>
+          </button>
+
+          {list?.map((x, i) => {
+            const days = daysUntil(x.date);
+            const [y, m, d] = x.date.split('-').map(Number);
+            const month = new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+            return (
+              <button
+                key={x.id}
+                className={`polaroid ${days < 0 ? 'past' : ''}`}
+                style={tilt(TILTS[(i + 1) % TILTS.length])}
+                onClick={() => navigate({ name: 'exam', examId: x.id })}
+              >
+                <span className="polaroid-tape">
+                  <Tape color={TAPES[i % TAPES.length]} width={80} rotate={i % 2 ? 5 : -5} />
+                </span>
+                <div className={`polaroid-photo exam-photo tint-${i % 5}`} aria-hidden>
+                  <span className="exam-month">{month}</span>
+                  <span className="exam-day hand">{d}</span>
+                </div>
+                <div className="polaroid-body">
+                  <div className="polaroid-caption hand">{x.title}</div>
+                  <div className="polaroid-meta">
+                    <span className={`days-chip ${days >= 0 && days <= 7 ? 'soon' : ''}`}>{t.daysTo(days)}</span>
+                    <span className="parts-count">{t.notesCount(examNoteCount(x, notes ?? []))}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        {list && list.length === 0 && <p className="muted exams-empty">{t.noExamsYet}</p>}
+      </main>
+    );
+  }
+
   return (
     <main className="screen">
       {topBar}
-      <h2 className="section-title hand">{t.lessons}</h2>
+      {tabs}
       {/* Phones get a one-column list of sideways polaroids (title gets the full width); wider screens a grid. */}
       <div className="polaroid-grid">
         <button className="polaroid polaroid-new" style={tilt(-1)} onClick={() => navigate({ name: 'new' })}>
