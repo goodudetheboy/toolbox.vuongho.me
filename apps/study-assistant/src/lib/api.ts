@@ -85,8 +85,8 @@ export interface HintResponse {
 }
 
 export interface TagResponse {
-  /** One list per part sent, covering every word once (sanitized server-side). */
-  parts: { ideas: TaggedIdea[] }[];
+  /** One list per part sent, covering every word once (sanitized server-side); null = Gemini skipped it. */
+  parts: { ideas: TaggedIdea[] | null }[];
   model: string;
 }
 

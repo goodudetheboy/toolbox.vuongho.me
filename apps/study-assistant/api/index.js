@@ -402,7 +402,15 @@ Return one entry per part with "part" set to its number.`,
   });
 
   const byPart = new Map((Array.isArray(result.parts) ? result.parts : []).map((p) => [p.part, p.ideas]));
-  return { parts: parts.map((w, p) => ({ ideas: sanitizeTags(byPart.get(p), w.length) })), model: TEXT_MODEL };
+  // A part Gemini skipped comes back as null (not one big filler idea), so the app doesn't save it
+  // and asks again next time.
+  return {
+    parts: parts.map((w, p) => {
+      const ideas = byPart.get(p);
+      return { ideas: Array.isArray(ideas) && ideas.length ? sanitizeTags(ideas, w.length) : null };
+    }),
+    model: TEXT_MODEL,
+  };
 }
 
 // ---------------------------------------------------------------- http

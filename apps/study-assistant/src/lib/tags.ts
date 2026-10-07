@@ -74,47 +74,68 @@ export function fallbackTags(tokens: Token[]): TaggedIdea[] {
   return ideas;
 }
 
-const BATCH = 40; // the API's per-request limit
+/** Parts per /tag request (the API allows 40; smaller batches are faster and less likely to be skipped). */
+const BATCH = 20;
+/** /tag requests in flight at once, for a long note. */
+const PARALLEL = 3;
+/** The API's per-part limit; a bigger part only ever gets fallbackTags. */
+const MAX_WORDS = 2000;
 
-/** Asks Gemini for these parts' tags and saves them. Throws if the API fails. */
-export async function tagParts(uid: string, parts: PartText[]): Promise<PartTags[]> {
-  const out: PartTags[] = [];
-  for (let i = 0; i < parts.length; i += BATCH) {
-    const batch = parts.slice(i, i + BATCH).map((p) => ({ ...p, hash: textHash(p.markdown), words: tokenize(p.markdown).map((t) => t.display) }));
-    const sendable = batch.filter((p) => p.words.length > 0);
-    const res = sendable.length ? await api.tag(sendable.map((p) => ({ words: p.words }))) : { parts: [], model: '' };
-    let k = 0;
-    for (const p of batch) {
-      const tags: PartTags = { ideas: p.words.length ? res.parts[k++]?.ideas ?? [] : [], ideasHash: p.hash };
-      out.push(tags);
-      // Saving is best-effort: the sheet already has the tags in hand.
-      save(uid, p.noteId, p.part, tags, res.model).catch(() => {});
+/**
+ * Asks Gemini for these parts' tags and saves them, in order. null = no tags this time (Gemini
+ * skipped the part, its request failed, or it's over MAX_WORDS) — nothing is saved, so it's asked
+ * again next time. Never throws.
+ */
+export async function tagParts(uid: string, parts: PartText[]): Promise<(PartTags | null)[]> {
+  const items = parts.map((p) => ({ ...p, hash: textHash(p.markdown), words: tokenize(p.markdown).map((t) => t.display) }));
+  const sendable = items.filter((p) => p.words.length > 0 && p.words.length <= MAX_WORDS);
+  const batches: (typeof sendable)[] = [];
+  for (let i = 0; i < sendable.length; i += BATCH) batches.push(sendable.slice(i, i + BATCH));
+
+  const got = new Map<(typeof items)[number], PartTags>();
+  let next = 0;
+  const worker = async () => {
+    while (next < batches.length) {
+      const batch = batches[next++];
+      let res;
+      try {
+        res = await api.tag(batch.map((p) => ({ words: p.words })));
+      } catch {
+        continue; // this batch stays untagged (null); the other batches still count
+      }
+      batch.forEach((p, k) => {
+        const ideas = res.parts[k]?.ideas;
+        if (!ideas) return;
+        const tags = { ideas, ideasHash: p.hash };
+        got.set(p, tags);
+        // Saving is best-effort: the sheet already has the tags in hand.
+        save(uid, p.noteId, p.part, tags, res.model).catch(() => {});
+      });
     }
-  }
-  return out;
+  };
+  await Promise.all(Array.from({ length: Math.min(PARALLEL, batches.length) }, worker));
+  // A part with no words has nothing to rank: an empty list is its (saved-free) answer.
+  return items.map((p) => got.get(p) ?? (p.words.length === 0 ? { ideas: [], ideasHash: p.hash } : null));
 }
 
 /** After a note is created or a part edited: tag in the background so the cram sheet is instant later. */
 export function tagInBackground(uid: string, parts: PartText[]): void {
-  if (parts.length) tagParts(uid, parts).catch(() => {}); // the cram sheet re-tags anything still stale
+  if (parts.length) void tagParts(uid, parts); // the cram sheet re-tags anything still stale
 }
 
 /**
  * Tags for each part, in order: saved ones whose hash still matches the text, everything else
- * tagged now in one batch. If Gemini fails, those parts get fallbackTags (not saved), so the
- * cram sheet always works — even offline.
+ * tagged now (batched, a few requests in parallel for a long note). Any part that still has no
+ * tags — Gemini failed or skipped it, or it's too long — gets fallbackTags (not saved), so the
+ * cram sheet always works, even offline.
  */
 export async function ensureTags(uid: string, parts: PartText[]): Promise<TaggedIdea[][]> {
   const saved = await Promise.all(parts.map((p) => load(uid, p.noteId, p.part).catch(() => null)));
   const result: (TaggedIdea[] | null)[] = saved.map((s, i) => (s && s.ideasHash === textHash(parts[i].markdown) ? s.ideas : null));
   const stale = parts.map((p, i) => ({ p, i })).filter(({ i }) => result[i] === null);
   if (stale.length) {
-    try {
-      const fresh = await tagParts(uid, stale.map(({ p }) => p));
-      stale.forEach(({ i }, k) => (result[i] = fresh[k].ideas));
-    } catch {
-      for (const { p, i } of stale) result[i] = fallbackTags(tokenize(p.markdown));
-    }
+    const fresh = await tagParts(uid, stale.map(({ p }) => p));
+    stale.forEach(({ p, i }, k) => (result[i] = fresh[k]?.ideas ?? fallbackTags(tokenize(p.markdown))));
   }
   return result as TaggedIdea[][];
 }

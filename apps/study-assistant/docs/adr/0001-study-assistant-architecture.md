@@ -339,9 +339,13 @@ most useful passages to read just before the exam, in the note's own words.
   request is in flight still counts as stale.
 - **When tagging happens:** in the background after a note is created and
   after a part is saved. As a safety net, the cram sheet re-tags any part
-  whose hash doesn't match (existing notes, edits, failed calls) in one
-  batch. If Gemini fails, it falls back to one idea per line at
-  importance 2, unsaved, so the sheet always works.
+  whose hash doesn't match (existing notes, edits, failed calls). It sends
+  20 parts per request, 3 requests at a time, so long notes stay quick. Any
+  part left untagged falls back to one idea per line at importance 2,
+  unsaved, so the sheet always works and tries Gemini again next time. That
+  covers: Gemini down, a failed batch, a part Gemini skipped (the API
+  returns `null` for it, never a made-up filler idea), and a part over the
+  API's 2,000-word limit.
   *Deviation from the original plan:* tagging was going to ride along in
   `/prepare`'s response. It's a separate call because the word indices must
   come from the app's own tokenizer.
