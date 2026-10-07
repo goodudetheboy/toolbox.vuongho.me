@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
@@ -8,6 +8,7 @@ import PartTitle from '../components/PartTitle';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { saveFeedback, sessionContext } from '../lib/feedback';
+import { clearHighlight, highlightWords } from '../lib/highlight';
 import { notesStore } from '../lib/notes';
 import { encodeMarks, textHash } from '../lib/marks';
 import { HINT_LIMITS, useHintLimit } from '../lib/settings';
@@ -21,12 +22,15 @@ export default function Study({
   user,
   note,
   index,
+  highlight,
   navigate,
   onBack,
 }: {
   user: AppUser;
   note: Note;
   index: number;
+  /** Words to mark on the reading card (opened from a cram-sheet card). */
+  highlight?: [number, number];
   navigate: (r: Route, opts?: { replace?: boolean }) => void;
   onBack: () => void;
 }) {
@@ -40,6 +44,20 @@ export default function Study({
   const [hintLimit, setHintLimit] = useHintLimit();
   const rec = useRecitation(tokens, vocabulary, hintLimit);
   const isLast = index === note.chunks.length - 1;
+
+  // Coming from a cram-sheet card: mark that passage on the reading card and bring it into view.
+  const readRef = useRef<HTMLDivElement>(null);
+  const reading = rec.phase === 'idle';
+  const [hlFrom, hlTo] = highlight ?? [-1, -1];
+  useEffect(() => {
+    if (!reading || hlFrom < 0 || !readRef.current) return;
+    const range = highlightWords(readRef.current, hlFrom, hlTo, tokens.length);
+    if (range) {
+      const top = range.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: Math.max(0, top - window.innerHeight / 3) });
+    }
+    return clearHighlight;
+  }, [reading, hlFrom, hlTo, tokens.length, chunk.markdown]);
 
   // Shared by the attempt document and its feedback record.
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -108,7 +126,9 @@ export default function Study({
               <Icon name="pencil" size={20} />
             </button>
           </div>
-          <Markdown text={chunk.markdown} />
+          <div ref={readRef}>
+            <Markdown text={chunk.markdown} />
+          </div>
         </Paper>
         <div className="hint-limit">
           <span className="hint-limit-label">

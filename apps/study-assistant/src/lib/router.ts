@@ -16,7 +16,8 @@ export type Route =
   | { name: 'editExam'; examId: string }
   | { name: 'admin'; tab: AdminTab }
   | { name: 'note'; noteId: string }
-  | { name: 'chunk'; noteId: string; index: number }
+  // `highlight`: inclusive word range to mark on arrival (from a cram-sheet card), `?hl=start-end`.
+  | { name: 'chunk'; noteId: string; index: number; highlight?: [number, number] }
   | { name: 'edit'; noteId: string; index: number }
   | { name: 'progress'; noteId: string; index: number };
 
@@ -41,7 +42,7 @@ export function routePath(route: Route): string {
     case 'note':
       return `${BASE}n/${encodeURIComponent(route.noteId)}`;
     case 'chunk':
-      return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}`;
+      return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}${route.highlight ? `?hl=${route.highlight[0]}-${route.highlight[1]}` : ''}`;
     case 'edit':
       return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}/edit`;
     case 'progress':
@@ -49,7 +50,7 @@ export function routePath(route: Route): string {
   }
 }
 
-export function parseRoute(pathname: string): Route {
+export function parseRoute(pathname: string, search = ''): Route {
   const rest = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname.replace(/^\//, '');
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 1 && parts[0] === 'new') return { name: 'new' };
@@ -66,7 +67,12 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === 'n' && parts[1]) {
     const noteId = decodeURIComponent(parts[1]);
     const n = Number.parseInt(parts[2] ?? '', 10);
-    if (parts.length === 3 && n > 0) return { name: 'chunk', noteId, index: n - 1 };
+    if (parts.length === 3 && n > 0) {
+      const hl = /^(\d+)-(\d+)$/.exec(new URLSearchParams(search).get('hl') ?? '');
+      return hl && +hl[1] <= +hl[2]
+        ? { name: 'chunk', noteId, index: n - 1, highlight: [+hl[1], +hl[2]] }
+        : { name: 'chunk', noteId, index: n - 1 };
+    }
     if (parts.length === 4 && n > 0 && parts[3] === 'edit') return { name: 'edit', noteId, index: n - 1 };
     if (parts.length === 4 && n > 0 && parts[3] === 'progress') return { name: 'progress', noteId, index: n - 1 };
     if (parts.length === 2) return { name: 'note', noteId };
@@ -99,7 +105,7 @@ function transition(direction: Direction, update: () => void) {
 }
 
 export function useRoute() {
-  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname));
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname, window.location.search));
   const current = useRef(entryIndex());
 
   useEffect(() => {
@@ -107,7 +113,7 @@ export function useRoute() {
       const next = entryIndex();
       const direction = next < current.current ? 'back' : 'forward';
       current.current = next;
-      const update = () => setRoute(parseRoute(window.location.pathname));
+      const update = () => setRoute(parseRoute(window.location.pathname, window.location.search));
       // iOS/Safari swipe-back already animated the page — don't slide it a second time.
       if ((e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition) update();
       else transition(direction, update);

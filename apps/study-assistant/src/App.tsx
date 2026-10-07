@@ -218,6 +218,7 @@ export default function App() {
           user={user}
           note={note}
           index={route.index}
+          highlight={route.highlight}
           navigate={navigate}
           onBack={() => goBack({ name: 'note', noteId: note.id })}
         />

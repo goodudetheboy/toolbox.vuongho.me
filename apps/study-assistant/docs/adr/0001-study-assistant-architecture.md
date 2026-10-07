@@ -364,7 +364,13 @@ most useful passages to read just before the exam, in the note's own words.
   Cram cards show only the passage. The "I remember this" check and a
   quiet book icon (opens that part; its name is the tooltip and label)
   sit stacked on the right. No "Note · Part n" header: the user found it
-  cluttered.
+  cluttered. Opening a part from a card goes to `/n/{id}/{n}?hl=start-end`,
+  and the part's reading card marks those words in pink and scrolls them
+  into view (`src/lib/highlight.ts`). It uses the CSS Custom Highlight API,
+  so React's DOM is never touched. The rendered text is walked the same
+  way `tokenize` splits words. If the word count doesn't match, nothing is
+  marked rather than the wrong words; older browsers just show no
+  highlight.
   Everything reuses the part screen's pieces (taped `Paper`, `.md` text
   with bold highlighted, Biggu beside the big button).
 - **Encouragement notes** (`src/lib/cheer.ts`, unit-tested): small taped

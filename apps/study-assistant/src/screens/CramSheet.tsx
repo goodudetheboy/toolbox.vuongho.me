@@ -264,7 +264,7 @@ export default function CramSheet({
                           className="cram-open"
                           aria-label={t.openPart(x.source)}
                           title={x.source}
-                          onClick={() => navigate({ name: 'chunk', noteId: x.noteId, index: x.part })}
+                          onClick={() => navigate({ name: 'chunk', noteId: x.noteId, index: x.part, highlight: [x.start, x.end] })}
                         >
                           <Icon name="book" size={20} />
                         </button>

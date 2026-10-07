@@ -2400,3 +2400,8 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   left: calc(50% - 35px);
   line-height: 0;
 }
+
+/* A cram-sheet passage, marked on its part's reading card (lib/highlight.ts). */
+::highlight(cram-source) {
+  background-color: #ffc9d6;
+}
