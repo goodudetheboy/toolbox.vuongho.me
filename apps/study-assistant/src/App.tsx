@@ -10,6 +10,7 @@ import type { Exam, Note } from './lib/types';
 import CramSheet from './screens/CramSheet';
 import ExamForm from './screens/ExamForm';
 import Home, { savedHomeTab } from './screens/Home';
+import SendFeedback from './screens/SendFeedback';
 import NewNote from './screens/NewNote';
 import NoteView from './screens/NoteView';
 import Progress from './screens/Progress';
@@ -113,6 +114,10 @@ export default function App() {
     </main>
   );
   const examsHome = { name: 'exams' } as const;
+
+  if (route.name === 'sendFeedback') {
+    return <SendFeedback user={user} onBack={() => goBack(home)} />;
+  }
 
   if (route.name === 'newExam' || route.name === 'editExam') {
     if (!notes || !exams) return loadingScreen;
@@ -255,6 +260,7 @@ export default function App() {
       notes={notes}
       exams={exams}
       tab={route.name === 'exams' ? 'exams' : 'notes'}
+      userName={user.name || user.email?.split('@')[0] || ''}
       admin={isAdmin(user.email)}
       navigate={navigate}
     />

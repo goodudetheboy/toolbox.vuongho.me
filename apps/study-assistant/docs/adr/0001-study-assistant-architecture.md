@@ -476,3 +476,15 @@ Now:
   (hints, grading) starts working within a minute. The Cloud Run service
   account already has Editor, which covers the read.
 - Removing an email blocks sign-in. Their notes stay in Firestore.
+
+## Addendum 2026-10-07 — account menu and general feedback
+
+Home's top right shows her Google display name and a person button with a menu:
+Send feedback, Admin (admin only) and Sign out (`components/AccountMenu.tsx`).
+"Send feedback" (`/feedback`, `screens/SendFeedback.tsx`) sends a kind
+(idea / something's wrong / other) and text, plus her browser's user agent
+to help reproduce problems, to `users/{uid}/messages/{id}`
+(`lib/messages.ts`). She can create and read her own messages; the admin
+reads all of them through a collection-group rule. The admin page gets a
+Messages tab, and the old "Feedback" tab (session ratings) is now labelled
+"Ratings".

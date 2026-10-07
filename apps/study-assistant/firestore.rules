@@ -51,7 +51,15 @@ service cloud.firestore {
       allow read, write: if allowed() && request.auth.uid == uid;
     }
 
-    // Collection-group reads for the admin page: every user's feedback, notes and attempts.
+    // "Send feedback" messages from the account menu: she can send (and see) her own.
+    match /users/{uid}/messages/{messageId} {
+      allow read, create: if allowed() && request.auth.uid == uid;
+    }
+
+    // Collection-group reads for the admin page: every user's feedback, messages, notes and attempts.
+    match /{path=**}/messages/{messageId} {
+      allow read: if admin();
+    }
     match /{path=**}/feedback/{attemptId} {
       allow read: if admin();
     }

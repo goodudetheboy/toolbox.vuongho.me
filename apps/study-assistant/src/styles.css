@@ -2548,3 +2548,79 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   background: var(--sky);
   color: var(--sky-ink);
 }
+
+/* Home top right: her name, then the account button (components/AccountMenu.tsx). */
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.account-name {
+  min-width: 0;
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.account .icon-btn {
+  width: 46px;
+  height: 46px;
+}
+
+/* Send feedback (screens/SendFeedback.tsx) */
+.message-kinds {
+  justify-content: center;
+  margin: -6px 0 26px;
+}
+
+.message-text {
+  min-height: 220px;
+}
+
+/* Admin: Messages tab */
+.message-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.message-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.message-kind {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--sky);
+  color: var(--sky-ink);
+}
+
+.message-kind.problem {
+  background: #fbd0d5;
+  color: #8a2e3d;
+}
+
+.message-body {
+  margin: 8px 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message-ua {
+  margin: 0;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}

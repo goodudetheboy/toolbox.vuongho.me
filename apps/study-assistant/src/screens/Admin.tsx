@@ -9,8 +9,9 @@ import AdminFeedback from './AdminFeedback';
 
 const AdminUsage = lazy(() => import('./AdminUsage'));
 const AdminAccess = lazy(() => import('./AdminAccess'));
+const AdminMessages = lazy(() => import('./AdminMessages'));
 
-const TABS: AdminTab[] = ['feedback', 'usage', 'access'];
+const TABS: AdminTab[] = ['feedback', 'messages', 'usage', 'access'];
 
 /**
  * Admin page (/study-assistant/admin[/usage]): Feedback and Usage tabs. Only shown to
@@ -60,7 +61,15 @@ export default function Admin({
           {tab === 'feedback' ? (
             <AdminFeedback user={user} />
           ) : (
-            <Suspense fallback={loading}>{tab === 'usage' ? <AdminUsage user={user} /> : <AdminAccess user={user} />}</Suspense>
+            <Suspense fallback={loading}>
+              {tab === 'usage' ? (
+                <AdminUsage user={user} />
+              ) : tab === 'messages' ? (
+                <AdminMessages user={user} />
+              ) : (
+                <AdminAccess user={user} />
+              )}
+            </Suspense>
           )}
         </>
       )}

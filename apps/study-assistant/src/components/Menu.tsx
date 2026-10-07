@@ -10,8 +10,11 @@ export interface MenuItem {
   danger?: boolean;
 }
 
-/** Round "⋯" button (same look as the back button) that drops down a small paper menu. */
-export default function Menu({ items }: { items: MenuItem[] }) {
+/**
+ * Round "⋯" button (same look as the back button) that drops down a small paper menu.
+ * `trigger` swaps the ⋯ for another icon (and its label), e.g. the account menu's person.
+ */
+export default function Menu({ items, trigger }: { items: MenuItem[]; trigger?: { icon: ReactNode; label: string } }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -31,8 +34,14 @@ export default function Menu({ items }: { items: MenuItem[] }) {
 
   return (
     <div className="menu" ref={ref}>
-      <button className="icon-btn" onClick={() => setOpen((o) => !o)} aria-label={t.more} aria-haspopup="menu" aria-expanded={open}>
-        <Icon name="dots" size={24} />
+      <button
+        className="icon-btn"
+        onClick={() => setOpen((o) => !o)}
+        aria-label={trigger?.label ?? t.more}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {trigger?.icon ?? <Icon name="dots" size={24} />}
       </button>
       {open && (
         <div className="menu-pop" role="menu">

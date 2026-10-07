@@ -5,12 +5,13 @@ import { flushSync } from 'react-dom';
 // apps share no code). Firebase Hosting rewrites every `/study-assistant/**`
 // miss to this app's index.html, so deep links survive a reload.
 
-export type AdminTab = 'feedback' | 'usage' | 'access';
+export type AdminTab = 'feedback' | 'messages' | 'usage' | 'access';
 
 export type Route =
   | { name: 'home' }
   | { name: 'new' }
   | { name: 'exams' }
+  | { name: 'sendFeedback' }
   | { name: 'newExam'; noteId?: string }
   | { name: 'exam'; examId: string }
   | { name: 'editExam'; examId: string }
@@ -31,6 +32,8 @@ export function routePath(route: Route): string {
       return `${BASE}new`;
     case 'exams':
       return `${BASE}exams`;
+    case 'sendFeedback':
+      return `${BASE}feedback`;
     case 'newExam':
       return route.noteId ? `${BASE}exams/new/${encodeURIComponent(route.noteId)}` : `${BASE}exams/new`;
     case 'exam':
@@ -54,6 +57,7 @@ export function parseRoute(pathname: string, search = ''): Route {
   const rest = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname.replace(/^\//, '');
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 1 && parts[0] === 'new') return { name: 'new' };
+  if (parts.length === 1 && parts[0] === 'feedback') return { name: 'sendFeedback' };
   if (parts[0] === 'exams') {
     if (parts.length === 1) return { name: 'exams' };
     if (parts[1] === 'new' && parts.length <= 3) return parts[2] ? { name: 'newExam', noteId: decodeURIComponent(parts[2]) } : { name: 'newExam' };
@@ -63,7 +67,7 @@ export function parseRoute(pathname: string, search = ''): Route {
     if (parts.length === 2) return { name: 'exam', examId };
     if (parts.length === 3 && parts[2] === 'edit') return { name: 'editExam', examId };
   }
-  if (parts[0] === 'admin' && parts.length <= 2) return { name: 'admin', tab: parts[1] === 'usage' || parts[1] === 'access' ? parts[1] : 'feedback' };
+  if (parts[0] === 'admin' && parts.length <= 2) return { name: 'admin', tab: parts[1] === 'usage' || parts[1] === 'access' || parts[1] === 'messages' ? parts[1] : 'feedback' };
   if (parts[0] === 'n' && parts[1]) {
     const noteId = decodeURIComponent(parts[1]);
     const n = Number.parseInt(parts[2] ?? '', 10);

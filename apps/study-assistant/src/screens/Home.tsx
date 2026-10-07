@@ -1,9 +1,9 @@
 import { useEffect, type CSSProperties } from 'react';
 import Biggu from '../components/Biggu';
+import AccountMenu from '../components/AccountMenu';
 import { PettableHead } from '../components/Pettable';
 import { Icon, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
-import { signOut } from '../lib/auth';
 import { forgetCramSheets } from '../lib/cramCache';
 import { daysUntil, examNoteCount, sortExams } from '../lib/exams';
 import type { Route } from '../lib/router';
@@ -38,9 +38,11 @@ export default function Home({
   notes,
   exams,
   tab,
+  userName,
   admin,
   navigate,
 }: {
+  userName: string;
   notes: Note[] | null;
   exams: Exam[] | null;
   tab: HomeTab;
@@ -67,18 +69,7 @@ export default function Home({
           <PettableHead size={52} className="biggu" /> <span className="hand">{t.appName}</span>
         </span>
       }
-      right={
-        <span>
-          {admin && (
-            <button className="text-btn quiet" onClick={() => navigate({ name: 'admin', tab: 'feedback' })}>
-              {t.admin.title}
-            </button>
-          )}
-          <button className="text-btn quiet" onClick={() => signOut()}>
-            {t.signOut}
-          </button>
-        </span>
-      }
+      right={<AccountMenu name={userName} admin={admin} navigate={navigate} />}
     />
   );
 
