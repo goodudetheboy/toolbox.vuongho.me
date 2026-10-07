@@ -506,12 +506,13 @@ horizontal scroll-snap, with dots and Previous / Next below (Previous replaced S
 help page (long text isn't read on a phone) and over a tooltip tour of the real
 screens (it breaks whenever the layout changes). They show up in three places:
 
-- **No notes yet:** Home's empty state is the cards, ending on "Add your first
-  note". This replaces the old Biggu-plus-button screen. Skip jumps to that
-  last card.
-- **First sign-in with notes already there:** the cards are shown once, full
-  screen, before Home.
-- **Any time:** "How it works" in the account menu (`/how-it-works`).
+- **First sign-in:** the cards are shown once, full screen, with an X at the
+  top right to close them. If she has no notes yet, the last button is "Add
+  your first note".
+- **No notes yet:** Home's empty state is Biggu with "Add your first note" and
+  a "How it works" button under it.
+- **Any time:** "How it works" in the account menu (`/how-it-works`, also
+  with the X).
 
 "Seen" is `guideSeen: true` on her profile (`users/{uid}`, which the existing
 rule already lets her write), with a localStorage copy so it's known
