@@ -28,6 +28,11 @@ for f in ('head', 'head-wink', 'head-blep', 'head-tilt', 'head-content', 'head-s
     name = 'calm' if f == 'head' else f[5:]
     cutout(f).resize((160, 160), Image.LANCZOS).save(f'{app}/src/assets/biggu/heads/{name}.webp', quality=85, method=6)
 
+# Vpork: the face on a rare signed note on one account's cram sheets (raw-vpork, see generate.sh)
+import os
+if os.path.exists(f'{raw}/raw-vpork.png'):
+    cutout('vpork').resize((160, 160), Image.LANCZOS).save(f'{app}/src/assets/vpork.webp', quality=85, method=6)
+
 head = cutout('head')
 def icon(size, frac, path, bg=(0xDC, 0xEF, 0xFB, 255)):
     c = Image.new('RGBA', (size, size), bg)

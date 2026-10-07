@@ -2350,3 +2350,35 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   white-space: nowrap;
   padding: 0 10px;
 }
+
+.cheer-note {
+  position: relative;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 300px;
+  padding: 14px 16px 12px 12px;
+  background: #fff7c9;
+  box-shadow: var(--shadow);
+  border-radius: 3px;
+  transform: rotate(1.6deg);
+  font-size: 1.3rem;
+  line-height: 1.15;
+}
+
+.cheer-note.vpork {
+  background: #ffe1ea;
+  transform: rotate(-1.4deg);
+}
+
+.cheer-note img {
+  flex-shrink: 0;
+}
+
+.cheer-tape {
+  position: absolute;
+  top: -12px;
+  left: calc(50% - 35px);
+  line-height: 0;
+}

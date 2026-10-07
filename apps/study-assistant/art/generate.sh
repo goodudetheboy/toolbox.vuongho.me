@@ -30,6 +30,14 @@ declare -A POSE=(
   [head-smug]="Head only (no body), facing the viewer, same framing as the first reference. Expression: a cheeky smug look, eyes half-lidded, one corner of the mouth up."
   [head-excited]="Head only (no body), facing the viewer, same framing as the first reference. Expression: excited and delighted, eyes wide and sparkly, small open-mouth smile, ears perked up."
 )
+# Not Biggu: Vpork (the user, signing a rare cram-sheet note), drawn in Biggu's style from his calm
+# head (raw-head.png) plus a selfie. The selfie isn't committed: pass it as VPORK_PHOTO=/path/to.jpg.
+VPORK="Head only (no body, no shoulders) of the young man in the second reference photo, facing the viewer, same framing and size as the reference cat head. Keep his likeness: short spiky black hair, dark eyes, the small mole under his right eye (viewer's left), round cheeks, a big warm loving smile. Make it cute and flattering: eyes gently smiling, rosy blush on the cheeks, a tiny pink paper heart floating beside his head. Normal proportions, not the wide-angle distortion of the selfie. Draw it in exactly the same style as the first reference illustration: colored-pencil / gouache texture, visible paper grain, hand-drawn semi-realistic but cute — not a photo, not 3D, not chibi, not anime, not a cartoon emoji. The head (and the little heart) is cut out with a thick, slightly imperfect hand-cut WHITE paper border around the silhouette, like a cutout glued into a collage. IMPORTANT: the background must be a perfectly flat, uniform pure chroma-key green (#00FF00) filling everything outside the white border — no drop shadow, no gradient, no texture, no text. Centered with a little green margin on all sides."
+if [[ " $* " == *" vpork "* ]]; then
+  node gen.mjs "$OUT/raw-vpork.png" "$VPORK" "$OUT/raw-head.png" "${VPORK_PHOTO:?set VPORK_PHOTO to the selfie}"
+  set -- $(printf '%s\n' "$@" | grep -vx vpork)
+  [[ $# -eq 0 ]] && { "${PY:-python3}" process.py "$OUT" "$APP"; exit; }
+fi
 for m in "${@:-${!POSE[@]}}"; do
   ref=style-ref.png; [[ $m == head-* ]] && ref="$OUT/raw-head.png"   # run 'head' first if regenerating these
   node gen.mjs "$OUT/raw-$m.png" "$CAT ${POSE[$m]} $STYLE" "$ref" biggu-photo.jpg &

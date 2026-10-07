@@ -359,3 +359,13 @@ most useful passages to read just before the exam, in the note's own words.
   menu has "Add to exam". The cram sheet's ⋯ has Edit / Delete exam.
   Everything reuses the part screen's pieces (taped `Paper`, `.md` text
   with bold highlighted, Biggu beside the big button).
+- **Encouragement notes** (`src/lib/cheer.ts`, unit-tested): small taped
+  notes between cram-sheet cards, each with a random Biggu head and a line
+  from `t.cheers`. Placement uses a seed picked when the sheet opens: at
+  least 5 cards apart, a 25% chance at each eligible gap. Each note depends
+  only on the seed and its card position, so it never moves when more
+  cards load or the sort changes. On tling241004@gmail.com, a visit has a
+  10% chance that its first note is signed by Vpork ("I love you ❤️ you
+  can do it - Vpork"), with Vpork's face drawn in Biggu's style
+  (`src/assets/vpork.webp`, made with `art/generate.sh vpork`; the source
+  selfie isn't committed, so pass it as `VPORK_PHOTO`).

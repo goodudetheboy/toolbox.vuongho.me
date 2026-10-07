@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import vporkFace from '../assets/vpork.webp';
 import Biggu from '../components/Biggu';
 import { ConfirmDialog } from '../components/Dialog';
 import Menu from '../components/Menu';
 import PartTitle from '../components/PartTitle';
-import { Icon, Paper, type TapeColor } from '../components/Scrap';
+import { Icon, Paper, RandomBigguHead, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
+import { cheerSlots, VPORK_CHANCE, VPORK_EMAIL } from '../lib/cheer';
 import { countForPages, rankIdeas, RECENT_TRIES, type CramIdea, type CramSort } from '../lib/cram';
 import { daysUntil, examParts, examsStore } from '../lib/exams';
 import { textHash } from '../lib/marks';
+import { MOCK } from '../lib/mock';
 import { notesStore } from '../lib/notes';
 import type { Route } from '../lib/router';
 import { ensureTags } from '../lib/tags';
@@ -65,6 +68,19 @@ function Excerpt({ words }: { words: Token[] }) {
   );
 }
 
+/** A small taped note between cards: Biggu cheering her on, or (rarely, on one account) Vpork. */
+function CheerNote({ text, vpork }: { text: string; vpork: boolean }) {
+  return (
+    <div className={`cheer-note ${vpork ? 'vpork' : ''}`} role="note">
+      <span className="cheer-tape">
+        <Tape color={vpork ? 'pink' : 'mint'} width={70} rotate={vpork ? 6 : -6} />
+      </span>
+      {vpork ? <img src={vporkFace} width={64} height={64} alt="" /> : <RandomBigguHead size={52} />}
+      <span className="hand">{text}</span>
+    </div>
+  );
+}
+
 /**
  * Exam cram sheet: the exam's ideas, best first, ~5 minutes of reading at a time. Ranking is
  * deterministic (lib/cram.ts) and frozen while the sheet is open — "give meow more" only shows
@@ -92,13 +108,19 @@ export default function CramSheet({
   const [pages, setPages] = useState(1);
   const [ticks, setTicks] = useState(() => loadTicks(exam.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Picked once per visit, so the notes stay put through "give meow more" and re-sorting.
+  const [cheerSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
 
   useEffect(() => {
     let cancelled = false;
     setIdeas(null);
     setPages(1);
     (async () => {
-      const texts = parts.map(({ note, part }) => ({ noteId: note.id, part, markdown: note.chunks[part].markdown }));
+      const texts = parts.map(({ note, part }) => ({
+        noteId: note.id,
+        part,
+        markdown: note.chunks[part].markdown,
+      }));
       const [tags, attempts] = await Promise.all([
         ensureTags(user.uid, texts),
         Promise.all(
@@ -139,6 +161,12 @@ export default function CramSheet({
 
   const ranked = useMemo(() => (ideas ? rankIdeas(ideas, sort) : []), [ideas, sort]);
   const shown = ranked.slice(0, countForPages(ranked, pages));
+  // Dev only: the mock build can force Vpork with #vpork in the URL.
+  const vporkChance = MOCK && window.location.hash === '#vpork' ? 1 : VPORK_CHANCE;
+  const cheers = useMemo(
+    () => new Map(cheerSlots(cheerSeed, ranked.length, MOCK || user.email === VPORK_EMAIL, vporkChance).map((c) => [c.after, c])),
+    [cheerSeed, ranked.length, user.email, vporkChance],
+  );
   const days = daysUntil(exam.date);
 
   function pickSort(next: CramSort) {
@@ -165,8 +193,17 @@ export default function CramSheet({
         right={
           <Menu
             items={[
-              { label: t.editExam, icon: <Icon name="pencil" size={20} />, onSelect: () => navigate({ name: 'editExam', examId: exam.id }) },
-              { label: t.deleteExam, icon: <Icon name="trash" size={20} />, onSelect: () => setConfirmDelete(true), danger: true },
+              {
+                label: t.editExam,
+                icon: <Icon name="pencil" size={20} />,
+                onSelect: () => navigate({ name: 'editExam', examId: exam.id }),
+              },
+              {
+                label: t.deleteExam,
+                icon: <Icon name="trash" size={20} />,
+                onSelect: () => setConfirmDelete(true),
+                danger: true,
+              },
             ]}
           />
         }
@@ -187,7 +224,13 @@ export default function CramSheet({
           <div className="cram-sort">
             <div className="seg small" role="radiogroup" aria-label={t.sortBy}>
               {(['relevant', 'important'] as const).map((k) => (
-                <button key={k} role="radio" aria-checked={sort === k} className={sort === k ? 'on' : ''} onClick={() => pickSort(k)}>
+                <button
+                  key={k}
+                  role="radio"
+                  aria-checked={sort === k}
+                  className={sort === k ? 'on' : ''}
+                  onClick={() => pickSort(k)}
+                >
                   {k === 'relevant' ? t.mostRelevant : t.mostImportant}
                 </button>
               ))}
@@ -197,24 +240,43 @@ export default function CramSheet({
           <div className="cram-list">
             {shown.map((x, i) => {
               const done = ticks.has(x.key);
+              const cheer = i < shown.length - 1 ? cheers.get(i) : undefined;
               return (
-                <Paper key={x.key} tilt={TILTS[i % TILTS.length]} tape={TAPES[i % TAPES.length]} className={`cram-card ${done ? 'done' : ''}`}>
-                  <div className="read-head">
-                    <button className="read-label hand cram-source" onClick={() => navigate({ name: 'chunk', noteId: x.noteId, index: x.part })}>
-                      <Icon name="book" size={22} /> <span>{x.source} ›</span>
-                    </button>
-                    <button
-                      className={`tick ${done ? 'on' : ''}`}
-                      aria-pressed={done}
-                      aria-label={t.rememberThis}
-                      title={t.rememberThis}
-                      onClick={() => toggleTick(x.key)}
-                    >
-                      <Icon name="check" size={22} />
-                    </button>
-                  </div>
-                  <Excerpt words={x.words} />
-                </Paper>
+                <Fragment key={x.key}>
+                  <Paper
+                    tilt={TILTS[i % TILTS.length]}
+                    tape={TAPES[i % TAPES.length]}
+                    className={`cram-card ${done ? 'done' : ''}`}
+                  >
+                    <div className="read-head">
+                      <button
+                        className="read-label hand cram-source"
+                        onClick={() =>
+                          navigate({
+                            name: 'chunk',
+                            noteId: x.noteId,
+                            index: x.part,
+                          })
+                        }
+                      >
+                        <Icon name="book" size={22} /> <span>{x.source} ›</span>
+                      </button>
+                      <button
+                        className={`tick ${done ? 'on' : ''}`}
+                        aria-pressed={done}
+                        aria-label={t.rememberThis}
+                        title={t.rememberThis}
+                        onClick={() => toggleTick(x.key)}
+                      >
+                        <Icon name="check" size={22} />
+                      </button>
+                    </div>
+                    <Excerpt words={x.words} />
+                  </Paper>
+                  {cheer && (
+                    <CheerNote text={cheer.vpork ? t.vporkNote : t.cheers[cheer.message % t.cheers.length]} vpork={cheer.vpork} />
+                  )}
+                </Fragment>
               );
             })}
           </div>
