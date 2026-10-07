@@ -1,8 +1,11 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Biggu from './components/Biggu';
+import GuideCards from './components/GuideCards';
+import TopBar from './components/TopBar';
 import { useAuth } from './lib/auth';
 import { dropPartFromExams, examsStore } from './lib/exams';
 import { isAdmin } from './lib/feedback';
+import { loadGuideSeen, markGuideSeen } from './lib/guide';
 import { hasLegacyHistory, notesStore, partId } from './lib/notes';
 import { useRoute } from './lib/router';
 import { touchProfile } from './lib/usage';
@@ -29,6 +32,8 @@ export default function App() {
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [exams, setExams] = useState<Exam[] | null>(null);
   const [denied, setDenied] = useState(false);
+  // Has she seen "How it works"? null while checking.
+  const [guideSeen, setGuideSeen] = useState<boolean | null>(null);
   // Shown once on the note page right after a pasted/Word note came back not quite word-for-word.
   const [fidelityWarningFor, setFidelityWarningFor] = useState<string | null>(null);
 
@@ -45,6 +50,16 @@ export default function App() {
       // Firestore rules only admit allowlisted emails — anyone else lands here.
       if ((err as { code?: string }).code === 'permission-denied') setDenied(true);
     });
+  }, [user]);
+
+  useEffect(() => {
+    setGuideSeen(null);
+    if (!user) return;
+    let live = true;
+    loadGuideSeen(user).then((seen) => live && setGuideSeen(seen));
+    return () => {
+      live = false;
+    };
   }, [user]);
 
   useEffect(() => {
@@ -80,6 +95,34 @@ export default function App() {
   if (!user || denied) return <SignIn notAllowed={denied} />;
 
   const home = { name: 'home' } as const;
+  const guideDone = () => {
+    markGuideSeen(user);
+    setGuideSeen(true);
+  };
+
+  if (route.name === 'howItWorks') {
+    const leave = () => {
+      guideDone();
+      goBack(home);
+    };
+    return (
+      <main className="screen">
+        <TopBar onBack={() => goBack(home)} title={<span className="hand">{t.howItWorks}</span>} />
+        <GuideCards finishLabel={t.guide.done} onFinish={leave} onSkip={leave} />
+      </main>
+    );
+  }
+
+  // First time in (and she already has notes, e.g. on a new account set up for her): the cards once.
+  // With no notes, Home shows them itself.
+  if ((route.name === 'home' || route.name === 'exams') && guideSeen === false && notes && notes.length > 0) {
+    return (
+      <main className="screen">
+        <TopBar title={<span className="hand">{t.howItWorks}</span>} />
+        <GuideCards finishLabel={t.guide.start} onFinish={guideDone} onSkip={guideDone} />
+      </main>
+    );
+  }
 
   if (route.name === 'new') {
     return (
@@ -263,6 +306,7 @@ export default function App() {
       userName={user.name || user.email?.split('@')[0] || ''}
       admin={isAdmin(user.email)}
       navigate={navigate}
+      onGuideSeen={guideDone}
     />
   );
 }

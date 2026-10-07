@@ -2624,3 +2624,107 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   font-size: 0.72rem;
   overflow-wrap: anywhere;
 }
+
+/* ---------- "How it works" cards (components/GuideCards.tsx) */
+
+.guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.guide-track {
+  display: flex;
+  width: calc(100% + 32px);
+  margin: 0 -16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.guide-track::-webkit-scrollbar {
+  display: none;
+}
+
+.guide-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  /* room for the tape above and the tilt/shadow at the sides */
+  padding: 22px 28px 12px;
+}
+
+.guide-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  margin: 0 auto;
+  padding-top: 30px;
+}
+
+.guide-title {
+  font-size: 1.7rem;
+  font-weight: 400;
+  margin: 8px 0 4px;
+}
+
+.guide-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.guide-purr {
+  font-size: 1.3rem;
+  color: var(--sky-ink);
+  margin: 10px 0 0;
+}
+
+.guide-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.guide-dots button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.guide-dots button::after {
+  content: '';
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--outline);
+  background: #fff;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.guide-dots button.on::after {
+  background: var(--sky-deep);
+  transform: scale(1.2);
+}
+
+.guide-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.guide-actions .btn:not(.btn-big) {
+  flex: 1;
+}

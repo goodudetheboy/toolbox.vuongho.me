@@ -12,6 +12,7 @@ export type Route =
   | { name: 'new' }
   | { name: 'exams' }
   | { name: 'sendFeedback' }
+  | { name: 'howItWorks' }
   | { name: 'newExam'; noteId?: string }
   | { name: 'exam'; examId: string }
   | { name: 'editExam'; examId: string }
@@ -34,6 +35,8 @@ export function routePath(route: Route): string {
       return `${BASE}exams`;
     case 'sendFeedback':
       return `${BASE}feedback`;
+    case 'howItWorks':
+      return `${BASE}how-it-works`;
     case 'newExam':
       return route.noteId ? `${BASE}exams/new/${encodeURIComponent(route.noteId)}` : `${BASE}exams/new`;
     case 'exam':
@@ -58,6 +61,7 @@ export function parseRoute(pathname: string, search = ''): Route {
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 1 && parts[0] === 'new') return { name: 'new' };
   if (parts.length === 1 && parts[0] === 'feedback') return { name: 'sendFeedback' };
+  if (parts.length === 1 && parts[0] === 'how-it-works') return { name: 'howItWorks' };
   if (parts[0] === 'exams') {
     if (parts.length === 1) return { name: 'exams' };
     if (parts[1] === 'new' && parts.length <= 3) return parts[2] ? { name: 'newExam', noteId: decodeURIComponent(parts[2]) } : { name: 'newExam' };

@@ -488,3 +488,25 @@ to help reproduce problems, to `users/{uid}/messages/{id}`
 reads all of them through a collection-group rule. The admin page gets a
 Messages tab, and the old "Feedback" tab (session ratings) is now labelled
 "Ratings".
+
+## Addendum 2026-10-07 — "How it works" cards
+
+Five swipeable taped cards (`components/GuideCards.tsx`): add a note, recite,
+pause for a hint, colors and scores, exam cram sheets. Each card has one idea
+and its own Biggu pose; the last Biggu can be petted. Swiping is native
+horizontal scroll-snap, with dots and Skip / Next below. We chose this over a
+help page (long text isn't read on a phone) and over a tooltip tour of the real
+screens (it breaks whenever the layout changes). They show up in three places:
+
+- **No notes yet:** Home's empty state is the cards, ending on "Add your first
+  note". This replaces the old Biggu-plus-button screen. Skip jumps to that
+  last card.
+- **First sign-in with notes already there:** the cards are shown once, full
+  screen, before Home.
+- **Any time:** "How it works" in the account menu (`/how-it-works`).
+
+"Seen" is `guideSeen: true` on her profile (`users/{uid}`, which the existing
+rule already lets her write), with a localStorage copy so it's known
+instantly. If the profile can't be read, it counts as seen, so the cards
+don't come back on every launch. Existing users who haven't seen them get
+them once.
