@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import Biggu from '../components/Biggu';
-import { Icon, RandomBigguHead, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
+import { PettableHead } from '../components/Pettable';
+import { Icon, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { signOut } from '../lib/auth';
 import { daysUntil, examNoteCount, sortExams } from '../lib/exams';
@@ -59,7 +60,7 @@ export default function Home({
       align="left"
       title={
         <span className="brand">
-          <RandomBigguHead size={52} className="biggu" /> <span className="hand">{t.appName}</span>
+          <PettableHead size={52} className="biggu" /> <span className="hand">{t.appName}</span>
         </span>
       }
       right={

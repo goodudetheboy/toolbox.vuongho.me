@@ -4,7 +4,8 @@ import Biggu from '../components/Biggu';
 import { ConfirmDialog } from '../components/Dialog';
 import Menu from '../components/Menu';
 import PartTitle from '../components/PartTitle';
-import { Icon, Paper, RandomBigguHead, Tape, type TapeColor } from '../components/Scrap';
+import { PettableBiggu, PettableHead } from '../components/Pettable';
+import { Icon, Paper, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { cheerSlots, VPORK_CHANCE, VPORK_EMAIL } from '../lib/cheer';
 import { countForPages, rankIdeas, RECENT_TRIES, type CramIdea, type CramSort } from '../lib/cram';
@@ -75,7 +76,7 @@ function CheerNote({ text, vpork }: { text: string; vpork: boolean }) {
       <span className="cheer-tape">
         <Tape color={vpork ? 'pink' : 'mint'} width={70} rotate={vpork ? 6 : -6} />
       </span>
-      {vpork ? <img src={vporkFace} width={64} height={64} alt="" /> : <RandomBigguHead size={52} />}
+      {vpork ? <img src={vporkFace} width={64} height={64} alt="" /> : <PettableHead size={52} />}
       <span className="hand">{text}</span>
     </div>
   );
@@ -281,14 +282,14 @@ export default function CramSheet({
 
           {shown.length < ranked.length ? (
             <div className="give-more">
-              <Biggu mood="read" size={84} className="corner-biggu" />
+              <PettableBiggu mood="read" size={84} className="corner-biggu" />
               <button className="btn btn-primary btn-big" onClick={() => setPages((p) => p + 1)}>
                 {t.giveMore}
               </button>
             </div>
           ) : (
             <div className="all-read">
-              <Biggu mood="cheer" size={140} />
+              <PettableBiggu mood="cheer" size={140} />
               <p className="big-status hand">{t.allRead}</p>
             </div>
           )}

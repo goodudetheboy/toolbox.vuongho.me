@@ -415,3 +415,23 @@ migration. URLs keep the position (`/n/{id}/2`); that's only for display.
 - New parts get random 8-character ids, set in NewNote so the background
   tagging can use them right away.
 - The "shift later parts down" code from the delete-a-part addendum is gone.
+
+## Addendum 2026-10-07 — tap to pet
+
+Tapping Biggu purrs: the Home header head, the corner Biggu on the part
+and cram-sheet screens, the cheering Biggu at the end of a cram sheet, and
+the heads on encouragement notes (`components/Pettable.tsx`,
+`lib/purr.ts`). While he purrs, a head swaps to the eyes-closed
+"content" face and full-body Biggu to "proud", with a small wiggle (off
+under reduced motion).
+
+- Sound only on a tap, never automatic, because she may be in a library or class.
+  A tap during a purr does nothing, so purrs never stack.
+- The mic must never hear it: the part screen stops any purr the moment
+  recitation starts.
+- `src/assets/purr.m4a`: 4 s cut from the user's 48 s phone recording of
+  Biggu (24.5–28.5 s, the steadiest stretch with no handling bumps). It's
+  high-passed at 80 Hz, since its energy is 60–400 Hz and phones can't play
+  the rumble, then leveled to −3 dBFS peak with 0.4 s / 0.9 s fades. AAC
+  64 kb/s mono for iOS, 34 KB, and precached for offline. The source
+  recording isn't committed.

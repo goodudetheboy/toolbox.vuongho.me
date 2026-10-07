@@ -2405,3 +2405,28 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
 ::highlight(cram-source) {
   background-color: #ffc9d6;
 }
+
+/* Tap Biggu to pet him (components/Pettable.tsx): a little wiggle while he purrs. */
+.pet {
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pet.purring {
+  animation: purr-wiggle 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes purr-wiggle {
+  from { transform: rotate(-3deg) scale(1.02); }
+  to { transform: rotate(3deg) scale(1.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet.purring {
+    animation: none;
+  }
+}

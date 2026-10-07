@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Biggu, { type BigguMood } from '../components/Biggu';
 import { ConfirmDialog } from '../components/Dialog';
+import { PettableBiggu } from '../components/Pettable';
 import Markdown from '../components/Markdown';
 import MarkedWords from '../components/MarkedWords';
 import Menu from '../components/Menu';
@@ -10,6 +11,7 @@ import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { saveFeedback, sessionContext } from '../lib/feedback';
 import { clearHighlight, highlightWords } from '../lib/highlight';
+import { stopPurr } from '../lib/purr';
 import { notesStore, partId } from '../lib/notes';
 import { encodeMarks, textHash } from '../lib/marks';
 import { HINT_LIMITS, useHintLimit } from '../lib/settings';
@@ -49,6 +51,11 @@ export default function Study({
   const rec = useRecitation(tokens, vocabulary, hintLimit);
   const isLast = index === note.chunks.length - 1;
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // The mic must never hear a purr: stop one the moment she starts.
+  useEffect(() => {
+    if (rec.phase !== 'idle') stopPurr();
+  }, [rec.phase]);
 
   // Coming from a cram-sheet card: mark that passage on the reading card and bring it into view.
   const readRef = useRef<HTMLDivElement>(null);
@@ -152,7 +159,7 @@ export default function Study({
         </div>
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
-          <Biggu mood="read" size={84} className="corner-biggu" />
+          <PettableBiggu mood="read" size={84} className="corner-biggu" />
           <button className="btn btn-primary btn-big btn-mic" onClick={rec.start}>
             <Icon name="mic" size={30} /> {t.startSpeaking}
           </button>
