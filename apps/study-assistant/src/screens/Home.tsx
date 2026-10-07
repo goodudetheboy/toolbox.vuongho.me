@@ -1,5 +1,5 @@
 import { useEffect, type CSSProperties } from 'react';
-import GuideCards from '../components/GuideCards';
+import Biggu from '../components/Biggu';
 import AccountMenu from '../components/AccountMenu';
 import { PettableHead } from '../components/Pettable';
 import { Icon, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
@@ -41,7 +41,6 @@ export default function Home({
   userName,
   admin,
   navigate,
-  onGuideSeen,
 }: {
   userName: string;
   notes: Note[] | null;
@@ -49,7 +48,6 @@ export default function Home({
   tab: HomeTab;
   admin: boolean;
   navigate: (r: Route, options?: { replace?: boolean }) => void;
-  onGuideSeen: () => void;
 }) {
   // Opening an exam from here builds its cram sheet fresh (new tries count).
   useEffect(() => forgetCramSheets(), []);
@@ -75,18 +73,20 @@ export default function Home({
     />
   );
 
-  // No notes yet: the "How it works" cards, ending on the first-note button.
+  // First visit: one cat, the first-note button, and the "How it works" cards if she wants them.
   if (notes && notes.length === 0) {
     return (
       <main className="screen">
         {topBar}
-        <GuideCards
-          finishLabel={t.firstLesson}
-          onFinish={() => {
-            onGuideSeen();
-            navigate({ name: 'new' });
-          }}
-        />
+        <div className="first-run">
+          <Biggu mood="read" size={190} className="bob" />
+          <button className="btn btn-primary btn-big" onClick={() => navigate({ name: 'new' })}>
+            <Icon name="plus" /> {t.firstLesson}
+          </button>
+          <button className="btn btn-big" onClick={() => navigate({ name: 'howItWorks' })}>
+            <Icon name="book" /> {t.howItWorks}
+          </button>
+        </div>
       </main>
     );
   }

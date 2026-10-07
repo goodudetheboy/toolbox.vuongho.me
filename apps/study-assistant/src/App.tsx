@@ -120,13 +120,19 @@ export default function App() {
     );
   }
 
-  // First time in (and she already has notes, e.g. on a new account set up for her): the cards once.
-  // With no notes, Home shows them itself.
-  if ((route.name === 'home' || route.name === 'exams') && guideSeen === false && notes && notes.length > 0) {
+  // First time in: the cards once. With no notes yet, finishing goes straight to adding one.
+  if ((route.name === 'home' || route.name === 'exams') && guideSeen === false && notes) {
+    const empty = notes.length === 0;
     return (
       <main className="screen">
         <TopBar title={<span className="hand">{t.howItWorks}</span>} right={closeGuide(guideDone)} />
-        <GuideCards finishLabel={t.guide.start} onFinish={guideDone} />
+        <GuideCards
+          finishLabel={empty ? t.firstLesson : t.guide.start}
+          onFinish={() => {
+            guideDone();
+            if (empty) navigate({ name: 'new' });
+          }}
+        />
       </main>
     );
   }
@@ -313,7 +319,6 @@ export default function App() {
       userName={user.name || user.email?.split('@')[0] || ''}
       admin={isAdmin(user.email)}
       navigate={navigate}
-      onGuideSeen={guideDone}
     />
   );
 }
