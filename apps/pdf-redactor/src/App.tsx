@@ -179,7 +179,7 @@ export default function App() {
         </div>
         <h1>PDF Redactor</h1>
         <p className="subtitle">
-          Everything happens in your browser — your PDF is never uploaded anywhere.
+          Everything happens in your browser. Your PDF is never uploaded anywhere.
         </p>
       </header>
 

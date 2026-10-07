@@ -28,7 +28,7 @@ async function readHandle(handle: FileSystemFileHandle, prompt: boolean): Promis
   return handle.getFile();
 }
 
-const MOVED_ERROR = "Couldn't open the original file — it may have been moved, renamed, or deleted.";
+const MOVED_ERROR = "Couldn't open the original file. It may have been moved, renamed, or deleted.";
 
 /**
  * Resolves the recording for a transcript: the queued File this session if it's

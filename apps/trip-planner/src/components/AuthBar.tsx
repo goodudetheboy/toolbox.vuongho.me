@@ -64,7 +64,7 @@ export default function AuthBar({ user, loading }: AuthBarProps) {
               }}
             >
               <div className="field">
-                <label htmlFor="signin-email">Email (no password — we'll send a link)</label>
+                <label htmlFor="signin-email">Email (no password needed, we'll send a link)</label>
                 <input
                   id="signin-email"
                   type="email"

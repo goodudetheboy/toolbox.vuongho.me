@@ -209,7 +209,7 @@ export default function AdminUsage({ user }: { user: AppUser }) {
               <li key={`${n.uid}/${n.id}/${i}`}>
                 <span className="admin-top-title">
                   {n.title} · {c.title}
-                  {!who && uids.length > 1 && <span className="muted"> — {name(n.uid)}</span>}
+                  {!who && uids.length > 1 && <span className="muted"> · {name(n.uid)}</span>}
                 </span>
                 <b>{t.admin.tries(c.tries)}</b>
               </li>

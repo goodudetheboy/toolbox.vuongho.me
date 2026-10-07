@@ -16,7 +16,7 @@ export default function HistoryPanel({ entries, onOpen, onDelete, onClear, onClo
         <button onClick={onClose}>Close</button>
       </div>
       <p className="subtitle">
-        Stored only on this device (IndexedDB) — never uploaded anywhere.
+        Stored only on this device (IndexedDB), never uploaded anywhere.
       </p>
 
       {entries.length === 0 && <p className="subtitle">No uploads yet.</p>}

@@ -57,7 +57,7 @@ export default function DropZone({ onFiles, hasFiles }: Props) {
     >
       <div className="dropzone-icon"><Mic size={26} /></div>
       <h2>Drop your audio or video files here</h2>
-      <p>MP4, MOV, MKV, MP3, WAV, M4A, and more — transcribed privately in your browser</p>
+      <p>MP4, MOV, MKV, MP3, WAV, M4A, and more, transcribed privately in your browser</p>
       <button className="btn-primary" onClick={e => { e.stopPropagation(); browse(); }}>
         Browse files
       </button>

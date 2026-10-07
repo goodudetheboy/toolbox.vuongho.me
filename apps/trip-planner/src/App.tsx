@@ -107,7 +107,7 @@ export default function App() {
         </div>
         <h1>Trip Planner</h1>
         <p className="subtitle">
-          A simple itinerary keeper. Local by default — sign in to sync a trip and share it.
+          A simple itinerary keeper. Local by default. Sign in to sync a trip and share it.
         </p>
       </div>
 

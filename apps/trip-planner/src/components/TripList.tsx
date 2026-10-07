@@ -53,7 +53,7 @@ export default function TripList({
         </div>
       </div>
       <p className="hint">
-        Local trips are saved only on this device — use Export/Import to move them, or "Go
+        Local trips are saved only on this device. Use Export/Import to move them, or "Go
         online" (inside a trip) to sync and share it. ☁ trips are synced live via your account.
       </p>
       {trips.length === 0 && <p className="empty">No trips yet. Create one to get started.</p>}

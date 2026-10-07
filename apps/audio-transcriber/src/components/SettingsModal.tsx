@@ -7,9 +7,9 @@ interface Props {
 }
 
 const MODELS: { id: ModelId; name: string; desc: string }[] = [
-  { id: 'Xenova/whisper-tiny.en', name: 'Fast', desc: 'Smallest (~39 MB) — quick results, decent accuracy' },
-  { id: 'Xenova/whisper-base.en', name: 'Balanced', desc: 'Default (~74 MB) — great accuracy, reasonable speed' },
-  { id: 'Xenova/whisper-small.en', name: 'Accurate', desc: 'Best quality (~244 MB) — slower, highest accuracy' },
+  { id: 'Xenova/whisper-tiny.en', name: 'Fast', desc: 'Smallest (~39 MB). Quick results, decent accuracy' },
+  { id: 'Xenova/whisper-base.en', name: 'Balanced', desc: 'Default (~74 MB). Great accuracy, reasonable speed' },
+  { id: 'Xenova/whisper-small.en', name: 'Accurate', desc: 'Best quality (~244 MB). Slower, highest accuracy' },
 ];
 
 export default function SettingsModal({ settings, onChange, onClose }: Props) {

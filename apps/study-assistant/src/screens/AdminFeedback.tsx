@@ -178,7 +178,7 @@ function Detail({ record: r }: { record: FeedbackRecord }) {
           <ul className="admin-list">
             {r.hintLog.map((h, i) => (
               <li key={i}>
-                <b>{h.text}</b> <span className="muted">— {t.admin.hintAt(h.atMs / 1000, h.manual)}</span>
+                <b>{h.text}</b> <span className="muted">· {t.admin.hintAt(h.atMs / 1000, h.manual)}</span>
               </li>
             ))}
           </ul>
@@ -194,7 +194,7 @@ function Detail({ record: r }: { record: FeedbackRecord }) {
                 <b className={idea.score >= 80 ? 'good' : idea.score >= 50 ? 'mid' : 'off'}>{idea.score}%</b>{' '}
                 {span(idea.start, idea.end)}
                 {idea.missed.length > 0 && (
-                  <span className="muted"> — missed: {idea.missed.map((w) => r.words[w]).join(', ')}</span>
+                  <span className="muted"> · missed: {idea.missed.map((w) => r.words[w]).join(', ')}</span>
                 )}
               </li>
             ))}
