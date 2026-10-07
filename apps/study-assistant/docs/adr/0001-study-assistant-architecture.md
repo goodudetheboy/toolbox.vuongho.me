@@ -353,7 +353,12 @@ most useful passages to read just before the exam, in the note's own words.
   and tries each time it opens. It shows about 5 minutes (≈1000 words) at a
   time; "I have more time, give meow more!" adds the next 5 minutes of the
   same ranked list. The ranking is frozen while the sheet is open: only a
-  change to which text is on the exam rebuilds it.
+  change to which text is on the exam rebuilds it. Popping into a part (the book
+  button) and back keeps the sheet exactly as she left it: the list, the
+  loads, the filter, the encouragement notes and the scroll position all
+  come from an in-memory cache (`lib/cramCache.ts`), with no rebuild.
+  Opening the exam from the Exams tab clears the cache and builds fresh,
+  so new tries count.
 - **"I remember this" ticks are device-local** (`localStorage`, per exam,
   keyed with the part's text hash). They fade the passage but don't skip,
   reorder or sync anything.

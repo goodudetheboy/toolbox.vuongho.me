@@ -1,9 +1,10 @@
-import type { CSSProperties } from 'react';
+import { useEffect, type CSSProperties } from 'react';
 import Biggu from '../components/Biggu';
 import { PettableHead } from '../components/Pettable';
 import { Icon, ScoreStamp, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { signOut } from '../lib/auth';
+import { forgetCramSheets } from '../lib/cramCache';
 import { daysUntil, examNoteCount, sortExams } from '../lib/exams';
 import type { Route } from '../lib/router';
 import type { Exam, Note } from '../lib/types';
@@ -46,6 +47,9 @@ export default function Home({
   admin: boolean;
   navigate: (r: Route, options?: { replace?: boolean }) => void;
 }) {
+  // Opening an exam from here builds its cram sheet fresh (new tries count).
+  useEffect(() => forgetCramSheets(), []);
+
   const pickTab = (next: HomeTab) => {
     if (next === tab) return;
     try {

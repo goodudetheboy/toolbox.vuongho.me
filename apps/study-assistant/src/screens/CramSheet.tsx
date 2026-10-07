@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import vporkFace from '../assets/vpork.webp';
 import Biggu from '../components/Biggu';
 import { ConfirmDialog, Modal } from '../components/Dialog';
@@ -7,6 +7,7 @@ import PartTitle from '../components/PartTitle';
 import { PettableBiggu, PettableHead } from '../components/Pettable';
 import { Icon, Paper, Tape, type TapeColor } from '../components/Scrap';
 import TopBar from '../components/TopBar';
+import { cachedSheet, forgetCramSheets, saveSheet } from '../lib/cramCache';
 import { cheerSlots, VPORK_CHANCE, VPORK_EMAIL } from '../lib/cheer';
 import { countForPages, rankIdeas, RECENT_TRIES, type CramIdea, type CramSort } from '../lib/cram';
 import { daysUntil, examParts, examsStore } from '../lib/exams';
@@ -179,18 +180,24 @@ export default function CramSheet({
   // Only a change to WHICH text is on the exam rebuilds the sheet (not a new score on a note).
   const signature = parts.map(({ note, part }) => `${note.id}/${partId(note, part)}@${textHash(note.chunks[part].markdown)}`).join('|');
 
-  const [ideas, setIdeas] = useState<SheetIdea[] | null>(null);
+  // Back from a part (book button): pick up exactly where she was, without rebuilding.
+  const [restored] = useState(() => cachedSheet<SheetIdea>(exam.id, signature));
+  const [ideas, setIdeas] = useState<SheetIdea[] | null>(restored?.ideas ?? null);
   const [sort, setSort] = useState<CramSort>(savedSort);
-  const [pages, setPages] = useState(1);
+  const [pages, setPages] = useState(restored?.pages ?? 1);
   // Notes hidden by the filter (empty = every note on the exam).
-  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [hidden, setHidden] = useState<Set<string>>(() => restored?.hidden ?? new Set());
   const [filterOpen, setFilterOpen] = useState(false);
   const [ticks, setTicks] = useState(() => loadTicks(exam.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Picked once per visit, so the notes stay put through "give meow more" and re-sorting.
-  const [cheerSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
+  const [cheerSeed] = useState(() => restored?.cheerSeed ?? Math.floor(Math.random() * 2 ** 31));
+  const scrollY = useRef(restored?.scrollY ?? 0);
+  // The text the sheet on screen was built from — set when a build finishes (or restored).
+  const built = useRef(restored?.signature ?? null);
 
   useEffect(() => {
+    if (built.current === signature) return; // already built from this text (e.g. restored)
     let cancelled = false;
     setIdeas(null);
     setPages(1);
@@ -230,13 +237,33 @@ export default function CramSheet({
           });
         }
       });
-      if (!cancelled) setIdeas(out);
+      if (cancelled) return;
+      built.current = signature;
+      setIdeas(out);
     })().catch(() => !cancelled && setIdeas([]));
     return () => {
       cancelled = true;
     };
     // `parts` is derived from `signature`; rebuilding on every note snapshot would reshuffle the sheet.
   }, [signature, user.uid]);
+
+  // Remember the sheet as it is now, for coming back from a part.
+  useEffect(() => {
+    if (ideas) saveSheet(exam.id, { signature, ideas, pages, hidden, cheerSeed, scrollY: scrollY.current });
+  }, [exam.id, signature, ideas, pages, hidden, cheerSeed]);
+  useEffect(() => {
+    const onScroll = () => {
+      scrollY.current = window.scrollY;
+      const s = cachedSheet<SheetIdea>(exam.id, signature);
+      if (s) s.scrollY = window.scrollY;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [exam.id, signature]);
+  // Back at the same spot (before paint, so it doesn't flash at the top first).
+  useLayoutEffect(() => {
+    if (restored) window.scrollTo(0, restored.scrollY);
+  }, [restored]);
 
   const ranked = useMemo(
     () => (ideas ? rankIdeas(hidden.size ? ideas.filter((x) => !hidden.has(x.noteId)) : ideas, sort) : []),
@@ -382,7 +409,11 @@ export default function CramSheet({
                           className="cram-open"
                           aria-label={t.openPart(x.source)}
                           title={x.source}
-                          onClick={() => navigate({ name: 'chunk', noteId: x.noteId, index: x.part, highlight: [x.start, x.end] })}
+                          onClick={() => {
+                            const s = cachedSheet<SheetIdea>(exam.id, signature);
+                            if (s) s.scrollY = window.scrollY;
+                            navigate({ name: 'chunk', noteId: x.noteId, index: x.part, highlight: [x.start, x.end] });
+                          }}
                         >
                           <Icon name="book" size={20} />
                         </button>
@@ -432,6 +463,7 @@ export default function CramSheet({
         mood="sleepy"
         onConfirm={async () => {
           await examsStore.remove(user.uid, exam.id);
+          forgetCramSheets(exam.id);
           clearTicks(exam.id);
           setConfirmDelete(false);
           onBack();
