@@ -429,9 +429,10 @@ under reduced motion).
   A tap during a purr does nothing, so purrs never stack.
 - The mic must never hear it: the part screen stops any purr the moment
   recitation starts.
-- `src/assets/purr.m4a`: 4 s cut from the user's 48 s phone recording of
-  Biggu (24.5–28.5 s, the steadiest stretch with no handling bumps). It's
-  high-passed at 80 Hz, since its energy is 60–400 Hz and phones can't play
-  the rumble, then leveled to −3 dBFS peak with 0.4 s / 0.9 s fades. AAC
-  64 kb/s mono for iOS, 34 KB, and precached for offline. The source
-  recording isn't committed.
+- `src/assets/purr.m4a`: 10 s cut from the user's 48 s phone recording of
+  Biggu (19–29 s, the longest stretch clear of handling bumps; the user
+  found the first 4 s cut too short). It's high-passed at 80 Hz, since its
+  energy is 60–400 Hz and phones can't play the rumble. A slow 1 s leveler
+  (±9 dB) evens out its swell, then it's normalized to −3 dBFS peak with
+  0.6 s / 1.5 s fades. AAC 64 kb/s mono for iOS, 83 KB, and precached for
+  offline. The source recording isn't committed.

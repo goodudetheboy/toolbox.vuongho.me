@@ -1,7 +1,7 @@
 import purrUrl from '../assets/purr.m4a?url';
 
 // Biggu's purr, played when she taps (pets) him. Only ever on a tap, never automatically, and
-// never stacked: a tap while he's still purring does nothing. The clip is 4 s of the real Biggu
+// never stacked: a tap while he's still purring does nothing. The clip is 10 s of the real Biggu
 // (trimmed, high-passed and leveled from a phone recording; see the ADR addendum "tap to pet").
 
 let audio: HTMLAudioElement | null = null;
