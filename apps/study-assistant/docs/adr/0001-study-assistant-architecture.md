@@ -359,6 +359,11 @@ most useful passages to read just before the exam, in the note's own words.
   reorder or sync anything.
   The sheet's ⋯ menu has "Uncheck all" (shown only while something on the
   sheet is checked), which clears them for that exam.
+- **Note filter:** chips under the sort toggle ("All notes" plus one per
+  note on the exam, shown when there's more than one) narrow the sheet to
+  one note. That's the same ranking filtered to that note, and switching
+  starts again at the first 5 minutes. It's on the sheet itself, not in
+  the ⋯ menu, at the user's request.
 - **UI:** Home gets "My notes | Exams" tabs, and the last-used tab is
   remembered. Exams are calendar polaroids. The exam form has a note
   search, and its parts count opens a per-part picker. The note page's ⋯

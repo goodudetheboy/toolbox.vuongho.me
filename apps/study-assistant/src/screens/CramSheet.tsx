@@ -107,6 +107,8 @@ export default function CramSheet({
   const [ideas, setIdeas] = useState<SheetIdea[] | null>(null);
   const [sort, setSort] = useState<CramSort>(savedSort);
   const [pages, setPages] = useState(1);
+  // Show one note's ideas only (null = all notes on the exam).
+  const [onlyNote, setOnlyNote] = useState<string | null>(null);
   const [ticks, setTicks] = useState(() => loadTicks(exam.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Picked once per visit, so the notes stay put through "give meow more" and re-sorting.
@@ -160,7 +162,22 @@ export default function CramSheet({
     // `parts` is derived from `signature`; rebuilding on every note snapshot would reshuffle the sheet.
   }, [signature, user.uid]);
 
-  const ranked = useMemo(() => (ideas ? rankIdeas(ideas, sort) : []), [ideas, sort]);
+  const ranked = useMemo(
+    () => (ideas ? rankIdeas(onlyNote ? ideas.filter((x) => x.noteId === onlyNote) : ideas, sort) : []),
+    [ideas, sort, onlyNote],
+  );
+  // The exam's notes that have something on the sheet, in exam order — the filter's chips.
+  const sheetNotes = useMemo(() => {
+    const ids = new Set(ideas?.map((x) => x.noteId));
+    return exam.notes.flatMap((p) => {
+      const note = notes.find((n) => n.id === p.noteId);
+      return note && ids.has(note.id) ? [note] : [];
+    });
+  }, [ideas, exam.notes, notes]);
+  // A filtered-out note that's gone from the exam (edited meanwhile) falls back to all notes.
+  useEffect(() => {
+    if (onlyNote && !sheetNotes.some((n) => n.id === onlyNote)) setOnlyNote(null);
+  }, [onlyNote, sheetNotes]);
   const shown = ranked.slice(0, countForPages(ranked, pages));
   // Dev only: the mock build can force Vpork with #vpork in the URL.
   const vporkChance = MOCK && window.location.hash === '#vpork' ? 1 : VPORK_CHANCE;
@@ -246,6 +263,28 @@ export default function CramSheet({
               ))}
             </div>
           </div>
+
+          {sheetNotes.length > 1 && (
+            <div className="chips cram-filter" role="radiogroup" aria-label={t.filterNotes}>
+              {[null, ...sheetNotes].map((n) => {
+                const id = n?.id ?? null;
+                return (
+                  <button
+                    key={id ?? 'all'}
+                    role="radio"
+                    aria-checked={onlyNote === id}
+                    className={`chip ${onlyNote === id ? 'on' : ''}`}
+                    onClick={() => {
+                      setOnlyNote(id);
+                      setPages(1);
+                    }}
+                  >
+                    {n ? n.title : t.allNotes}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="cram-list">
             {shown.map((x, i) => {

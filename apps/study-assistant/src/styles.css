@@ -2430,3 +2430,16 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
     animation: none;
   }
 }
+
+/* Note filter under the sort toggle: one chip per note on the exam. */
+.cram-filter {
+  justify-content: center;
+  margin: -12px 0 26px;
+}
+
+.cram-filter .chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
