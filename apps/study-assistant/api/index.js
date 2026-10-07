@@ -1,7 +1,7 @@
 // toolbox-study-assistant-api — the only place the Gemini API key lives.
 //
 // Every endpoint requires a Firebase ID token from an allowlisted, verified
-// email (ALLOWED_EMAILS). The browser never sees the key: text work goes
+// email (ALLOWED_EMAILS, plus emails added on the admin page). The browser never sees the key: text work goes
 // through these endpoints, and the live microphone stream connects straight to
 // Gemini with a short-lived single-use token minted by /live-token.
 // See apps/study-assistant/docs/adr/0001-study-assistant-architecture.md.
@@ -10,6 +10,7 @@ import http from 'node:http';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import { cleanMarkdown, gradeIdeas, sequenceSimilarity, words, sanitizeIdeas, sanitizeTags } from './text.js';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -417,6 +418,23 @@ Return one entry per part with "part" set to its number.`,
 
 const ROUTES = { '/prepare': prepare, '/live-token': liveToken, '/speak': speak, '/hint': hint, '/score': score, '/tag': tag };
 
+// Emails added on the admin page (Firestore config/access), on top of ALLOWED_EMAILS. Cached for
+// a minute; if a refresh fails the last good list keeps working.
+const ADDED_TTL_MS = 60_000;
+let added = { emails: [], at: 0 };
+async function addedEmails() {
+  if (Date.now() - added.at < ADDED_TTL_MS) return added.emails;
+  try {
+    const snap = await getFirestore('toolbox-study-assistant').doc('config/access').get();
+    const emails = (snap.get('emails') || []).map((e) => String(e).toLowerCase());
+    added = { emails, at: Date.now() };
+  } catch (err) {
+    console.error('config/access', err);
+    added.at = Date.now() - ADDED_TTL_MS / 2; // retry in 30 s rather than on every request
+  }
+  return added.emails;
+}
+
 async function authenticate(req) {
   const header = req.headers.authorization || '';
   const idToken = header.startsWith('Bearer ') ? header.slice(7) : '';
@@ -428,7 +446,8 @@ async function authenticate(req) {
     throw new HttpError(401, 'Invalid sign-in');
   }
   const email = (decoded.email || '').toLowerCase();
-  if (!decoded.email_verified || !ALLOWED_EMAILS.includes(email)) throw new HttpError(403, 'Not allowed');
+  if (!decoded.email_verified) throw new HttpError(403, 'Not allowed');
+  if (!ALLOWED_EMAILS.includes(email) && !(await addedEmails()).includes(email)) throw new HttpError(403, 'Not allowed');
   return email;
 }
 

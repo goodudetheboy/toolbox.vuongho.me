@@ -453,3 +453,26 @@ under reduced motion).
   (±9 dB) evens out its swell, then it's normalized to −3 dBFS peak with
   0.6 s / 1.5 s fades. AAC 64 kb/s mono for iOS, 83 KB, and precached for
   offline. The source recording isn't committed.
+
+## Addendum 2026-10-07 — managing access from the admin page
+
+Who can sign in used to be a hard-coded list in `firestore.rules` and the
+API's `ALLOWED_EMAILS`, so adding someone took a code change and a deploy.
+Now:
+
+- **Built-in:** hochivuong2002@gmail.com and tling241004@gmail.com stay
+  hard-coded in both places and are always allowed, so the admin can't lock
+  anyone (or themselves) out.
+- **Added:** the admin page's Access tab (`/admin/access`,
+  `screens/AdminAccess.tsx`, `lib/access.ts`) adds and removes emails in
+  Firestore `config/access { emails, updatedAt, updatedBy }`. Only the
+  admin can read or write that document.
+- `firestore.rules` `allowed()` = built-in, or `exists` + `get()` of
+  `config/access` with the email in it. The `get()` is only evaluated for
+  non-built-in users.
+- The API allows `ALLOWED_EMAILS` plus `config/access`, read through
+  firebase-admin and cached for 60 s (on a failed read the last good list
+  stays). So a newly added person can open the app at once, and practice
+  (hints, grading) starts working within a minute. The Cloud Run service
+  account already has Editor, which covers the read.
+- Removing an email blocks sign-in. Their notes stay in Firestore.

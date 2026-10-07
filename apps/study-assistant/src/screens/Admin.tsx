@@ -8,8 +8,9 @@ import { t } from '../strings';
 import AdminFeedback from './AdminFeedback';
 
 const AdminUsage = lazy(() => import('./AdminUsage'));
+const AdminAccess = lazy(() => import('./AdminAccess'));
 
-const TABS: AdminTab[] = ['feedback', 'usage'];
+const TABS: AdminTab[] = ['feedback', 'usage', 'access'];
 
 /**
  * Admin page (/study-assistant/admin[/usage]): Feedback and Usage tabs. Only shown to
@@ -59,9 +60,7 @@ export default function Admin({
           {tab === 'feedback' ? (
             <AdminFeedback user={user} />
           ) : (
-            <Suspense fallback={loading}>
-              <AdminUsage user={user} />
-            </Suspense>
+            <Suspense fallback={loading}>{tab === 'usage' ? <AdminUsage user={user} /> : <AdminAccess user={user} />}</Suspense>
           )}
         </>
       )}

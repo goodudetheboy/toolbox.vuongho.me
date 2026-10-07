@@ -2475,3 +2475,64 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
 .exam-picks.with-search {
   max-height: max(120px, calc(100dvh - 400px));
 }
+
+/* Admin: Access tab */
+.access-add label {
+  display: block;
+}
+
+.access-row {
+  display: flex;
+  gap: 8px;
+}
+
+.access-row .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.access-row .btn {
+  min-height: 48px;
+}
+
+.access-problem {
+  margin: 8px 0 0;
+}
+
+.access-note {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+}
+
+.access-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.access-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.access-list li + li {
+  border-top: 2px dashed var(--paper-line);
+}
+
+.access-email {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.access-tag {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--sky);
+  color: var(--sky-ink);
+}

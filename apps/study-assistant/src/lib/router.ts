@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 // apps share no code). Firebase Hosting rewrites every `/study-assistant/**`
 // miss to this app's index.html, so deep links survive a reload.
 
-export type AdminTab = 'feedback' | 'usage';
+export type AdminTab = 'feedback' | 'usage' | 'access';
 
 export type Route =
   | { name: 'home' }
@@ -63,7 +63,7 @@ export function parseRoute(pathname: string, search = ''): Route {
     if (parts.length === 2) return { name: 'exam', examId };
     if (parts.length === 3 && parts[2] === 'edit') return { name: 'editExam', examId };
   }
-  if (parts[0] === 'admin' && parts.length <= 2) return { name: 'admin', tab: parts[1] === 'usage' ? 'usage' : 'feedback' };
+  if (parts[0] === 'admin' && parts.length <= 2) return { name: 'admin', tab: parts[1] === 'usage' || parts[1] === 'access' ? parts[1] : 'feedback' };
   if (parts[0] === 'n' && parts[1]) {
     const noteId = decodeURIComponent(parts[1]);
     const n = Number.parseInt(parts[2] ?? '', 10);

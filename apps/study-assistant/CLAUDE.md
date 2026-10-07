@@ -59,8 +59,11 @@ cd apps/study-assistant/api && GEMINI_API_KEY=… ALLOWED_EMAILS=you@x.com npm s
 
 Model ids live in env vars on the Cloud Run service (`TEXT_MODEL`,
 `LIVE_MODEL`, `TTS_MODEL`, `TTS_VOICE`); defaults in `api/index.js`.
-Allowed emails live in two places that must match: `firestore.rules` and
-`ALLOWED_EMAILS` in the root `.github/workflows/deploy.yml`.
+Who can sign in: two built-in accounts, hard-coded in `firestore.rules` and in
+`ALLOWED_EMAILS` in the root `.github/workflows/deploy.yml` (keep those two in sync),
+plus any emails added on the admin page's Access tab (`/admin/access`). Those are
+stored in Firestore `config/access`, which both the rules and the API read
+(`src/lib/access.ts`).
 
 ## Docs
 

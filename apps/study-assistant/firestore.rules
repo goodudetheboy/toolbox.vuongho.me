@@ -2,19 +2,32 @@ rules_version = '2';
 
 // study-assistant (database `toolbox-study-assistant`): each user reads and writes
 // only their own notes, and only allowlisted, verified Google accounts get in.
-// Keep this list in sync with ALLOWED_EMAILS in .github/workflows/deploy.yml.
+// The allowlist is the two built-in accounts below (keep in sync with ALLOWED_EMAILS in
+// .github/workflows/deploy.yml) plus the emails the admin adds on the admin page's Access
+// tab, stored in config/access. The API reads the same document.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function access() {
+      return /databases/$(database)/documents/config/access;
+    }
+
     function allowed() {
       return request.auth != null &&
         request.auth.token.email_verified == true &&
-        request.auth.token.email in ['hochivuong2002@gmail.com', 'tling241004@gmail.com'];
+        (request.auth.token.email in ['hochivuong2002@gmail.com', 'tling241004@gmail.com'] ||
+          (exists(access()) && request.auth.token.email in get(access()).data.emails));
     }
 
     // The admin page (/study-assistant/admin) reads everyone's feedback. Keep in sync
     // with ADMIN_EMAIL in src/lib/feedback.ts.
     function admin() {
       return allowed() && request.auth.token.email == 'hochivuong2002@gmail.com';
+    }
+
+    // The added emails (admin page, Access tab). Only the admin reads or edits it; the
+    // rules above read it through get(), which doesn't need read access.
+    match /config/access {
+      allow read, write: if admin();
     }
 
     // Profile (email, name, last seen, app opens) — for the admin page's usage tab.
