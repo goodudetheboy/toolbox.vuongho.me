@@ -2324,9 +2324,14 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
 .exam-picks {
   list-style: none;
   margin: 0 0 6px;
-  padding: 0;
+  padding: 2px; /* room for the rows' outlines inside the scroll box */
   display: grid;
   gap: 8px;
+  /* A long list scrolls inside the card, so the title, Biggu and buttons stay on screen
+     (the dialog itself can't scroll: it's overflow: visible for Biggu to peek over it). */
+  max-height: max(140px, calc(100dvh - 330px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .exam-picks button {
