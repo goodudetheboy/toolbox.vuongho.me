@@ -518,3 +518,15 @@ rule already lets her write), with a localStorage copy so it's known
 instantly. If the profile can't be read, it counts as seen, so the cards
 don't come back on every launch. Existing users who haven't seen them get
 them once.
+
+## Addendum 2026-10-07 — Biggu's chin and throat
+
+The real Biggu has a white chin with only a light peachy-orange tint on the
+throat below it. He has no white bib, but every illustration had one, because
+the style reference did. Instead of redrawing everything, each existing sticker
+and head, the app icon's head, and `art/style-ref.png` itself were sent to
+Gemini as an image edit ("change only the throat; keep everything else") with
+the user's photo `art/biggu-photo-2.jpg` (`art/fix-throat.sh`, with
+`fix_prep.py` / `fix_post.py`). That kept the poses and faces exactly.
+`generate.sh`'s description of him is corrected too, so future drawings start
+right.

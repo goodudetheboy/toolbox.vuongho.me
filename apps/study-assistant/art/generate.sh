@@ -9,7 +9,7 @@ OUT=${OUT:-/tmp/biggu-raw}; mkdir -p "$OUT"
 export GEMINI_API_KEY=${GEMINI_API_KEY:-$(gcloud secrets versions access latest --secret study-assistant-gemini-key --project vuonghome)}
 
 STYLE="Keep exactly the same cat, same drawing style and same paper-cutout look as the first reference image (the illustration): colored-pencil / gouache texture, visible paper grain, hand-drawn semi-realistic — not a photo, not 3D, not chibi. The whole figure (and any small props) is cut out with a thick, slightly imperfect hand-cut WHITE paper border around the silhouette, like a cutout glued into a collage. IMPORTANT: the background must be a perfectly flat, uniform pure chroma-key green (#00FF00) filling everything outside the white border — no drop shadow, no gradient, no texture, no floor, no text. Centered with a little green margin on all sides."
-CAT="The cat (see the second reference photo) is a brown-grey mackerel tabby with dark stripes, a bold M on the forehead, pale green eyes, pinkish-terracotta nose, white chin and white throat patch, large upright ears."
+CAT="The cat (see the second reference photo) is a brown-grey mackerel tabby with dark stripes, a bold M on the forehead, pale green eyes, pinkish-terracotta nose, a white chin with only a very faint, light peachy-orange tint on the throat just below it (no white bib or chest patch), large upright ears."
 declare -A POSE=(
   [wave]="Full body, sitting upright facing the viewer, one front paw raised in a friendly wave, gentle smile."
   [read]="Full body, sitting and holding a small open book with both front paws, eyes looking down at the pages, calm and focused."
