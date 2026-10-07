@@ -43,7 +43,8 @@ One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).
 - `src/components/Biggu.tsx` — the mascot, one illustration per mood
   (`src/assets/biggu/`); regenerate with `art/generate.sh`.
 - `src/components/GuideCards.tsx` + `src/lib/guide.ts` — "How it works" cards
-  (empty Home, first sign-in, account menu); seen-flag on the profile.
+  (empty Home, first sign-in, account menu); seen-flag on the profile. Pictures in
+  `src/assets/guide/`, made by `art/guide.sh`.
 - `src/strings.ts` — all UI text (English).
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/study-assistant/`),
   `src/components/UpdateToast.tsx` (registers the worker, offers updates —

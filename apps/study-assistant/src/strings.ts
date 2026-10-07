@@ -8,12 +8,13 @@ export const t = {
   sendFeedback: 'Send feedback',
   howItWorks: 'How it works',
   guide: {
+    // **word** = yellow highlighter; {said|…} {hinted|…} {missed|…} = the result colors.
     cards: [
-      { title: 'Add a note', text: 'Paste text, upload a PDF or Word file, or take photos. Biggu splits it into short parts.' },
-      { title: 'Read, then say it out loud', text: 'Tap Practice and recite the part from memory.' },
-      { title: 'Stuck? Pause', text: 'After about 3 seconds Biggu gives you a hint. Or tap Hint.' },
-      { title: 'See what you missed', text: 'Green: you got it. Yellow: hinted. Red: missed. Your scores are saved, so you can track your progress.' },
-      { title: 'Exam coming up?', text: 'Make an exam cram sheet from your notes. Biggu picks what you most need to reread.' },
+      { title: 'Add a note', text: '**Paste** text, upload a **PDF or Word** file, or **take photos**. Biggu cuts it into short parts.' },
+      { title: 'Read, then say it out loud', text: 'Read a part, tap **Practice**, then say it **from memory**.' },
+      { title: 'Stuck? Pause', text: 'Wait about **3 seconds** and Biggu gives you a **hint**. Or tap **Hint** yourself.' },
+      { title: 'See what you missed', text: '{said|Green}: you got it. {hinted|Yellow}: hinted. {missed|Red}: missed. Every score is saved, so you can watch yourself improve.' },
+      { title: 'Exam coming up?', text: 'Make an **exam cram sheet** from your notes. Biggu picks what you most need to reread.' },
     ],
     purr: 'Tap him for a purr!',
     skip: 'Skip',

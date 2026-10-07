@@ -492,8 +492,16 @@ Messages tab, and the old "Feedback" tab (session ratings) is now labelled
 ## Addendum 2026-10-07 — "How it works" cards
 
 Five swipeable taped cards (`components/GuideCards.tsx`): add a note, recite,
-pause for a hint, colors and scores, exam cram sheets. Each card has one idea
-and its own Biggu pose; the last Biggu can be petted. Swiping is native
+pause for a hint, colors and scores, exam cram sheets. Each card has one idea.
+Its picture is a scrapbook collage (`src/assets/guide/`, made with Gemini by
+`art/guide.sh` from the Biggu style references plus a screenshot of the real
+screen): a hand-drawn phone showing that screen, with **Biggu as the student**
+holding it, reciting to it and tapping Hint. There are no people in them: a
+drawn girl came out as a different person in every image, and the user chose
+Biggu instead. The words sit on a crooked lined-paper scrap with a numbered
+sticker; key words get the notes' yellow highlighter, and the colors card uses
+the result screen's green, yellow and red. Tapping the last picture makes Biggu
+purr. On short phones the picture shrinks so Skip / Next stay on screen. Swiping is native
 horizontal scroll-snap, with dots and Skip / Next below. We chose this over a
 help page (long text isn't read on a phone) and over a tooltip tour of the real
 screens (it breaks whenever the layout changes). They show up in three places:

@@ -2654,36 +2654,98 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   scroll-snap-align: center;
   scroll-snap-stop: always;
   /* room for the tape above and the tilt/shadow at the sides */
-  padding: 22px 28px 12px;
+  padding: 22px 20px 12px;
 }
 
 .guide-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  max-width: 420px;
+  max-width: 440px;
   margin: 0 auto;
-  padding-top: 30px;
+  padding: 22px 14px 18px;
+}
+
+.guide-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  /* shrink on short phones so Skip / Next stay on screen */
+  max-height: max(120px, calc(100dvh - 500px));
+}
+
+.guide-pet {
+  display: block;
+  width: 100%;
+}
+
+/* The words: a lined scrap of notebook paper, slightly crooked, with a round step sticker. */
+.guide-note {
+  position: relative;
+  margin: 8px 4px 0;
+  padding: 10px 16px 8px 52px;
+  /* every line of text (title included) is 32px tall, sitting on a ruled line */
+  background: repeating-linear-gradient(#fff, #fff 31px, var(--paper-line) 31px, var(--paper-line) 32px);
+  background-position: 0 9px;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(59, 91, 122, 0.16);
+  transform: rotate(0.8deg);
+}
+
+.guide-slide:nth-child(even) .guide-note {
+  transform: rotate(-0.8deg);
+}
+
+.guide-step {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sky-deep);
+  color: #fff;
+  font-size: 1.3rem;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--outline);
+  transform: rotate(-8deg);
 }
 
 .guide-title {
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   font-weight: 400;
-  margin: 8px 0 4px;
-}
-
-.guide-text {
-  font-size: 1.2rem;
-  font-weight: 600;
-  line-height: 1.55;
+  line-height: 32px;
   margin: 0;
 }
 
+.guide-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 32px;
+  margin: 0;
+}
+
+.guide-text strong {
+  background: linear-gradient(transparent 55%, var(--yellow) 55%);
+  font-weight: 800;
+}
+
+.guide-word {
+  font-weight: 800;
+  padding: 0 4px;
+  border-radius: 5px;
+}
+
+.guide-word.w-missed {
+  text-decoration: none;
+}
+
 .guide-purr {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   color: var(--sky-ink);
-  margin: 10px 0 0;
+  line-height: 32px;
+  margin: 0;
 }
 
 .guide-dots {

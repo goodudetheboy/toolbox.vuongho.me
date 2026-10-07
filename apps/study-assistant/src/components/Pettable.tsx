@@ -6,7 +6,7 @@ import Biggu, { type BigguMood } from './Biggu';
 import { RandomBigguHead } from './Scrap';
 
 /** Tap → purr; `purring` is true while it plays. Ends cleanly if the component goes away mid-purr. */
-function usePet() {
+export function usePet() {
   const [purring, setPurring] = useState(false);
   const alive = useRef(true);
   useEffect(() => {

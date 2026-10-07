@@ -7,7 +7,7 @@ const parts = refs.map(f => ({ inlineData: { mimeType: f.endsWith('.png') ? 'ima
 parts.push({ text: prompt });
 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
   method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-  body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } } }),
+  body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: process.env.ASPECT || '1:1' } } }),
 });
 const j = await r.json();
 const img = j.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
