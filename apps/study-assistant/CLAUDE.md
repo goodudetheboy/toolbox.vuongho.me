@@ -30,7 +30,8 @@ One-time cloud setup (console clicks): [docs/SETUP.md](docs/SETUP.md).
 - `src/lib/mic.ts` (AudioWorklet → 16 kHz PCM), `live.ts` (Gemini Live with
   ephemeral token), `sound.ts` (plays hint audio), `api.ts`, `notes.ts`
   (Firestore: notes + per-part attempt subcollections, paged; see the
-  storage comment at its top), `importNote.ts` (files → /prepare input).
+  storage comment at its top; per-part data is keyed by `partId()`, never
+  by position), `importNote.ts` (files → /prepare input).
 - `src/screens/Progress.tsx` — a part's paginated try history.
 - Exams + cram sheets (ADR 0001 addendum 2026-10-07): `src/lib/exams.ts`
   (store), `tags.ts` (Gemini importance tags per part, hash-checked),

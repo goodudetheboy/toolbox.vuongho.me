@@ -10,7 +10,7 @@ import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { saveFeedback, sessionContext } from '../lib/feedback';
 import { clearHighlight, highlightWords } from '../lib/highlight';
-import { notesStore } from '../lib/notes';
+import { notesStore, partId } from '../lib/notes';
 import { encodeMarks, textHash } from '../lib/marks';
 import { HINT_LIMITS, useHintLimit } from '../lib/settings';
 import type { Route } from '../lib/router';
@@ -273,6 +273,7 @@ export default function Study({
                 attemptId,
                 note,
                 part: index,
+                partId: partId(note, index),
                 partTitle: chunk.title,
                 markdown: chunk.markdown,
                 words: tokens.map((tk) => tk.display),

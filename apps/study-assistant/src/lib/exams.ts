@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
+import { partId } from './notes';
 import type { Exam, NewExam, Note } from './types';
 
 // Exams live at users/{uid}/exams/{examId}: a name, a date and which notes (or parts) they cover.
@@ -93,14 +94,19 @@ export function sortExams(exams: Exam[], now = new Date()): Exam[] {
   });
 }
 
+/** A pick's part ids (exams saved before part ids hold positions; their fallback ids match). */
+export const pickedIds = (pick: Exam['notes'][number]): string[] | null => pick.parts?.map(String) ?? null;
+
 /** The exam's parts that still exist, in exam order (deleted notes/parts are skipped). */
 export function examParts(exam: Exam, notes: Note[]): { note: Note; part: number }[] {
   const out: { note: Note; part: number }[] = [];
   for (const pick of exam.notes) {
     const note = notes.find((n) => n.id === pick.noteId);
     if (!note) continue;
-    const parts = pick.parts ?? note.chunks.map((_, i) => i);
-    for (const part of parts) if (note.chunks[part]) out.push({ note, part });
+    const ids = pickedIds(pick);
+    note.chunks.forEach((_, i) => {
+      if (!ids || ids.includes(partId(note, i))) out.push({ note, part: i });
+    });
   }
   return out;
 }
@@ -108,13 +114,14 @@ export function examParts(exam: Exam, notes: Note[]): { note: Note; part: number
 /** How many of the exam's notes still exist. */
 export const examNoteCount = (exam: Exam, notes: Note[]) => exam.notes.filter((p) => notes.some((n) => n.id === p.noteId)).length;
 
-/** After part `index` of a note is deleted: renumber exams that picked specific parts of it. */
-export async function dropPartFromExams(uid: string, exams: Exam[], noteId: string, index: number): Promise<void> {
+/** After a part is deleted: take it off exams that picked it (an exam left with none of the note drops it). */
+export async function dropPartFromExams(uid: string, exams: Exam[], noteId: string, id: string): Promise<void> {
   await Promise.all(
     exams.map((exam) => {
       const pick = exam.notes.find((p) => p.noteId === noteId);
-      if (!pick?.parts) return null; // whole note (or not on it): nothing to renumber
-      const parts = pick.parts.filter((i) => i !== index).map((i) => (i > index ? i - 1 : i));
+      const ids = pick && pickedIds(pick);
+      if (!ids?.includes(id)) return null; // whole note, or not picked: nothing to change
+      const parts = ids.filter((x) => x !== id);
       const notes = parts.length
         ? exam.notes.map((p) => (p.noteId === noteId ? { noteId, parts } : p))
         : exam.notes.filter((p) => p.noteId !== noteId);

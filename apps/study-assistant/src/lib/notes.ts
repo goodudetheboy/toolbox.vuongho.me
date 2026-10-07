@@ -15,16 +15,19 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
-import { deleteTags, shiftTagsAfterDelete } from './tags';
+import { deleteTags } from './tags';
 import type { Attempt, Chunk, NewNote, Note } from './types';
 
+// Parts are identified by Chunk.id, not position (see partId), so per-part data never has to
+// move: attempts and exam tags live under parts/{partId}.
+//
 // All of a user's notes live under users/{uid}/notes/{noteId}; each note keeps its
 // chunks (titles, text, last/best score, try count) inline — one small document per
 // note keeps the home list a single listener.
 //
 // Recitation attempts do NOT live on the note: they grow without bound, and every
 // change to a note re-sends the whole note document to every open listener. They're
-// separate documents at users/{uid}/notes/{noteId}/parts/{part}/attempts/{id},
+// separate documents at users/{uid}/notes/{noteId}/parts/{partId}/attempts/{id},
 // only fetched a page at a time when she opens a part's progress screen
 // (single-field `at` ordering, so no composite index is needed).
 
@@ -37,21 +40,31 @@ interface NotesStore {
   /** Saves a finished recitation of part `index` as attempt `id`: its own document plus the part's last/best/tries. */
   recordAttempt(uid: string, note: Note, index: number, attempt: Attempt, id: string): Promise<void>;
   /** Up to `size + 1` attempts of one part, newest first, older than `before` (an `at`) when given. */
-  pageAttempts(uid: string, noteId: string, part: number, size: number, before?: number): Promise<Attempt[]>;
+  pageAttempts(uid: string, noteId: string, partId: string, size: number, before?: number): Promise<Attempt[]>;
   /** Moves history stored on the note by older versions into attempt documents. Idempotent. */
   migrateLegacyHistory(uid: string, note: Note): Promise<void>;
   updateNote(uid: string, id: string, patch: Partial<Pick<Note, 'title' | 'chunks'>>): Promise<void>;
   deleteNote(uid: string, note: Note): Promise<void>;
-  /**
-   * Deletes part `index` (never the only one). Per-part data is stored by part number, so the
-   * later parts' attempts and exam tags move down one. The note is updated first, so what she
-   * sees is right at once; the rest follows.
-   */
+  /** Deletes part `index` (never the only one) with its attempts and exam tags. Nothing else moves. */
   deleteChunk(uid: string, note: Note, index: number): Promise<void>;
 }
 
+/** A part's permanent id; parts saved before ids existed fall back to their position. */
+export const partId = (note: Pick<Note, 'chunks'>, index: number): string => note.chunks[index]?.id ?? String(index);
+
+/** A fresh id for a new part. */
+export const newPartId = (): string => Math.random().toString(36).slice(2, 10);
+
+/**
+ * Chunks with every id filled in. Called on every write of the chunks array, so old notes keep
+ * their position-based ids for good, before anything can change their positions.
+ */
+function withIds(chunks: Chunk[]): Chunk[] {
+  return chunks.map((c, i) => (c.id ? c : { ...c, id: String(i) }));
+}
+
 function withChunkPatch(note: Note, index: number, patch: Partial<Chunk>): Chunk[] {
-  return note.chunks.map((c, i) => (i === index ? { ...c, ...patch } : c));
+  return withIds(note.chunks).map((c, i) => (i === index ? { ...c, ...patch } : c));
 }
 
 function scorePatch(c: Chunk | undefined, a: Attempt): Partial<Chunk> {
@@ -77,15 +90,15 @@ function legacyByPart(note: Note): Map<number, Attempt[]> {
 
 /** The note's chunks with old history stripped and try counts bumped by what was moved out. */
 function migratedChunks(note: Note, moved: Map<number, Attempt[]>): Chunk[] {
-  return note.chunks.map((c, i) => {
+  return withIds(note.chunks).map((c, i) => {
     const { history: _drop, ...rest } = c;
     const n = moved.get(i)?.length ?? 0;
     return n ? { ...rest, tries: (c.tries ?? 0) + n } : rest;
   });
 }
 
-const attemptsCol = (uid: string, noteId: string, part: number) =>
-  collection(db, 'users', uid, 'notes', noteId, 'parts', String(part), 'attempts');
+const attemptsCol = (uid: string, noteId: string, partId: string) =>
+  collection(db, 'users', uid, 'notes', noteId, 'parts', partId, 'attempts');
 
 const firestoreStore: NotesStore = {
   subscribeNotes(uid, cb, onError) {
@@ -98,7 +111,8 @@ const firestoreStore: NotesStore = {
   },
   async createNote(uid, note) {
     const now = Date.now();
-    const ref = await addDoc(collection(db, 'users', uid, 'notes'), { ...note, createdAt: now, updatedAt: now });
+    const chunks = note.chunks.map((c) => (c.id ? c : { ...c, id: newPartId() }));
+    const ref = await addDoc(collection(db, 'users', uid, 'notes'), { ...note, chunks, createdAt: now, updatedAt: now });
     return ref.id;
   },
   async updateChunk(uid, note, index, patch) {
@@ -109,7 +123,7 @@ const firestoreStore: NotesStore = {
   },
   async recordAttempt(uid, note, index, attempt, id) {
     const batch = writeBatch(db);
-    batch.set(doc(attemptsCol(uid, note.id, index), id), attempt);
+    batch.set(doc(attemptsCol(uid, note.id, partId(note, index)), id), attempt);
     batch.update(doc(db, 'users', uid, 'notes', note.id), {
       chunks: withChunkPatch(note, index, scorePatch(note.chunks[index], attempt)),
       updatedAt: Date.now(),
@@ -130,7 +144,8 @@ const firestoreStore: NotesStore = {
     const moved = legacyByPart(note);
     const batch = writeBatch(db); // a few dozen writes at most — well under the 500 cap
     // Deterministic ids, so a migration that runs twice (two tabs) doesn't duplicate tries.
-    for (const [part, list] of moved) for (const a of list) batch.set(doc(attemptsCol(uid, note.id, part), `legacy-${a.at}`), a);
+    for (const [part, list] of moved)
+      for (const a of list) batch.set(doc(attemptsCol(uid, note.id, partId(note, part)), `legacy-${a.at}`), a);
     batch.update(doc(db, 'users', uid, 'notes', note.id), { chunks: migratedChunks(note, moved), history: deleteField() });
     await batch.commit();
   },
@@ -140,43 +155,31 @@ const firestoreStore: NotesStore = {
   async deleteNote(uid, note) {
     // Firestore doesn't delete subcollections with their parent — clear each part's attempts first.
     for (let i = 0; i < note.chunks.length; i++) {
-      const snap = await getDocs(attemptsCol(uid, note.id, i));
+      const snap = await getDocs(attemptsCol(uid, note.id, partId(note, i)));
       for (let j = 0; j < snap.docs.length; j += 400) {
         const batch = writeBatch(db);
         snap.docs.slice(j, j + 400).forEach((d) => batch.delete(d.ref));
         await batch.commit();
       }
     }
-    await deleteTags(uid, note.id, note.chunks.length);
+    await deleteTags(uid, note.id, note.chunks.map((_, i) => partId(note, i)));
     await deleteDoc(doc(db, 'users', uid, 'notes', note.id));
   },
   async deleteChunk(uid, note, index) {
-    const total = note.chunks.length;
-    if (total < 2 || !note.chunks[index]) return;
+    if (note.chunks.length < 2 || !note.chunks[index]) return;
+    const id = partId(note, index);
+    // withIds first: the other old parts keep their position-based ids even though positions shift.
     await updateDoc(doc(db, 'users', uid, 'notes', note.id), {
-      chunks: note.chunks.filter((_, i) => i !== index),
+      chunks: withIds(note.chunks).filter((_, i) => i !== index),
       updatedAt: Date.now(),
     });
-    // This part's tries go; each later part's tries move to the part number before it.
-    const commit = async (ops: ((b: ReturnType<typeof writeBatch>) => void)[]) => {
-      for (let j = 0; j < ops.length; j += 400) {
-        const batch = writeBatch(db);
-        ops.slice(j, j + 400).forEach((op) => op(batch));
-        await batch.commit();
-      }
-    };
-    const gone = await getDocs(attemptsCol(uid, note.id, index));
-    await commit(gone.docs.map((d) => (b) => b.delete(d.ref)));
-    for (let j = index + 1; j < total; j++) {
-      const snap = await getDocs(attemptsCol(uid, note.id, j));
-      await commit(
-        snap.docs.flatMap((d) => [
-          (b: ReturnType<typeof writeBatch>) => b.set(doc(attemptsCol(uid, note.id, j - 1), d.id), d.data()),
-          (b: ReturnType<typeof writeBatch>) => b.delete(d.ref),
-        ]),
-      );
+    const snap = await getDocs(attemptsCol(uid, note.id, id));
+    for (let j = 0; j < snap.docs.length; j += 400) {
+      const batch = writeBatch(db);
+      snap.docs.slice(j, j + 400).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
     }
-    await shiftTagsAfterDelete(uid, note.id, index, total);
+    await deleteTags(uid, note.id, [id]);
   },
 };
 
@@ -184,7 +187,7 @@ const firestoreStore: NotesStore = {
 
 const MOCK_KEY = 'study-assistant:mock-notes';
 const MOCK_ATTEMPTS_KEY = 'study-assistant:mock-attempts';
-type MockAttempts = Record<string, Attempt[]>; // "noteId/part" → attempts, any order
+type MockAttempts = Record<string, Attempt[]>; // "noteId/partId" → attempts, any order
 const listeners = new Set<() => void>();
 function mockRead<T>(key: string, fallback: T): T {
   try {
@@ -205,7 +208,7 @@ function mockSave(notes: Note[]) {
   mockWrite(MOCK_KEY, notes);
   listeners.forEach((l) => l());
 }
-function mockAddAttempts(noteId: string, part: number, list: Attempt[]) {
+function mockAddAttempts(noteId: string, part: string, list: Attempt[]) {
   const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
   const key = `${noteId}/${part}`;
   const have = all[key] ?? [];
@@ -224,14 +227,15 @@ const mockStore: NotesStore = {
   async createNote(_uid, note) {
     const id = Math.random().toString(36).slice(2, 10);
     const now = Date.now();
-    mockSave([...mockLoad(), { ...note, id, createdAt: now, updatedAt: now }]);
+    const chunks = note.chunks.map((c) => (c.id ? c : { ...c, id: newPartId() }));
+    mockSave([...mockLoad(), { ...note, chunks, id, createdAt: now, updatedAt: now }]);
     return id;
   },
   async updateChunk(_uid, note, index, patch) {
     mockUpdate(note.id, (n) => ({ ...n, chunks: withChunkPatch(n, index, patch), updatedAt: Date.now() }));
   },
   async recordAttempt(_uid, note, index, attempt, _id) {
-    mockAddAttempts(note.id, index, [attempt]);
+    mockAddAttempts(note.id, partId(note, index), [attempt]);
     mockUpdate(note.id, (n) => ({
       ...n,
       chunks: withChunkPatch(n, index, scorePatch(n.chunks[index], attempt)),
@@ -248,7 +252,7 @@ const mockStore: NotesStore = {
   async migrateLegacyHistory(_uid, note) {
     if (!hasLegacyHistory(note)) return;
     const moved = legacyByPart(note);
-    for (const [part, list] of moved) mockAddAttempts(note.id, part, list);
+    for (const [part, list] of moved) mockAddAttempts(note.id, partId(note, part), list);
     mockUpdate(note.id, ({ history: _drop, ...n }) => ({ ...n, chunks: migratedChunks(note, moved) }));
   },
   async updateNote(_uid, id, patch) {
@@ -258,23 +262,17 @@ const mockStore: NotesStore = {
     const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
     for (const key of Object.keys(all)) if (key.startsWith(`${note.id}/`)) delete all[key];
     mockWrite(MOCK_ATTEMPTS_KEY, all);
-    await deleteTags(_uid, note.id, note.chunks.length);
+    await deleteTags(_uid, note.id, note.chunks.map((_, i) => partId(note, i)));
     mockSave(mockLoad().filter((n) => n.id !== note.id));
   },
   async deleteChunk(uid, note, index) {
-    const total = note.chunks.length;
-    if (total < 2 || !note.chunks[index]) return;
-    mockUpdate(note.id, (n) => ({ ...n, chunks: n.chunks.filter((_, i) => i !== index), updatedAt: Date.now() }));
+    if (note.chunks.length < 2 || !note.chunks[index]) return;
+    const id = partId(note, index);
+    mockUpdate(note.id, (n) => ({ ...n, chunks: withIds(n.chunks).filter((_, i) => i !== index), updatedAt: Date.now() }));
     const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
-    delete all[`${note.id}/${index}`];
-    for (let j = index + 1; j < total; j++) {
-      const k = `${note.id}/${j}`;
-      if (all[k]) all[`${note.id}/${j - 1}`] = all[k];
-      else delete all[`${note.id}/${j - 1}`];
-      delete all[k];
-    }
+    delete all[`${note.id}/${id}`];
     mockWrite(MOCK_ATTEMPTS_KEY, all);
-    await shiftTagsAfterDelete(uid, note.id, index, total);
+    await deleteTags(uid, note.id, [id]);
   },
 };
 

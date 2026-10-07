@@ -29,6 +29,8 @@ export interface FeedbackRecord {
   noteTitle: string;
   subject: string;
   part: number;
+  /** The part's permanent id (notes.ts partId); `part` is only its position at the time. */
+  partId?: string;
   partTitle: string;
   /** The part's Markdown as it was when recited. */
   markdown: string;
@@ -53,6 +55,7 @@ export function sessionContext(args: {
   attemptId: string;
   note: { id: string; title: string; subject: string };
   part: number;
+  partId: string;
   partTitle: string;
   markdown: string;
   words: string[];
@@ -66,6 +69,7 @@ export function sessionContext(args: {
     noteTitle: args.note.title,
     subject: args.note.subject,
     part: args.part,
+    partId: args.partId,
     partTitle: args.partTitle,
     markdown: args.markdown,
     words: args.words,

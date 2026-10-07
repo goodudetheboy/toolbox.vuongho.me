@@ -5,7 +5,7 @@ import PartTitle from '../components/PartTitle';
 import { ScoreStamp } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { decodeMarks, textHash } from '../lib/marks';
-import { notesStore } from '../lib/notes';
+import { notesStore, partId } from '../lib/notes';
 import type { AppUser, Attempt, Note } from '../lib/types';
 import { tokenize } from '../lib/words';
 import { t } from '../strings';
@@ -39,7 +39,7 @@ export default function Progress({ user, note, index, onBack }: { user: AppUser;
     setError(false);
     const before = page === 0 ? undefined : pages[page - 1].items.at(-1)?.at;
     notesStore
-      .pageAttempts(user.uid, note.id, index, PAGE, before)
+      .pageAttempts(user.uid, note.id, partId(note, index), PAGE, before)
       .then((res) => {
         if (cancelled) return;
         setPages((p) => {

@@ -11,7 +11,7 @@ import { countForPages, rankIdeas, RECENT_TRIES, type CramIdea, type CramSort } 
 import { daysUntil, examParts, examsStore } from '../lib/exams';
 import { textHash } from '../lib/marks';
 import { MOCK } from '../lib/mock';
-import { notesStore } from '../lib/notes';
+import { notesStore, partId } from '../lib/notes';
 import type { Route } from '../lib/router';
 import { ensureTags } from '../lib/tags';
 import { clearTicks, loadTicks, saveTicks } from '../lib/ticks';
@@ -101,7 +101,7 @@ export default function CramSheet({
 }) {
   const parts = useMemo(() => examParts(exam, notes), [exam, notes]);
   // Only a change to WHICH text is on the exam rebuilds the sheet (not a new score on a note).
-  const signature = parts.map(({ note, part }) => `${note.id}/${part}@${textHash(note.chunks[part].markdown)}`).join('|');
+  const signature = parts.map(({ note, part }) => `${note.id}/${partId(note, part)}@${textHash(note.chunks[part].markdown)}`).join('|');
 
   const [ideas, setIdeas] = useState<SheetIdea[] | null>(null);
   const [sort, setSort] = useState<CramSort>(savedSort);
@@ -118,14 +118,14 @@ export default function CramSheet({
     (async () => {
       const texts = parts.map(({ note, part }) => ({
         noteId: note.id,
-        part,
+        partId: partId(note, part),
         markdown: note.chunks[part].markdown,
       }));
       const [tags, attempts] = await Promise.all([
         ensureTags(user.uid, texts),
         Promise.all(
           // pageAttempts returns up to size + 1, newest first.
-          texts.map((p) => notesStore.pageAttempts(user.uid, p.noteId, p.part, RECENT_TRIES - 1).catch(() => [])),
+          texts.map((p) => notesStore.pageAttempts(user.uid, p.noteId, p.partId, RECENT_TRIES - 1).catch(() => [])),
         ),
       ]);
       const out: SheetIdea[] = [];
@@ -141,7 +141,7 @@ export default function CramSheet({
           if (idea.end >= tokens.length) continue;
           out.push({
             ...idea,
-            key: `${note.id}/${part}/${idea.start}-${idea.end}@${hash}`,
+            key: `${note.id}/${texts[i].partId}/${idea.start}-${idea.end}@${hash}`,
             noteOrder,
             part,
             marks,

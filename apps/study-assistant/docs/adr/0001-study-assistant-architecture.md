@@ -384,7 +384,7 @@ most useful passages to read just before the exam, in the note's own words.
   (`src/assets/vpork.webp`, made with `art/generate.sh vpork`; the source
   selfie isn't committed, so pass it as `VPORK_PHOTO`).
 
-## Addendum 2026-10-07 — deleting a part
+## Addendum 2026-10-07 — deleting a part *(storage superseded by "part ids" below)*
 
 A part's ⋯ menu has "Delete this part" (hidden when it's the note's only
 part; "Delete this note" covers that). Attempts and exam tags are stored
@@ -396,3 +396,22 @@ first, so the UI is right at once. If the move is interrupted, the worst
 case is a later part showing a neighbour's old tries. Those tries' text
 hashes won't match, so their colored words and cram ranking ignore them.
 Old feedback records keep their old part number; they're self-contained.
+
+## Addendum 2026-10-07 — part ids
+
+Parts are identified by a permanent `Chunk.id`, not by their position.
+Tries live at `parts/{partId}/attempts`, exam tags at `parts/{partId}`,
+and exam picks, cram-sheet tick keys and feedback records (`partId`) all
+use the id. Deleting a part removes it and its own data, and nothing else
+moves. Reordering, splitting or merging parts later needs no data
+migration. URLs keep the position (`/n/{id}/2`); that's only for display.
+
+- **Migration costs nothing.** Parts saved before ids existed have no `id`.
+  `partId(note, i)` falls back to `String(i)`, which is exactly where their
+  data already lives. Every write of a note's chunks array fills those ids
+  in (`withIds`) before positions can change, and deleting a part does that
+  first. Exams saved earlier hold positions as numbers. `pickedIds` reads
+  them as strings, which equal the fallback ids.
+- New parts get random 8-character ids, set in NewNote so the background
+  tagging can use them right away.
+- The "shift later parts down" code from the delete-a-part addendum is gone.

@@ -3,7 +3,7 @@ import Biggu from './components/Biggu';
 import { useAuth } from './lib/auth';
 import { dropPartFromExams, examsStore } from './lib/exams';
 import { isAdmin } from './lib/feedback';
-import { hasLegacyHistory, notesStore } from './lib/notes';
+import { hasLegacyHistory, notesStore, partId } from './lib/notes';
 import { useRoute } from './lib/router';
 import { touchProfile } from './lib/usage';
 import type { Exam, Note } from './lib/types';
@@ -225,11 +225,12 @@ export default function App() {
             note.chunks.length > 1
               ? () => {
                   const index = route.index;
+                  const id = partId(note, index);
                   // Leave first, so this screen never shows the part that slides into this slot.
                   goBack({ name: 'note', noteId: note.id });
                   void Promise.all([
                     notesStore.deleteChunk(user.uid, note, index),
-                    dropPartFromExams(user.uid, exams ?? [], note.id, index),
+                    dropPartFromExams(user.uid, exams ?? [], note.id, id),
                   ]).catch(() => {});
                 }
               : undefined

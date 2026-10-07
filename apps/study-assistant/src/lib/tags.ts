@@ -7,7 +7,7 @@ import type { TaggedIdea } from './types';
 import { tokenize, type Token } from './words';
 
 // Exam importance tags: Gemini splits a part into ideas and rates each 1-3, once. They're
-// saved at users/{uid}/notes/{noteId}/parts/{part} — beside that part's attempts, not on the
+// saved at users/{uid}/notes/{noteId}/parts/{partId} — beside that part's attempts, not on the
 // note, so tagging never rewrites the note document (no race with scores) and the Home
 // listener doesn't carry them. `ideasHash` is textHash() of the markdown that was SENT to
 // Gemini: if she edits the part (even while a request is in flight), the hash no longer
@@ -21,7 +21,8 @@ export interface PartTags {
 
 export interface PartText {
   noteId: string;
-  part: number;
+  /** The part's permanent id (notes.ts partId). */
+  partId: string;
   markdown: string;
 }
 
@@ -34,56 +35,34 @@ const mockAll = (): Record<string, PartTags> => {
   }
 };
 
-const partDoc = (uid: string, noteId: string, part: number) => doc(db, 'users', uid, 'notes', noteId, 'parts', String(part));
+const partDoc = (uid: string, noteId: string, partId: string) => doc(db, 'users', uid, 'notes', noteId, 'parts', partId);
 
-async function load(uid: string, noteId: string, part: number): Promise<PartTags | null> {
-  if (MOCK) return mockAll()[`${noteId}/${part}`] ?? null;
-  const snap = await getDoc(partDoc(uid, noteId, part));
+async function load(uid: string, noteId: string, partId: string): Promise<PartTags | null> {
+  if (MOCK) return mockAll()[`${noteId}/${partId}`] ?? null;
+  const snap = await getDoc(partDoc(uid, noteId, partId));
   const data = snap.data() as Partial<PartTags> | undefined;
   return data?.ideas && data.ideasHash ? { ideas: data.ideas, ideasHash: data.ideasHash } : null;
 }
 
-async function save(uid: string, noteId: string, part: number, tags: PartTags, model: string): Promise<void> {
+async function save(uid: string, noteId: string, partId: string, tags: PartTags, model: string): Promise<void> {
   if (MOCK) {
     const all = mockAll();
-    all[`${noteId}/${part}`] = tags;
+    all[`${noteId}/${partId}`] = tags;
     localStorage.setItem(MOCK_KEY, JSON.stringify(all));
     return;
   }
-  await setDoc(partDoc(uid, noteId, part), { ...tags, model, taggedAt: Date.now() }, { merge: true });
+  await setDoc(partDoc(uid, noteId, partId), { ...tags, model, taggedAt: Date.now() }, { merge: true });
 }
 
-/** Removes a deleted note's tag documents (notesStore.deleteNote). */
-export async function deleteTags(uid: string, noteId: string, parts: number): Promise<void> {
+/** Removes the tag documents of deleted parts (a deleted note's, or one part's). */
+export async function deleteTags(uid: string, noteId: string, partIds: string[]): Promise<void> {
   if (MOCK) {
     const all = mockAll();
-    for (let i = 0; i < parts; i++) delete all[`${noteId}/${i}`];
+    for (const id of partIds) delete all[`${noteId}/${id}`];
     localStorage.setItem(MOCK_KEY, JSON.stringify(all));
     return;
   }
-  await Promise.all(Array.from({ length: parts }, (_, i) => deleteDoc(partDoc(uid, noteId, i))));
-}
-
-/** After part `index` of a `total`-part note is deleted: drop its tags, move later parts' down one. */
-export async function shiftTagsAfterDelete(uid: string, noteId: string, index: number, total: number): Promise<void> {
-  if (MOCK) {
-    const all = mockAll();
-    delete all[`${noteId}/${index}`];
-    for (let j = index + 1; j < total; j++) {
-      const k = `${noteId}/${j}`;
-      if (all[k]) all[`${noteId}/${j - 1}`] = all[k];
-      else delete all[`${noteId}/${j - 1}`];
-      delete all[k];
-    }
-    localStorage.setItem(MOCK_KEY, JSON.stringify(all));
-    return;
-  }
-  await deleteDoc(partDoc(uid, noteId, index));
-  for (let j = index + 1; j < total; j++) {
-    const snap = await getDoc(partDoc(uid, noteId, j));
-    if (snap.exists()) await setDoc(partDoc(uid, noteId, j - 1), snap.data());
-    await deleteDoc(partDoc(uid, noteId, j));
-  }
+  await Promise.all(partIds.map((id) => deleteDoc(partDoc(uid, noteId, id))));
 }
 
 /** Used when Gemini can't be reached: one idea per displayed line, all "supporting". */
@@ -131,7 +110,7 @@ export async function tagParts(uid: string, parts: PartText[]): Promise<(PartTag
         const tags = { ideas, ideasHash: p.hash };
         got.set(p, tags);
         // Saving is best-effort: the sheet already has the tags in hand.
-        save(uid, p.noteId, p.part, tags, res.model).catch(() => {});
+        save(uid, p.noteId, p.partId, tags, res.model).catch(() => {});
       });
     }
   };
@@ -152,7 +131,7 @@ export function tagInBackground(uid: string, parts: PartText[]): void {
  * cram sheet always works, even offline.
  */
 export async function ensureTags(uid: string, parts: PartText[]): Promise<TaggedIdea[][]> {
-  const saved = await Promise.all(parts.map((p) => load(uid, p.noteId, p.part).catch(() => null)));
+  const saved = await Promise.all(parts.map((p) => load(uid, p.noteId, p.partId).catch(() => null)));
   const result: (TaggedIdea[] | null)[] = saved.map((s, i) => (s && s.ideasHash === textHash(parts[i].markdown) ? s.ideas : null));
   const stale = parts.map((p, i) => ({ p, i })).filter(({ i }) => result[i] === null);
   if (stale.length) {

@@ -36,7 +36,7 @@ export interface UsageNote {
 export interface UsageAttempt {
   uid: string;
   noteId: string;
-  part: number;
+  partId: string;
   at: number;
   percent: number;
   hints: number;
@@ -57,10 +57,10 @@ const toNote = (uid: string, id: string, n: Omit<Note, 'id'>): UsageNote => ({
   chunks: n.chunks.map((c) => ({ title: c.title, tries: c.tries ?? 0 })),
 });
 
-const toAttempt = (uid: string, noteId: string, part: number, a: Attempt): UsageAttempt => ({
+const toAttempt = (uid: string, noteId: string, partId: string, a: Attempt): UsageAttempt => ({
   uid,
   noteId,
-  part,
+  partId,
   at: a.at,
   percent: a.percent,
   hints: a.hints,
@@ -81,10 +81,10 @@ export async function loadUsage(): Promise<UsageData> {
   return {
     profiles: Object.fromEntries(users.docs.map((d) => [d.id, d.data() as Profile])),
     notes: notes.docs.map((d) => toNote(d.ref.parent.parent!.id, d.id, d.data() as Omit<Note, 'id'>)),
-    // users/{uid}/notes/{noteId}/parts/{part}/attempts/{id}
+    // users/{uid}/notes/{noteId}/parts/{partId}/attempts/{id}
     attempts: attempts.docs.map((d) => {
       const [, uid, , noteId, , part] = d.ref.path.split('/');
-      return toAttempt(uid, noteId, Number(part), d.data() as Attempt);
+      return toAttempt(uid, noteId, part, d.data() as Attempt);
     }),
   };
 }
@@ -105,7 +105,7 @@ function mockUsage(): UsageData {
     notes: notes.map((n) => toNote(uid, n.id, n)),
     attempts: Object.entries(attempts).flatMap(([key, list]) => {
       const [noteId, part] = key.split('/');
-      return list.map((a) => toAttempt(uid, noteId, Number(part), a));
+      return list.map((a) => toAttempt(uid, noteId, part, a));
     }),
   };
 }

@@ -1,4 +1,10 @@
 export interface Chunk {
+  /**
+   * Permanent id: tries, exam tags and exam picks are keyed by it, so parts can be deleted (or
+   * reordered) without moving any data. Missing on parts saved before ids existed — read it with
+   * partId(), which falls back to the part's position, exactly where that old data lives.
+   */
+  id?: string;
   title: string;
   /** Verbatim note text for this chunk, Markdown-formatted. */
   markdown: string;
@@ -62,8 +68,12 @@ export interface Exam {
   title: string;
   /** Local calendar date, YYYY-MM-DD. */
   date: string;
-  /** In the order she picked them. `parts: null` = the whole note, including parts added later. */
-  notes: { noteId: string; parts: number[] | null }[];
+  /**
+   * In the order she picked them. `parts`: part ids (see partId), or null = the whole note,
+   * including parts added later. Exams saved before part ids hold positions as numbers — the
+   * same values as those parts' fallback ids, so read them through pickedIds().
+   */
+  notes: { noteId: string; parts: (string | number)[] | null }[];
   createdAt: number;
   updatedAt: number;
 }

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Icon, Paper } from '../components/Scrap';
 import TopBar from '../components/TopBar';
-import { examsStore, todayIso } from '../lib/exams';
+import { examsStore, pickedIds, todayIso } from '../lib/exams';
+import { partId } from '../lib/notes';
 import type { AppUser, Exam, Note } from '../lib/types';
 import { t } from '../strings';
 
@@ -53,9 +54,11 @@ export default function ExamForm({
   function togglePart(n: Note, part: number) {
     setPicks((ps) => {
       const cur = ps.find((p) => p.noteId === n.id);
-      const all = n.chunks.map((_, i) => i);
-      const have = cur ? (cur.parts ?? all) : [];
-      const next = have.includes(part) ? have.filter((i) => i !== part) : [...have, part].sort((a, b) => a - b);
+      const all = n.chunks.map((_, i) => partId(n, i));
+      const have = cur ? (pickedIds(cur) ?? all) : [];
+      const id = all[part];
+      // Kept in note order.
+      const next = all.filter((x) => (x === id ? !have.includes(id) : have.includes(x)));
       const rest = ps.filter((p) => p.noteId !== n.id);
       if (next.length === 0) return rest;
       const updated = { noteId: n.id, parts: next.length === all.length ? null : next };
@@ -125,6 +128,8 @@ export default function ExamForm({
             {shown.map((n, i) => {
               const pick = pickOf(n.id);
               const on = !!pick;
+              const ids = pick ? pickedIds(pick) : null;
+              const someCount = ids ? n.chunks.filter((_, k) => ids.includes(partId(n, k))).length : 0;
               const total = n.chunks.length;
               const isOpen = expanded === n.id;
               return (
@@ -138,17 +143,17 @@ export default function ExamForm({
                       </span>
                     </button>
                     <button
-                      className={`pick-parts ${pick?.parts ? 'some' : ''}`}
+                      className={`pick-parts ${ids ? 'some' : ''}`}
                       aria-expanded={isOpen}
                       onClick={() => setExpanded(isOpen ? null : n.id)}
                     >
-                      {!on ? t.parts(total) : pick.parts ? t.someParts(pick.parts.length, total) : t.allParts(total)} ›
+                      {!on ? t.parts(total) : ids ? t.someParts(someCount, total) : t.allParts(total)} ›
                     </button>
                   </div>
                   {isOpen && (
                     <ul className="part-picks">
                       {n.chunks.map((c, k) => {
-                        const partOn = on && (pick.parts === null || pick.parts.includes(k));
+                        const partOn = on && (ids === null || ids.includes(partId(n, k)));
                         return (
                           <li key={k}>
                             <button aria-pressed={partOn} onClick={() => togglePart(n, k)}>
