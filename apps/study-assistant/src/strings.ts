@@ -171,7 +171,7 @@ export const t = {
   deleteLesson: 'Delete this note',
   deletePart: 'Delete this part',
   confirmDeletePart: 'Delete this part?',
-  confirmDeletePartBody: (title: string) => `“${title}” and its scores will be gone for good. The other parts stay.`,
+  confirmDeletePartBody: (title: string) => `“${title}” and its scores will be gone for good.`,
   confirmDelete: 'Delete this note?',
   confirmDeleteBody: (title: string) => `“${title}” and all its scores will be gone for good.`,
   delete: 'Delete',
