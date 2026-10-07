@@ -87,7 +87,8 @@ export const t = {
   mostImportant: 'Most important',
   sortBy: 'Sort',
   filterNotes: 'Show notes',
-  allNotes: 'All notes',
+  filterOn: 'Show notes (filtered)',
+  allNotes: 'Show all',
   rememberThis: 'I remember this',
   uncheckAll: 'Uncheck all',
   cheers: [

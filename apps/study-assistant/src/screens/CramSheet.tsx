@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import vporkFace from '../assets/vpork.webp';
 import Biggu from '../components/Biggu';
-import { ConfirmDialog } from '../components/Dialog';
+import { ConfirmDialog, Modal } from '../components/Dialog';
 import Menu from '../components/Menu';
 import PartTitle from '../components/PartTitle';
 import { PettableBiggu, PettableHead } from '../components/Pettable';
@@ -69,6 +69,57 @@ function Excerpt({ words }: { words: Token[] }) {
   );
 }
 
+/** Which of the exam's notes the sheet shows; at least one always stays ticked. */
+function NoteFilterDialog({
+  open,
+  notes,
+  hidden,
+  onApply,
+  onCancel,
+}: {
+  open: boolean;
+  notes: Note[];
+  hidden: Set<string>;
+  onApply: (hidden: Set<string>) => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(hidden);
+  useEffect(() => {
+    if (open) setDraft(hidden);
+  }, [open, hidden]);
+  const shownCount = notes.filter((n) => !draft.has(n.id)).length;
+  const toggle = (id: string) => {
+    const next = new Set(draft);
+    if (!next.delete(id)) next.add(id);
+    setDraft(next);
+  };
+  return (
+    <Modal open={open} mood="read" title={t.filterNotes} onCancel={onCancel} onSubmit={() => onApply(draft)}>
+      <ul className="exam-picks">
+        {notes.map((n) => {
+          const on = !draft.has(n.id);
+          return (
+            <li key={n.id}>
+              <button type="button" aria-pressed={on} disabled={on && shownCount === 1} onClick={() => toggle(n.id)}>
+                <span className={`pick-circle small ${on ? 'on' : ''}`}>{on && <Icon name="check" size={20} />}</span>
+                <span className="exam-pick-title hand">{n.title}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="modal-actions filter-actions">
+        <button type="button" className="text-btn" onClick={() => setDraft(new Set())} disabled={draft.size === 0}>
+          {t.allNotes}
+        </button>
+        <button type="submit" className="btn btn-primary">
+          {t.done}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 /** A small taped note between cards: Biggu cheering her on, or (rarely, on one account) Vpork. */
 function CheerNote({ text, vpork }: { text: string; vpork: boolean }) {
   return (
@@ -107,8 +158,9 @@ export default function CramSheet({
   const [ideas, setIdeas] = useState<SheetIdea[] | null>(null);
   const [sort, setSort] = useState<CramSort>(savedSort);
   const [pages, setPages] = useState(1);
-  // Show one note's ideas only (null = all notes on the exam).
-  const [onlyNote, setOnlyNote] = useState<string | null>(null);
+  // Notes hidden by the filter (empty = every note on the exam).
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [filterOpen, setFilterOpen] = useState(false);
   const [ticks, setTicks] = useState(() => loadTicks(exam.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Picked once per visit, so the notes stay put through "give meow more" and re-sorting.
@@ -163,8 +215,8 @@ export default function CramSheet({
   }, [signature, user.uid]);
 
   const ranked = useMemo(
-    () => (ideas ? rankIdeas(onlyNote ? ideas.filter((x) => x.noteId === onlyNote) : ideas, sort) : []),
-    [ideas, sort, onlyNote],
+    () => (ideas ? rankIdeas(hidden.size ? ideas.filter((x) => !hidden.has(x.noteId)) : ideas, sort) : []),
+    [ideas, sort, hidden],
   );
   // The exam's notes that have something on the sheet, in exam order — the filter's chips.
   const sheetNotes = useMemo(() => {
@@ -174,10 +226,15 @@ export default function CramSheet({
       return note && ids.has(note.id) ? [note] : [];
     });
   }, [ideas, exam.notes, notes]);
-  // A filtered-out note that's gone from the exam (edited meanwhile) falls back to all notes.
+  // If the exam was edited so that every note left is hidden, show them all again.
   useEffect(() => {
-    if (onlyNote && !sheetNotes.some((n) => n.id === onlyNote)) setOnlyNote(null);
-  }, [onlyNote, sheetNotes]);
+    if (hidden.size && sheetNotes.every((n) => hidden.has(n.id))) setHidden(new Set());
+  }, [hidden, sheetNotes]);
+
+  function applyFilter(next: Set<string>) {
+    setHidden(next);
+    setPages(1); // a different set of notes: start again at the first 5 minutes
+  }
   const shown = ranked.slice(0, countForPages(ranked, pages));
   // Dev only: the mock build can force Vpork with #vpork in the URL.
   const vporkChance = MOCK && window.location.hash === '#vpork' ? 1 : VPORK_CHANCE;
@@ -262,29 +319,17 @@ export default function CramSheet({
                 </button>
               ))}
             </div>
+            {sheetNotes.length > 1 && (
+              <button
+                className={`icon-btn cram-filter-btn ${hidden.size ? 'active' : ''}`}
+                onClick={() => setFilterOpen(true)}
+                aria-label={hidden.size ? t.filterOn : t.filterNotes}
+                title={t.filterNotes}
+              >
+                <Icon name="filter" size={22} />
+              </button>
+            )}
           </div>
-
-          {sheetNotes.length > 1 && (
-            <div className="chips cram-filter" role="radiogroup" aria-label={t.filterNotes}>
-              {[null, ...sheetNotes].map((n) => {
-                const id = n?.id ?? null;
-                return (
-                  <button
-                    key={id ?? 'all'}
-                    role="radio"
-                    aria-checked={onlyNote === id}
-                    className={`chip ${onlyNote === id ? 'on' : ''}`}
-                    onClick={() => {
-                      setOnlyNote(id);
-                      setPages(1);
-                    }}
-                  >
-                    {n ? n.title : t.allNotes}
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
           <div className="cram-list">
             {shown.map((x, i) => {
@@ -344,6 +389,16 @@ export default function CramSheet({
         </>
       )}
 
+      <NoteFilterDialog
+        open={filterOpen}
+        notes={sheetNotes}
+        hidden={hidden}
+        onApply={(next) => {
+          applyFilter(next);
+          setFilterOpen(false);
+        }}
+        onCancel={() => setFilterOpen(false)}
+      />
       <ConfirmDialog
         open={confirmDelete}
         title={t.confirmDeleteExam}

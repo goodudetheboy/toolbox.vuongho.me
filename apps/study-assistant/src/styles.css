@@ -2431,15 +2431,33 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   }
 }
 
-/* Note filter under the sort toggle: one chip per note on the exam. */
-.cram-filter {
-  justify-content: center;
-  margin: -12px 0 26px;
+/* Filter button beside the sort toggle; a dot when some notes are hidden. */
+.cram-sort {
+  align-items: center;
+  gap: 10px;
 }
 
-.cram-filter .chip {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cram-filter-btn {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+
+.cram-filter-btn.active::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--coral);
+  border: 2px solid var(--outline);
+}
+
+.filter-actions {
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
 }
