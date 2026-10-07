@@ -365,7 +365,9 @@ most useful passages to read just before the exam, in the note's own words.
   ticked, and "Show all" resets it. The ranking is the same, filtered, and
   a change starts again at the first 5 minutes. A coral dot on the icon
   means some notes are hidden. The filter isn't saved: each visit starts
-  with every note. This replaced a row of chips the user didn't want on
+  with every note. With more than 5 notes, the dialog also has a search
+  box (title or subject). It only narrows the list; ticks on notes it hides
+  are kept. This replaced a row of chips the user didn't want on
   the sheet.
 - **UI:** Home gets "My notes | Exams" tabs, and the last-used tab is
   remembered. Exams are calendar polaroids. The exam form has a note

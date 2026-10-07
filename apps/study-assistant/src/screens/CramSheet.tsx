@@ -69,6 +69,9 @@ function Excerpt({ words }: { words: Token[] }) {
   );
 }
 
+/** The note filter gets a search box once the list is longer than this. */
+const SEARCH_FROM = 5;
+
 /** Which of the exam's notes the sheet shows; at least one always stays ticked. */
 function NoteFilterDialog({
   open,
@@ -84,9 +87,14 @@ function NoteFilterDialog({
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(hidden);
+  const [query, setQuery] = useState('');
   useEffect(() => {
-    if (open) setDraft(hidden);
+    if (!open) return;
+    setDraft(hidden);
+    setQuery('');
   }, [open, hidden]);
+  const q = query.trim().toLowerCase();
+  const listed = q ? notes.filter((n) => `${n.title} ${n.subject}`.toLowerCase().includes(q)) : notes;
   const shownCount = notes.filter((n) => !draft.has(n.id)).length;
   const toggle = (id: string) => {
     const next = new Set(draft);
@@ -95,8 +103,24 @@ function NoteFilterDialog({
   };
   return (
     <Modal open={open} mood="read" title={t.filterNotes} onCancel={onCancel} onSubmit={() => onApply(draft)}>
-      <ul className="exam-picks">
-        {notes.map((n) => {
+      {/* Searching only narrows the list: the ticks of notes it hides stay as they are. */}
+      {notes.length > SEARCH_FROM && (
+        <label className="search-field filter-search">
+          <Icon name="search" size={22} />
+          <input
+            className="text-input"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+            placeholder={t.searchNotes}
+            aria-label={t.searchNotes}
+          />
+        </label>
+      )}
+      {listed.length === 0 && <p className="modal-message">{t.noNotesMatch(query.trim())}</p>}
+      <ul className={`exam-picks ${notes.length > SEARCH_FROM ? 'with-search' : ''}`}>
+        {listed.map((n) => {
           const on = !draft.has(n.id);
           return (
             <li key={n.id}>

@@ -2466,3 +2466,12 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   align-items: center;
   margin-top: 12px;
 }
+
+.filter-search {
+  margin-bottom: 12px;
+}
+
+/* The search box takes ~60px of the card, so the list gets that much less. */
+.exam-picks.with-search {
+  max-height: max(120px, calc(100dvh - 400px));
+}
