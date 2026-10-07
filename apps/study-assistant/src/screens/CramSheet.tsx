@@ -248,30 +248,28 @@ export default function CramSheet({
                     tape={TAPES[i % TAPES.length]}
                     className={`cram-card ${done ? 'done' : ''}`}
                   >
-                    <div className="read-head">
-                      <button
-                        className="read-label hand cram-source"
-                        onClick={() =>
-                          navigate({
-                            name: 'chunk',
-                            noteId: x.noteId,
-                            index: x.part,
-                          })
-                        }
-                      >
-                        <Icon name="book" size={22} /> <span>{x.source} ›</span>
-                      </button>
-                      <button
-                        className={`tick ${done ? 'on' : ''}`}
-                        aria-pressed={done}
-                        aria-label={t.rememberThis}
-                        title={t.rememberThis}
-                        onClick={() => toggleTick(x.key)}
-                      >
-                        <Icon name="check" size={22} />
-                      </button>
+                    <div className="cram-body">
+                      <Excerpt words={x.words} />
+                      <div className="cram-actions">
+                        <button
+                          className={`tick ${done ? 'on' : ''}`}
+                          aria-pressed={done}
+                          aria-label={t.rememberThis}
+                          title={t.rememberThis}
+                          onClick={() => toggleTick(x.key)}
+                        >
+                          <Icon name="check" size={22} />
+                        </button>
+                        <button
+                          className="cram-open"
+                          aria-label={t.openPart(x.source)}
+                          title={x.source}
+                          onClick={() => navigate({ name: 'chunk', noteId: x.noteId, index: x.part })}
+                        >
+                          <Icon name="book" size={20} />
+                        </button>
+                      </div>
                     </div>
-                    <Excerpt words={x.words} />
                   </Paper>
                   {cheer && (
                     <CheerNote text={cheer.vpork ? t.vporkNote : t.cheers[cheer.message % t.cheers.length]} vpork={cheer.vpork} />

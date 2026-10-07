@@ -2233,20 +2233,38 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   gap: 28px;
 }
 
-.cram-source {
-  flex: 1;
-  min-width: 0;
-  margin-bottom: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-  cursor: pointer;
+/* Passage on the left; the tick and a quiet "open this part" book stacked on the right. */
+.cram-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.cram-source > span {
+.cram-body .cram-text {
+  flex: 1;
   min-width: 0;
-  overflow-wrap: anywhere;
+  margin-top: 0;
+}
+
+.cram-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cram-open {
+  width: 40px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--sky-ink);
+  opacity: 0.7;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
 
 .tick {

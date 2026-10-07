@@ -361,6 +361,10 @@ most useful passages to read just before the exam, in the note's own words.
   remembered. Exams are calendar polaroids. The exam form has a note
   search, and its parts count opens a per-part picker. The note page's ⋯
   menu has "Add to exam". The cram sheet's ⋯ has Edit / Delete exam.
+  Cram cards show only the passage. The "I remember this" check and a
+  quiet book icon (opens that part; its name is the tooltip and label)
+  sit stacked on the right. No "Note · Part n" header: the user found it
+  cluttered.
   Everything reuses the part screen's pieces (taped `Paper`, `.md` text
   with bold highlighted, Biggu beside the big button).
 - **Encouragement notes** (`src/lib/cheer.ts`, unit-tested): small taped

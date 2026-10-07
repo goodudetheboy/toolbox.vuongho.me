@@ -102,6 +102,7 @@ export const t = {
     'Smart cookie. Biggu would share his treats with you.',
   ],
   vporkNote: 'I love you ❤️ you can do it - Vpork',
+  openPart: (source: string) => `Open ${source}`,
   cramSource: (note: string, part: number) => `${note} · Part ${part}`,
   giveMore: 'I have more time, give meow more!',
   allRead: "That's everything. You've got this!",
