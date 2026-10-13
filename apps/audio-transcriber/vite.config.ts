@@ -5,7 +5,10 @@ export default defineConfig({
   base: '/audio-transcriber/',
   plugins: [react()],
   worker: {
-    type: 'module',
+    // ES output: the workers are created with { type: 'module' }, and
+    // parakeet.js code-splits (dynamic onnxruntime-web import), which IIFE
+    // worker bundles can't do.
+    format: 'es',
   },
   optimizeDeps: {
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', '@huggingface/transformers'],

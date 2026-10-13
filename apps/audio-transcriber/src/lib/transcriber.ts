@@ -1,7 +1,8 @@
-// Transcription coordinator: extracts audio with ffmpeg.wasm, cuts it into the
-// ASR pipeline's own overlapping 30s windows, fans the windows out to a pool of
-// decoder workers, retries failures, and merges finished windows in order with
-// the Whisper tokenizer. See docs/adr/0003-parallel-window-decoding.md.
+// Transcription coordinator: extracts audio with ffmpeg.wasm, cuts it into
+// overlapping windows, fans the windows out to a pool of decoder workers,
+// retries failures, and merges finished windows in order — with the Whisper
+// tokenizer for Whisper, by word timestamps for Parakeet. See
+// docs/adr/0003-parallel-window-decoding.md and 0004-parakeet-model-option.md.
 //
 // Runs on the main thread on purpose: spawning the decoder pool from inside
 // another worker (nested workers) failed outright in testing, and all the
@@ -16,14 +17,17 @@ import type {
   WorkerOutMessage,
   DecoderInMessage,
   DecoderOutMessage,
+  TimedWord,
+  WindowOutput,
 } from '../types';
+import { isParakeet, PARAKEET_WINDOW_S } from './models';
 
 const SR = 16000;
-// Same windowing as the pipeline's `chunk_length_s: 30, stride_length_s: 5`:
-// 30s windows overlapping 5s on each side, so each new window adds 20s.
-const WINDOW = 30 * SR;
-const STRIDE = 5 * SR;
-const JUMP = WINDOW - 2 * STRIDE;
+// Whisper: same windowing as the pipeline's `chunk_length_s: 30,
+// stride_length_s: 5` — 30s windows overlapping 5s on each side, so each new
+// window adds 20s. Parakeet's window length is set in ./models (ADR 0004).
+const WHISPER_WINDOWING = { window: 30 * SR, stride: 5 * SR };
+const PARAKEET_WINDOWING = { window: PARAKEET_WINDOW_S * SR, stride: 5 * SR };
 const MAX_ATTEMPTS = 3;
 // Merging is O(windows so far), so don't re-merge on every single window
 const EMIT_INTERVAL_MS = 1000;
@@ -74,7 +78,7 @@ async function extractAudio(file: File): Promise<Float32Array> {
 // ── Decoder pool ──
 
 interface Job {
-  onDone: (tokens: bigint[]) => void;
+  onDone: (output: WindowOutput) => void;
   onFail: (error: string) => void;
 }
 
@@ -91,9 +95,9 @@ interface Pool {
   device: ComputeDevice;
   threads?: number;
   slots: Slot[];
-  timePrecision: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tokenizer: any;
+  windowing: { window: number; stride: number };
+  // Merges finished windows (a contiguous prefix, in order) into segments
+  merge: (windows: Window[], outputs: WindowOutput[]) => TranscriptSegment[];
   // Called whenever a slot frees up or comes back to life
   onIdle: () => void;
 }
@@ -108,7 +112,10 @@ function spawnDecoder(
   onProgress?: (progress: number, file: string) => void,
 ): Promise<{ slot: Slot; timePrecision: number }> {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('../workers/decoder.worker.ts', import.meta.url), { type: 'module' });
+    // Literal URLs in each branch so Vite bundles both workers
+    const worker = isParakeet(model)
+      ? new Worker(new URL('../workers/parakeet.worker.ts', import.meta.url), { type: 'module' })
+      : new Worker(new URL('../workers/decoder.worker.ts', import.meta.url), { type: 'module' });
     const slot: Slot = { worker, job: null, jobId: 0, alive: false };
 
     worker.onmessage = (e: MessageEvent<DecoderOutMessage>) => {
@@ -138,7 +145,7 @@ function handleDecoderMessage(slot: Slot, msg: DecoderOutMessage) {
   if ((msg.type !== 'DECODED' && msg.type !== 'DECODE_FAILED') || msg.jobId !== slot.jobId) return;
   const job = slot.job;
   slot.job = null;
-  if (msg.type === 'DECODED') job?.onDone(msg.tokens);
+  if (msg.type === 'DECODED') job?.onDone(msg.output);
   else job?.onFail(msg.error);
   pool?.onIdle();
 }
@@ -196,11 +203,15 @@ async function ensurePool(id: string, model: ModelId, device: ComputeDevice, max
   let threads: number | undefined;
   let first: { slot: Slot; timePrecision: number } | null = null;
 
+  // Parakeet: always one worker; its encoder spreads over ORT's own threads
+  // (on WebGPU those only run the small decoder) — see ADR 0004.
+  const parakeetThreads = Math.min(navigator.hardwareConcurrency || 4, 8);
+
   // WebGPU: a single worker. Several workers would each hold a copy of the
   // model in GPU memory and haven't been measured to help — see ADR 0003.
   if (device === 'webgpu' && (await hasWebGPU())) {
     try {
-      first = await spawnDecoder(model, 'webgpu', undefined, onProgress);
+      first = await spawnDecoder(model, 'webgpu', isParakeet(model) ? parakeetThreads : undefined, onProgress);
       effective = 'webgpu';
     } catch {
       first = null;
@@ -209,6 +220,10 @@ async function ensurePool(id: string, model: ModelId, device: ComputeDevice, max
 
   const slots: Slot[] = [];
   if (first) {
+    slots.push(first.slot);
+  } else if (isParakeet(model)) {
+    threads = parakeetThreads;
+    first = await spawnDecoder(model, 'wasm', threads, onProgress);
     slots.push(first.slot);
   } else {
     // CPU: many single-threaded workers beat one multi-threaded one, because
@@ -228,11 +243,18 @@ async function ensurePool(id: string, model: ModelId, device: ComputeDevice, max
     }
   }
 
-  // Loaded lazily so transformers.js stays out of the initial page bundle
-  const { AutoTokenizer, env } = await import('@huggingface/transformers');
-  env.allowLocalModels = false;
-  env.useBrowserCache = true;
-  const tokenizer = await AutoTokenizer.from_pretrained(model);
+  let windowing = PARAKEET_WINDOWING;
+  let merge: Pool['merge'] = (windows, outputs) => mergeWords(windows, outputs as TimedWord[][]);
+  if (!isParakeet(model)) {
+    // Loaded lazily so transformers.js stays out of the initial page bundle
+    const { AutoTokenizer, env } = await import('@huggingface/transformers');
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+    const tokenizer = await AutoTokenizer.from_pretrained(model);
+    const timePrecision = first.timePrecision;
+    windowing = WHISPER_WINDOWING;
+    merge = (windows, outputs) => mergeTokens(tokenizer, timePrecision, windows, outputs as bigint[][]);
+  }
 
   pool = {
     key,
@@ -240,8 +262,8 @@ async function ensurePool(id: string, model: ModelId, device: ComputeDevice, max
     device: effective,
     threads,
     slots,
-    timePrecision: first.timePrecision,
-    tokenizer,
+    windowing,
+    merge,
     onIdle: () => {},
   };
   post({ type: 'DEVICE_DETECTED', device: effective, workers: slots.length });
@@ -257,26 +279,32 @@ interface Window {
   stride: [number, number, number];
 }
 
-function makeWindows(length: number): Window[] {
+function makeWindows(length: number, { window, stride }: Pool['windowing']): Window[] {
   const windows: Window[] = [];
   if (length === 0) return windows;
-  for (let offset = 0; ; offset += JUMP) {
-    const end = Math.min(offset + WINDOW, length);
+  for (let offset = 0; ; offset += window - 2 * stride) {
+    const end = Math.min(offset + window, length);
     const isFirst = offset === 0;
-    const isLast = offset + WINDOW >= length;
-    windows.push({ start: offset, end, stride: [end - offset, isFirst ? 0 : STRIDE, isLast ? 0 : STRIDE] });
+    const isLast = offset + window >= length;
+    windows.push({ start: offset, end, stride: [end - offset, isFirst ? 0 : stride, isLast ? 0 : stride] });
     if (isLast) break;
   }
   return windows;
 }
 
-function mergeWindows(p: Pool, windows: Window[], tokens: bigint[][]): TranscriptSegment[] {
+function mergeTokens(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tokenizer: any,
+  timePrecision: number,
+  windows: Window[],
+  tokens: bigint[][],
+): TranscriptSegment[] {
   const chunks = tokens.map((t, i) => ({
     tokens: t.slice(),
     stride: windows[i].stride.map(x => x / SR),
   }));
-  const [, optional] = p.tokenizer._decode_asr(chunks, {
-    time_precision: p.timePrecision,
+  const [, optional] = tokenizer._decode_asr(chunks, {
+    time_precision: timePrecision,
     return_timestamps: true,
     force_full_sequences: false,
   });
@@ -290,16 +318,60 @@ function mergeWindows(p: Pool, windows: Window[], tokens: bigint[][]): Transcrip
     .filter(s => s.text.length > 0);
 }
 
+// Parakeet: each window owns the span between its strides, so a word is kept
+// from the window whose owned span contains the word's midpoint. Words are
+// then grouped into sentence-like segments.
+const SEGMENT_GAP_S = 1.5;
+const SEGMENT_MAX_S = 20;
+
+function mergeWords(windows: Window[], outputs: TimedWord[][]): TranscriptSegment[] {
+  const words: TimedWord[] = [];
+  outputs.forEach((ws, i) => {
+    const w = windows[i];
+    const offset = w.start / SR;
+    const lo = (w.start + w.stride[1]) / SR;
+    const hi = (w.end - w.stride[2]) / SR;
+    const isLast = i === windows.length - 1;
+    for (const word of ws) {
+      const start = word.start + offset;
+      const end = word.end + offset;
+      const mid = (start + end) / 2;
+      if (mid >= lo && (mid < hi || isLast)) words.push({ text: word.text, start, end });
+    }
+  });
+
+  const segments: TranscriptSegment[] = [];
+  let current: TimedWord[] = [];
+  const flush = () => {
+    if (current.length === 0) return;
+    const text = current
+      .map(w => w.text)
+      .reduce((acc, t) => (!acc ? t : /^[,.;:!?)}\]]+$/.test(t) ? acc + t : `${acc} ${t}`), '')
+      .trim();
+    if (text) segments.push({ id: crypto.randomUUID(), start: current[0].start, end: current[current.length - 1].end, text });
+    current = [];
+  };
+  for (const word of words) {
+    const prev = current[current.length - 1];
+    if (prev && (word.start - prev.end >= SEGMENT_GAP_S || word.end - current[0].start > SEGMENT_MAX_S)) flush();
+    current.push(word);
+    if (/[.!?]["')\]]*$/.test(word.text)) flush();
+  }
+  flush();
+  return segments;
+}
+
 // Partial progress on the last failed file, so a retry only redoes the
 // windows that are missing instead of re-extracting and re-decoding it all.
-let resumable: { id: string; audio: Float32Array; results: (bigint[] | undefined)[] } | null = null;
+// Only valid for the same model: windowing and window outputs differ by model.
+let resumable: { id: string; model: ModelId; audio: Float32Array; results: (WindowOutput | undefined)[] } | null = null;
 
 function runWindows(
   p: Pool,
   id: string,
   audio: Float32Array,
   windows: Window[],
-  results: (bigint[] | undefined)[],
+  results: (WindowOutput | undefined)[],
 ): Promise<TranscriptSegment[]> {
   return new Promise((resolve, reject) => {
     const total = windows.length;
@@ -327,7 +399,7 @@ function runWindows(
       const now = performance.now();
       let segments: TranscriptSegment[] | undefined;
       if (prefix > merged && (force || now - lastEmit >= EMIT_INTERVAL_MS)) {
-        segments = mergeWindows(p, windows.slice(0, prefix), results.slice(0, prefix) as bigint[][]);
+        segments = p.merge(windows.slice(0, prefix), results.slice(0, prefix) as WindowOutput[]);
         merged = prefix;
         lastEmit = now;
       }
@@ -338,7 +410,7 @@ function runWindows(
       if (settled) return;
       settled = true;
       // Keep what's done so a retry only redoes the missing windows
-      resumable = { id, audio, results };
+      resumable = { id, model: p.model, audio, results };
       if (merged < contiguous()) report(true);
       reject(new Error(error));
     };
@@ -363,9 +435,9 @@ function runWindows(
         slot.jobId = jobId;
         inFlight++;
         slot.job = {
-          onDone: tokens => {
+          onDone: output => {
             inFlight--;
-            results[i] = tokens;
+            results[i] = output;
             if (settled) return;
             if (gaveUp) {
               report();
@@ -374,7 +446,7 @@ function runWindows(
               settled = true;
               resumable = null;
               post({ type: 'PROGRESS', id, completed: total, total });
-              resolve(mergeWindows(p, windows, results as bigint[][]));
+              resolve(p.merge(windows, results as WindowOutput[]));
             } else {
               report();
             }
@@ -400,7 +472,7 @@ function runWindows(
     p.onIdle = pump;
     report(true);
     if (queue.length === 0) {
-      resolve(mergeWindows(p, windows, results as bigint[][]));
+      resolve(p.merge(windows, results as WindowOutput[]));
       return;
     }
     pump();
@@ -421,8 +493,8 @@ async function handle(msg: WorkerInMessage) {
     const p = await ensurePool(id, model, device, maxWorkers);
 
     let audio: Float32Array;
-    let results: (bigint[] | undefined)[];
-    if (resumable?.id === id) {
+    let results: (WindowOutput | undefined)[];
+    if (resumable?.id === id && resumable.model === model) {
       ({ audio, results } = resumable);
     } else {
       resumable = null;
@@ -432,7 +504,7 @@ async function handle(msg: WorkerInMessage) {
       results = [];
     }
 
-    const windows = makeWindows(audio.length);
+    const windows = makeWindows(audio.length, p.windowing);
     post({ type: 'TRANSCRIBING', id, completed: results.filter(Boolean).length, total: windows.length, workers: p.slots.length });
 
     const segments = await runWindows(p, id, audio, windows, results);

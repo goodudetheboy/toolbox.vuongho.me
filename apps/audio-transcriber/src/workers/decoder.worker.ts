@@ -56,7 +56,7 @@ self.onmessage = async (e: MessageEvent<DecoderInMessage>) => {
         return_timestamps: true,
         num_frames: Math.floor(msg.audio.length / hopLength),
       });
-      post({ type: 'DECODED', jobId: msg.jobId, tokens: output[0].tolist() });
+      post({ type: 'DECODED', jobId: msg.jobId, output: output[0].tolist() });
     } catch (err) {
       post({ type: 'DECODE_FAILED', jobId: msg.jobId, error: (err as Error).message ?? String(err) });
     }

@@ -1,7 +1,12 @@
-export type ModelId =
+export type WhisperModelId =
   | 'Xenova/whisper-tiny.en'
   | 'Xenova/whisper-base.en'
   | 'Xenova/whisper-small.en';
+
+// NVIDIA Parakeet TDT, run through parakeet.js — see docs/adr/0004-parakeet-model-option.md
+export type ParakeetModelId = 'parakeet-tdt-0.6b-v2';
+
+export type ModelId = WhisperModelId | ParakeetModelId;
 
 export type ComputeDevice = 'webgpu' | 'wasm';
 
@@ -87,14 +92,26 @@ export type WorkerOutMessage =
   | { type: 'DONE'; id: string; segments: TranscriptSegment[] }
   | { type: 'ERROR'; id: string; error: string };
 
-// Coordinator ⇄ decoder pool workers (decoder.worker.ts)
+// A word with times relative to the start of the window it was decoded from
+export interface TimedWord {
+  text: string;
+  start: number;
+  end: number;
+}
+
+// What a decoder returns for one window: Whisper token ids (merged with the
+// tokenizer) or Parakeet timed words (merged by timestamp)
+export type WindowOutput = bigint[] | TimedWord[];
+
+// Coordinator ⇄ decoder pool workers (decoder.worker.ts, parakeet.worker.ts)
 export type DecoderInMessage =
   | { type: 'LOAD'; model: ModelId; device: ComputeDevice; threads?: number; reportProgress: boolean }
   | { type: 'DECODE'; jobId: number; audio: Float32Array };
 
 export type DecoderOutMessage =
   | { type: 'LOAD_PROGRESS'; progress: number; file: string }
+  // timePrecision is Whisper-only (seconds per timestamp token); 0 for Parakeet
   | { type: 'LOADED'; timePrecision: number }
   | { type: 'LOAD_FAILED'; error: string }
-  | { type: 'DECODED'; jobId: number; tokens: bigint[] }
+  | { type: 'DECODED'; jobId: number; output: WindowOutput }
   | { type: 'DECODE_FAILED'; jobId: number; error: string };

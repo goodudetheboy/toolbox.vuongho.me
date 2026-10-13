@@ -33,6 +33,12 @@ it to timestamped text. Migrated from its own standalone repo/deploy at
   `/ffmpeg/`) since this tool is served under a subpath. That was a real
   bug found and fixed during migration; see the progress log above if
   touching this path again.
+- Opt-in Parakeet model (`parakeet.js`, `src/workers/parakeet.worker.ts`):
+  same windows/retries/resume as Whisper, but one multi-threaded worker
+  returning timed words, merged by timestamp. Keep its windows at 30s,
+  since longer ones dropped speech. Worker bundles are `format: 'es'`
+  because parakeet.js code-splits. See
+  [ADR 0004](docs/adr/0004-parakeet-model-option.md).
 - Segment playback: history keeps only File System Access handles to the
   original recordings (`mediaHandles` store), never the media itself.
   Firefox/Safari fall back to re-attaching the file. See

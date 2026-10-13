@@ -1,10 +1,12 @@
 import type { ModelId } from '../types';
+import { isParakeet } from './models';
 
 // Rough per-worker memory (model weights + ONNX runtime + wasm heap), in MB
 const WORKER_MB: Record<ModelId, number> = {
   'Xenova/whisper-tiny.en': 150,
   'Xenova/whisper-base.en': 250,
   'Xenova/whisper-small.en': 700,
+  'parakeet-tdt-0.6b-v2': 1400,
 };
 
 const MAX_WORKERS = 8;
@@ -22,7 +24,8 @@ function isIOS(): boolean {
  * aggressively, so it stays at one.
  */
 export function decoderPoolSize(model: ModelId): number {
-  if (isIOS()) return 1;
+  // Parakeet runs one multi-threaded worker instead (ADR 0004)
+  if (isIOS() || isParakeet(model)) return 1;
   const cores = Math.max(1, Math.floor((navigator.hardwareConcurrency || 4) / 2));
   // navigator.deviceMemory is Chromium-only and capped at 8 (GB)
   const deviceGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;

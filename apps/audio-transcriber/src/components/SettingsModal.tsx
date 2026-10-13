@@ -10,6 +10,11 @@ const MODELS: { id: ModelId; name: string; desc: string }[] = [
   { id: 'Xenova/whisper-tiny.en', name: 'Fast', desc: 'Smallest (~39 MB). Quick results, decent accuracy' },
   { id: 'Xenova/whisper-base.en', name: 'Balanced', desc: 'Default (~74 MB). Great accuracy, reasonable speed' },
   { id: 'Xenova/whisper-small.en', name: 'Accurate', desc: 'Best quality (~244 MB). Slower, highest accuracy' },
+  {
+    id: 'parakeet-tdt-0.6b-v2',
+    name: 'Parakeet (experimental)',
+    desc: 'NVIDIA Parakeet. Large one-time download (~660 MB, ~1.3 GB with a GPU). Fewer mistakes than Whisper in tests',
+  },
 ];
 
 export default function SettingsModal({ settings, onChange, onClose }: Props) {
