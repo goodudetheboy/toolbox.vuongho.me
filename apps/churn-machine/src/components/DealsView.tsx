@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  activeAdvancedCount, DEFAULT_FILTERS, filterAndSort, SORT_LABELS, sortDeals, type DealFilters, type SortKey,
+  activeAdvancedCount, DEFAULT_FILTERS, filterAndSort, SORT_LABELS, type DealFilters, type SortKey,
 } from '../lib/filters';
 import { requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
@@ -33,7 +33,6 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [deals, JSON.stringify(filters), sort, today, baselineApy],
   );
-  const picks = useMemo(() => sortDeals(shown, 'value').slice(0, 6), [shown]);
   const advanced = activeAdvancedCount(filters) + (exclusion.effective.length ? 1 : 0);
 
   return (
@@ -120,22 +119,7 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
             <button type="button" className={`chip ${filters.maxBalance === 0 ? 'on' : ''}`} onClick={() => set({ maxBalance: filters.maxBalance === 0 ? null : 0 })}>No parking cash</button>
           </div>
 
-          {picks.length >= 3 && !query && (
-            <section className="section">
-              <h2>Top picks</h2>
-              <div className="picks">
-                {picks.map(({ deal: d, value: v }) => (
-                  <button key={d.id} type="button" className="pick" onClick={() => onOpenDeal(d)}>
-                    <span className="pick-bank">{d.bank}</span>
-                    <span className="pick-bonus">{d.bonusMax != null ? usd(d.bonusMax) : '?'}</span>
-                    <span className={`pick-net ${v.net > 0 ? 'up' : 'down'}`}>{usd(v.net)} net</span>
-                    <span className="pick-sub">{requirementSummary(d)}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
+  
           <section className="section">
             <div className="list-head">
               <h2>All deals</h2>

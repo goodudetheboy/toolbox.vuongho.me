@@ -18,7 +18,8 @@ ugly"). The user asked for the Robinhood app's style, in purple on white.
 - **Patterns copied from Robinhood:**
   - list rows with the name and requirements on the left and a filled purple
     price pill on the right;
-  - a "Top picks" row of scrolling cards (like Top Movers);
+  - (a "Top picks" row of scrolling cards, like Top Movers, was added and then
+    removed at the user's request the same day);
   - a deal page shaped like a stock page (hero number, "Key statistics" grid,
     hairline sections) with a sticky "order panel" card on the right;
   - the Plan inputs in that same right-hand panel as label/value rows;

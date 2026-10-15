@@ -156,7 +156,7 @@ h1, h2, h3, h4 { margin: 0; }
 .btn.small { padding: 7px 14px; font-size: 14px; }
 .btn.block { width: 100%; }
 .btn:disabled { opacity: 0.5; cursor: default; }
-.btn:focus-visible, .chip:focus-visible, .item:focus-visible, .pick:focus-visible, .bank-link:focus-visible,
+.btn:focus-visible, .chip:focus-visible, .item:focus-visible, .bank-link:focus-visible,
 .nav a:focus-visible, .tabbar a:focus-visible, .icon-btn:focus-visible, .chart:focus-visible, .more:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -377,37 +377,6 @@ select.input { cursor: pointer; }
 .v-good { background: color-mix(in srgb, var(--accent) 45%, #fff); }
 .v-ok { background: #c9c9d3; }
 .v-skip { background: transparent; box-shadow: inset 0 0 0 1px var(--faint); }
-
-/* Top picks: horizontally scrolling cards */
-.picks {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 2px 2px 8px;
-  margin: 0 -2px;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-}
-.picks::-webkit-scrollbar { display: none; }
-.pick {
-  flex: 0 0 176px;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.12s, box-shadow 0.12s;
-}
-.pick:hover { border-color: var(--accent); box-shadow: 0 6px 20px rgba(111, 44, 243, 0.1); }
-.pick-bank { font-weight: 650; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick-bonus { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-top: 10px; }
-.pick-net { font-size: 14px; font-weight: 650; }
-.pick-sub { color: var(--muted); font-size: 12.5px; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ---------- deal: hero, key stats, sections ---------- */
 .hero { margin: 8px 0 4px; }
