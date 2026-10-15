@@ -2252,10 +2252,26 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   gap: 12px;
 }
 
-.cram-body .cram-text {
+.cram-main {
   flex: 1;
   min-width: 0;
+}
+
+.cram-body .cram-text {
   margin-top: 0;
+}
+
+/* The part the passage comes from, a small handwritten label above it. */
+.cram-part {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.cram-card.done .cram-part {
+  opacity: 0.4;
 }
 
 .cram-actions {

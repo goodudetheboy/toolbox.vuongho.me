@@ -294,6 +294,8 @@ export default function CramSheet({
     [cheerSeed, ranked.length, user.email, vporkChance],
   );
   const days = daysUntil(exam.date);
+  // Read live from the notes (not frozen in the sheet), so a renamed part shows its new title.
+  const partTitle = (x: SheetIdea) => notes.find((n) => n.id === x.noteId)?.chunks[x.part]?.title;
 
   function pickSort(next: CramSort) {
     setSort(next);
@@ -394,7 +396,10 @@ export default function CramSheet({
                     className={`cram-card ${done ? 'done' : ''}`}
                   >
                     <div className="cram-body">
-                      <Excerpt words={x.words} />
+                      <div className="cram-main">
+                        {partTitle(x) && <h3 className="cram-part hand">{partTitle(x)}</h3>}
+                        <Excerpt words={x.words} />
+                      </div>
                       <div className="cram-actions">
                         <button
                           className={`tick ${done ? 'on' : ''}`}
