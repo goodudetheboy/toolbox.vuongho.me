@@ -6,7 +6,7 @@ whole (repo map, running things, shared infra rules), see the root
 
 ## What this tool does
 
-Bank account bonus churning, three tabs:
+Bank account bonus churning, three tabs (Deals, Plan, My plans):
 
 - **Deals** (public, read-only) — every deal on Doctor of Credit's
   [Best Bank Account Bonuses](https://www.doctorofcredit.com/best-bank-account-bonuses/)
@@ -18,9 +18,12 @@ Bank account bonus churning, three tabs:
 - **Plan** (public) — biweekly paycheck + plan length (+ optional cash to
   park and constraints) → several candidate strategies (objective × pace),
   sortable/filterable, each with a by-account and by-paycheck schedule.
-- **My accounts** (Google sign-in) — save a strategy as planned accounts,
-  then track each account planned → open → requirements done → bonus
-  received → closed; or track any deal / add one by hand.
+- **My plans** (Google sign-in) — strategy-first: the active strategies
+  you saved, each with a tracker page (`/accounts/<savedId>`): what day of
+  the plan it is, money collected, today's tasks, the next two weeks, the
+  whole plan as a timeline, and a check-in that offers **Revise plan** when
+  you've missed something. Accounts outside a plan and "Banks I have" sit
+  below. See [ADR 0009](docs/adr/0009-strategy-first-tracking.md).
 
 Progressive disclosure is the design rule: a few chips and three inputs up
 front, everything else behind "More filters" / "Tune the plan" / a deal's
@@ -54,6 +57,13 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   [ADR 0002](docs/adr/0002-planner-greedy-with-full-resimulation.md).
   Tested in `planner.test.ts` (invariants: DD met inside each window,
   paychecks never over-split, pace, cash cap, monthly buckets, determinism).
+- `src/lib/tasks.ts` — the day-to-day tasks, derived from each account's
+  planned dates (only "done" marks are stored, in `account.done`). Pure, so
+  a future email job can reuse them. Tested in `tasks.test.ts`.
+- `src/lib/revise.ts` + `planner.revisePlan` — "correct course": keeps the
+  accounts you opened (missed deposits move onto upcoming paychecks; ones
+  that can't make their deadline are flagged) and re-picks the rest from
+  today with the same objective/pace. A preview is shown before it's written.
 - `src/lib/accounts.ts` — Firestore (`toolbox-churn-machine` database):
   `users/{uid}/accounts`, `users/{uid}/strategies`; owner-only rules in
   `firestore.rules`. See [ADR 0003](docs/adr/0003-accounts-in-firestore.md).

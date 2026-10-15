@@ -8,7 +8,7 @@ import {
 import { useEffect, useState } from 'react';
 import { db } from './firebase';
 import type { Deal } from './types';
-import type { PlanInputs, Strategy } from './planner';
+import type { PlanInputs, PlanItem, Strategy } from './planner';
 import { addDays, todayIso } from './dates';
 import { ASSUMED, keepOpenDays } from './value';
 import { bankKey } from './filters';
@@ -48,6 +48,9 @@ export interface Account {
   bonusReceived: number | null;
   closedOn: string | null;
   notes: string;
+  /** When each task was checked off (tasks.ts), by task key. */
+  done?: Record<string, string>;
+  transactionsBy?: string | null;
 }
 
 export interface SavedStrategy {
@@ -59,6 +62,12 @@ export interface SavedStrategy {
   totalBonus: number;
   accounts: number;
   archived: boolean;
+  /** Saved since strategy tracking (older plans lack these; see planSettings). */
+  planId?: string;
+  inputs?: PlanInputs;
+  baselineApy?: number;
+  endsOn?: string;
+  revisions?: { on: string; note: string }[];
 }
 
 const accountsCol = (uid: string) => collection(db, 'users', uid, 'accounts');
@@ -119,7 +128,7 @@ export function allBanksIHave(listed: string[], accounts: Account[]): string[] {
   return out;
 }
 
-function blankAccount(): Omit<Account, 'id' | 'bank' | 'title' | 'bonus'> {
+export function blankAccount(): Omit<Account, 'id' | 'bank' | 'title' | 'bonus'> {
   return {
     dealId: null, docUrl: null, status: 'open', strategyId: null, strategyName: null, openOn: null,
     doneBy: null, expectedPayout: null, closeAfter: null, deposits: [], park: null, transactions: null,
@@ -127,8 +136,32 @@ function blankAccount(): Omit<Account, 'id' | 'bank' | 'title' | 'bonus'> {
   };
 }
 
+/** A planned account for one item of a strategy. */
+export function accountFromItem(item: PlanItem, strategyId: string, strategyName: string): Omit<Account, 'id'> {
+  return {
+    ...blankAccount(),
+    bank: item.deal.bank,
+    title: item.deal.title,
+    dealId: item.deal.id,
+    docUrl: item.deal.url,
+    bonus: item.value.bonus,
+    status: 'planned',
+    strategyId,
+    strategyName,
+    openOn: item.openOn,
+    doneBy: item.doneBy,
+    expectedPayout: item.expectedPayout,
+    closeAfter: item.closeAfter,
+    deposits: item.deposits,
+    park: item.park ? { amount: item.park.amount, until: item.park.until } : null,
+    transactions: item.deal.transactions,
+    transactionsBy: item.transactionsBy,
+    done: {},
+  };
+}
+
 /** Saves a picked strategy plus one "planned" account per item, in one batch. */
-export async function saveStrategy(uid: string, s: Strategy, inputs: PlanInputs): Promise<string> {
+export async function saveStrategy(uid: string, s: Strategy, inputs: PlanInputs, baselineApy: number): Promise<string> {
   const batch = writeBatch(db);
   const sRef = doc(strategiesCol(uid));
   batch.set(sRef, {
@@ -139,29 +172,15 @@ export async function saveStrategy(uid: string, s: Strategy, inputs: PlanInputs)
     totalBonus: s.totals.bonus,
     accounts: s.items.length,
     archived: false,
+    planId: s.id,
+    inputs,
+    baselineApy,
+    endsOn: addDays(todayIso(), Math.round(inputs.months * 30.4)),
+    revisions: [],
     createdAt: serverTimestamp(),
   });
   for (const item of s.items) {
-    batch.set(doc(accountsCol(uid)), {
-      ...blankAccount(),
-      bank: item.deal.bank,
-      title: item.deal.title,
-      dealId: item.deal.id,
-      docUrl: item.deal.url,
-      bonus: item.value.bonus,
-      status: 'planned',
-      strategyId: sRef.id,
-      strategyName: s.name,
-      openOn: item.openOn,
-      doneBy: item.doneBy,
-      expectedPayout: item.expectedPayout,
-      closeAfter: item.closeAfter,
-      deposits: item.deposits,
-      park: item.park ? { amount: item.park.amount, until: item.park.until } : null,
-      transactions: item.deal.transactions,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    batch.set(doc(accountsCol(uid)), { ...accountFromItem(item, sRef.id, s.name), createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
   }
   await batch.commit();
   return sRef.id;
@@ -214,6 +233,27 @@ export function deleteAccount(uid: string, id: string): Promise<void> {
 
 export function archiveStrategy(uid: string, id: string, archived: boolean): Promise<void> {
   return updateDoc(doc(strategiesCol(uid), id), { archived });
+}
+
+/** Writes a revision (see revise.ts) for one strategy, in one batch. */
+export async function applyRevision(uid: string, strategyId: string, change: {
+  update: { id: string; patch: Partial<Omit<Account, 'id'>> }[];
+  remove: string[];
+  add: Omit<Account, 'id'>[];
+  totalBonus: number;
+  accounts: number;
+  revisions: { on: string; note: string }[];
+}): Promise<void> {
+  const batch = writeBatch(db);
+  for (const u of change.update) batch.update(doc(accountsCol(uid), u.id), { ...u.patch, updatedAt: serverTimestamp() });
+  for (const id of change.remove) batch.delete(doc(accountsCol(uid), id));
+  for (const a of change.add) batch.set(doc(accountsCol(uid)), { ...a, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  batch.update(doc(strategiesCol(uid), strategyId), {
+    totalBonus: change.totalBonus,
+    accounts: change.accounts,
+    revisions: change.revisions,
+  });
+  await batch.commit();
 }
 
 /** Deletes a strategy and the accounts in it you never opened. Opened ones stay. */

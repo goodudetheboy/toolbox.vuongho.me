@@ -52,7 +52,7 @@ export function PlanView({
   exclusion: Exclusion;
   onOpenDeal: (d: Deal) => void;
   signedIn: boolean;
-  onSave: (s: Strategy, inputs: PlanInputs) => Promise<void>;
+  onSave: (s: Strategy, inputs: PlanInputs, baselineApy: number) => Promise<void>;
 }) {
   const [stored, setStored] = usePersisted<StoredInputs>('plan-inputs', defaults(today));
   const [sort, setSort] = usePersisted<StrategySort>('plan-sort', 'net');
@@ -209,7 +209,7 @@ export function PlanView({
           label={linked?.name ?? 'Plan'}
           onClose={closeStrategy}
           bar={linked && <ShareButton title={`${linked.name}: ${usd(linked.totals.net)} in bank bonuses`} />}
-          foot={linked && <SaveRow signedIn={signedIn} onSave={() => onSave(linked, linkInputs)} />}
+          foot={linked && <SaveRow signedIn={signedIn} onSave={() => onSave(linked, linkInputs, link?.baselineApy ?? baselineApy)} />}
         >
           {linked ? (
             <>
@@ -283,7 +283,7 @@ function SaveRow({ signedIn, onSave }: { signedIn: boolean; onSave: () => Promis
   return (
     <div className="save-row">
       <span className="muted small grow">
-        {signedIn ? 'Saving adds these accounts to Accounts as “planned”.' : 'Sign in to save this plan and track it.'}
+        {signedIn ? 'Saving puts it in My plans with a day-by-day checklist.' : 'Sign in to save this plan and track it.'}
       </span>
       <button
         type="button"

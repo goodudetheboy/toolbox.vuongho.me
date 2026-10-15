@@ -231,7 +231,7 @@ export interface Exclusion {
   /** Every bank name in the data, for the pickers. */
   banks: string[];
   signedIn: boolean;
-  /** Banks you have or had (your list in My accounts + accounts you opened). */
+  /** Banks you have or had (your list in My plans + accounts you opened). */
   have: string[];
   excludeHave: boolean;
   setExcludeHave: (v: boolean) => void;
@@ -254,10 +254,10 @@ export function ExcludeBanks({ x }: { x: Exclusion }) {
           {x.signedIn ? (
             <>
               {x.have.length ? `${x.have.length} ${x.have.length === 1 ? 'bank' : 'banks'}` : 'None listed yet'} ·{' '}
-              <button type="button" className="more" onClick={x.goToAccounts}>{x.have.length ? 'edit' : 'add them'} in My accounts</button>
+              <button type="button" className="more" onClick={x.goToAccounts}>{x.have.length ? 'edit' : 'add them'} in My plans</button>
             </>
           ) : (
-            'Sign in and list them in My accounts.'
+            'Sign in and list them in My plans.'
           )}
         </span>
       </div>

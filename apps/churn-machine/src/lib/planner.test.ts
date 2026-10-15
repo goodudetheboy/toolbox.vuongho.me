@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Deal } from './types';
-import { buildStrategy, buildStrategies, requirementOf, type PlanInputs } from './planner';
+import { buildStrategy, buildStrategies, requirementOf, revisePlan, type Committed, type PlanInputs } from './planner';
 import { addDays } from './dates';
 
 const TODAY = '2026-10-15';
@@ -103,4 +103,41 @@ test('no paycheck means only no-DD deals', () => {
   const deals = [deal('dd'), deal('nodd', { dd: { required: false, amount: 0, windowDays: null, monthly: false, months: null, minDeposits: null }, transactions: 10 })];
   const s = buildStrategy(deals, { ...INPUTS, paycheck: 0 }, 'money', 3, TODAY, 0.04);
   assert.deepEqual(s.items.map((i) => i.deal.id), ['nodd']);
+});
+
+test('revising keeps opened accounts, reschedules their missed deposits, and re-picks the rest', () => {
+  const deals = Array.from({ length: 10 }, (_, i) => deal(`d${i}`, { rank: i + 1, bonusMax: 300 + i * 40,
+    dd: { required: true, amount: 1500, windowDays: 90, monthly: false, months: null, minDeposits: null } }));
+  // Two weeks later: d9 was opened on time but its first $1,000 deposit never happened.
+  const later = '2026-10-29';
+  const committed: Committed[] = [{
+    dealId: 'd9', bank: 'd9', openedOn: '2026-10-15', ddDeadline: addDays('2026-10-15', 90),
+    remainingNeed: 1500, remainingDeposits: 1, park: null,
+  }];
+  const inputs = { ...INPUTS, firstPayday: '2026-11-06' };
+  const r = revisePlan(deals, inputs, 'money', 2, later, 0.04, addDays(TODAY, 182), committed);
+  // The opened account is kept, not re-picked, and gets its $1,500 before its deadline.
+  assert.ok(!r.strategy.items.some((i) => i.deal.bank === 'd9'));
+  const dd = r.committedDeposits.get('d9')!;
+  assert.ok(dd.every((d) => d.date >= later && d.date <= committed[0].ddDeadline));
+  assert.ok(dd.reduce((t, d) => t + d.amount, 0) >= 1500);
+  assert.equal(r.atRisk.size, 0);
+  // New picks start no earlier than today, and paychecks still add up.
+  assert.ok(r.strategy.items.length > 0);
+  assert.ok(r.strategy.items.every((i) => i.openOn >= later));
+  for (const p of r.strategy.paychecks) {
+    assert.equal(p.splits.reduce((t, x) => t + x.amount, 0) + p.toMain, inputs.paycheck);
+  }
+});
+
+test('a committed account that can no longer make its deadline is flagged, not dropped', () => {
+  const deals = [deal('a', { rank: 1 }), deal('b', { rank: 2 })];
+  const committed: Committed[] = [{
+    dealId: 'x', bank: 'x', openedOn: '2026-08-01', ddDeadline: '2026-10-20',
+    remainingNeed: 5000, remainingDeposits: 1, park: null,
+  }];
+  const r = revisePlan(deals, { ...INPUTS, firstPayday: '2026-10-23' }, 'money', 3, TODAY, 0.04, addDays(TODAY, 182), committed);
+  assert.ok(r.atRisk.has('x'));
+  // The at-risk account doesn't stop new picks.
+  assert.ok(r.strategy.items.length > 0);
 });

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 // Real paths under /churn-machine/ (the root firebase.json rewrite serves
 // index.html for all of them): /, /plan, /accounts, /deal/<id> for one deal's
-// full page, and /plan/<strategyId>?<inputs> for a strategy permalink
-// (see planLink.ts).
+// full page, /plan/<strategyId>?<inputs> for a strategy permalink (see
+// planLink.ts), and /accounts/<savedId> for one saved strategy's tracker.
 export type Tab = 'deals' | 'plan' | 'accounts' | 'deal';
 export interface Route {
   tab: Tab;
@@ -13,24 +13,29 @@ export interface Route {
   strategyId: string | null;
   /** The query string, for a strategy permalink's inputs. */
   search: string;
+  /** A saved strategy's Firestore id (tab 'accounts'). */
+  savedId: string | null;
 }
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 function routeFromLocation(path: string, search: string): Route {
   const rest = path.startsWith(BASE) ? path.slice(BASE.length) : path;
-  const none = { dealId: null, strategyId: null, search: '' };
+  const none = { dealId: null, strategyId: null, search: '', savedId: null };
   const deal = rest.match(/^\/deal\/([^/]+)/);
   if (deal) return { ...none, tab: 'deal', dealId: decodeURIComponent(deal[1]) };
   const strategy = rest.match(/^\/plan\/([^/]+)/);
   if (strategy) return { ...none, tab: 'plan', strategyId: decodeURIComponent(strategy[1]), search };
   if (rest.startsWith('/plan')) return { ...none, tab: 'plan' };
+  const saved = rest.match(/^\/accounts\/([^/]+)/);
+  if (saved) return { ...none, tab: 'accounts', savedId: decodeURIComponent(saved[1]) };
   if (rest.startsWith('/accounts')) return { ...none, tab: 'accounts' };
   return { ...none, tab: 'deals' };
 }
 
-/** `id` is the deal id for 'deal', or the strategy id for 'plan'. */
+/** `id` is the deal id for 'deal', the strategy id for 'plan', or the saved strategy id for 'accounts'. */
 export function hrefFor(tab: Tab, id?: string | null, search = ''): string {
   if (tab === 'deal') return `${BASE}/deal/${encodeURIComponent(id ?? '')}`;
+  if (tab === 'accounts' && id) return `${BASE}/accounts/${encodeURIComponent(id)}`;
   if (tab === 'plan' && id) return `${BASE}/plan/${encodeURIComponent(id)}${search ? `?${search}` : ''}`;
   return tab === 'deals' ? `${BASE}/` : `${BASE}/${tab}`;
 }

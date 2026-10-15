@@ -18,7 +18,7 @@ import { AccountsIcon, DealsIcon, LogoMark, PlanIcon } from './components/icons'
 const TABS: { tab: Tab; label: string; Icon: () => JSX.Element }[] = [
   { tab: 'deals', label: 'Deals', Icon: DealsIcon },
   { tab: 'plan', label: 'Plan', Icon: PlanIcon },
-  { tab: 'accounts', label: 'Accounts', Icon: AccountsIcon },
+  { tab: 'accounts', label: 'My plans', Icon: AccountsIcon },
 ];
 
 export default function App() {
@@ -35,7 +35,7 @@ export default function App() {
   const dealById = (id: string | null) => (id && data?.deals.find((d) => d.id === id)) || null;
   const modalDeal = dealById(modalId);
   const openDeal = (d: Deal) => setModalId(d.id);
-  useEffect(closeModal, [route.tab, route.dealId, route.strategyId, closeModal]);
+  useEffect(closeModal, [route.tab, route.dealId, route.strategyId, route.savedId, closeModal]);
   const [busy, setBusy] = useState<string | null>(null);
   const today = todayIso();
 
@@ -145,9 +145,15 @@ export default function App() {
           strategies={acc.strategies}
           banksIHave={acc.banksIHave}
           banks={banks}
+          deals={data?.deals ?? null}
           loading={acc.loading}
           error={acc.error}
           today={today}
+          savedId={route.savedId}
+          openPlan={(id) => go('accounts', id)}
+          onBack={() => go('accounts')}
+          onBuildPlan={() => go('plan')}
+          onOpenDeal={openDeal}
         />
       ) : error ? (
         <div className="notice">Couldn’t load the deals ({error}). Try reloading.</div>
@@ -184,14 +190,14 @@ export default function App() {
           exclusion={exclusion}
           onOpenDeal={openDeal}
           signedIn={!!user}
-          onSave={async (s, inputs) => {
+          onSave={async (s, inputs, apy) => {
             if (!user) {
               await signIn();
               return;
             }
             try {
-              await saveStrategy(user.uid, s, inputs);
-              go('accounts');
+              const id = await saveStrategy(user.uid, s, inputs, apy);
+              go('accounts', id);
             } catch (e) {
               alert(`Couldn’t save the plan: ${(e as Error).message}`);
             }

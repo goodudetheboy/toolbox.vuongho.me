@@ -141,6 +141,8 @@ export interface Strategy {
 
 interface SimResult {
   ok: boolean;
+  /** Deals that missed a deadline. */
+  failed: Set<string>;
   deposits: Map<string, PlannedDeposit[]>;
   doneBy: Map<string, string>;
   paychecks: Paycheck[];
@@ -157,7 +159,7 @@ export function paydays(first: string, end: string): string[] {
  * accounts with the earliest deadline first (at most `maxSplits` of them); the rest
  * goes to your main account. `ok` is false if any deal misses a deadline.
  */
-function simulate(sel: Selection[], pays: string[], inputs: PlanInputs): SimResult {
+function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate: Set<string> = new Set()): SimResult {
   const state = sel.map((s) => ({
     s,
     remaining: s.req.need,
@@ -221,9 +223,10 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs): SimResu
     paychecks.push({ date: p, splits, toMain: avail });
   }
 
-  const ok = state.every((x) => x.done && !x.failed);
+  const ok = state.every((x) => (x.done && !x.failed) || tolerate.has(x.s.deal.id));
   return {
     ok,
+    failed: new Set(state.filter((x) => !x.done || x.failed).map((x) => x.s.deal.id)),
     deposits: new Map(state.map((x) => [x.s.deal.id, x.deposits])),
     doneBy: new Map(state.map((x) => [x.s.deal.id, x.done ?? x.s.open])),
     paychecks,
@@ -284,12 +287,81 @@ function rankFor(objective: Objective, cands: Candidate[], paycheck: number): Ca
 export function buildStrategy(
   deals: Deal[], inputs: PlanInputs, objective: Objective, pace: Pace, today: string, baselineApy: number,
 ): Strategy {
-  const end = addDays(today, Math.round(inputs.months * 30.4));
+  return planCore(deals, inputs, objective, pace, today, baselineApy, addDays(today, Math.round(inputs.months * 30.4)), []).strategy;
+}
+
+/**
+ * An account you already opened, as the re-planner sees it: what it still
+ * needs from your paychecks (the deposits you haven't made) and any cash
+ * still parked in it.
+ */
+export interface Committed {
+  dealId: string;
+  bank: string;
+  openedOn: string;
+  /** Deadline for the remaining deposits. */
+  ddDeadline: string;
+  remainingNeed: number;
+  remainingDeposits: number;
+  park: { amount: number; until: string } | null;
+}
+
+export interface Revision {
+  /** New picks for everything not opened yet. */
+  strategy: Strategy;
+  /** Fresh future deposit schedule for each committed account. */
+  committedDeposits: Map<string, PlannedDeposit[]>;
+  committedDoneBy: Map<string, string>;
+  /** Committed accounts whose remaining deposits can't fit before their deadline. */
+  atRisk: Set<string>;
+}
+
+/**
+ * Re-plans the rest of a strategy from today: keeps the accounts you already
+ * opened (rescheduling their missed deposits onto upcoming paychecks) and
+ * re-picks everything not opened yet around them, same objective and pace.
+ */
+export function revisePlan(
+  deals: Deal[], inputs: PlanInputs, objective: Objective, pace: Pace, today: string, baselineApy: number,
+  endsOn: string, committed: Committed[],
+): Revision {
+  const fixed: Selection[] = committed.map((c) => ({
+    deal: { id: c.dealId, bank: c.bank, rank: -1 } as Deal,
+    open: c.openedOn,
+    req: {
+      need: c.remainingNeed,
+      months: null,
+      minDeposits: c.remainingNeed > 0 ? Math.max(1, c.remainingDeposits) : 0,
+      windowDays: Math.max(0, daysBetween(c.openedOn, c.ddDeadline)),
+      balance: c.park && c.park.until > today ? c.park.amount : 0,
+      holdDays: c.park && c.park.until > today ? daysBetween(c.openedOn, c.park.until) : 0,
+      assumed: [],
+    },
+  }));
+  const end = [endsOn, ...committed.map((c) => c.ddDeadline)].sort().at(-1)!;
+  const { strategy, sim, atRisk } = planCore(deals, inputs, objective, pace, today, baselineApy, end, fixed);
+  const ids = new Set(committed.map((c) => c.dealId));
+  return {
+    strategy,
+    committedDeposits: new Map([...sim.deposits].filter(([id]) => ids.has(id))),
+    committedDoneBy: new Map([...sim.doneBy].filter(([id]) => ids.has(id))),
+    atRisk,
+  };
+}
+
+function planCore(
+  deals: Deal[], inputs: PlanInputs, objective: Objective, pace: Pace, today: string, baselineApy: number,
+  end: string, fixed: Selection[],
+): { strategy: Strategy; sim: SimResult; atRisk: Set<string> } {
   const pays = paydays(inputs.firstPayday, end);
   const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy), inputs.paycheck);
-  const sel: Selection[] = [];
-  const usedBanks = new Set<string>();
+  // Already-opened accounts stay in every simulation. Any that can't be met
+  // even on their own are "at risk": scheduled best-effort, never blocking picks.
+  const atRisk = fixed.length ? simulate(fixed, pays, inputs).failed : new Set<string>();
+  const sel: Selection[] = [...fixed];
+  const usedBanks = new Set<string>(fixed.map((f) => bankKey(f.deal.bank)));
   const openedPerMonth = new Map<string, number>();
+  for (const f of fixed) openedPerMonth.set(f.open.slice(0, 7), (openedPerMonth.get(f.open.slice(0, 7)) ?? 0) + 1);
 
   // Opening slots: a week (leadDays) before each payday, plus today for deals
   // that don't need a paycheck at all.
@@ -304,15 +376,16 @@ export function buildStrategy(
       if (finish > end) continue;
       const trial = [...sel, { deal: c.deal, req: c.req, open }];
       if (!parkedOk(trial, inputs.cash)) continue;
-      if (c.req.need > 0 && !simulate(trial, pays, inputs).ok) continue;
+      if (c.req.need > 0 && !simulate(trial, pays, inputs, atRisk).ok) continue;
       sel.push(trial[trial.length - 1]);
       usedBanks.add(bankKey(c.deal.bank));
       openedPerMonth.set(month, (openedPerMonth.get(month) ?? 0) + 1);
     }
   }
 
-  const sim = simulate(sel, pays, inputs);
-  const items: PlanItem[] = sel.map((s) => {
+  const sim = simulate(sel, pays, inputs, atRisk);
+  const fixedIds = new Set(fixed.map((f) => f.deal.id));
+  const items: PlanItem[] = sel.filter((s) => !fixedIds.has(s.deal.id)).map((s) => {
     const value = valueOf(s.deal, baselineApy);
     const ddDone = s.req.need > 0 ? sim.doneBy.get(s.deal.id)! : s.open;
     const txBy = s.deal.transactions ? addDays(s.open, s.req.windowDays) : null;
@@ -334,7 +407,7 @@ export function buildStrategy(
   }).sort((a, b) => a.openOn.localeCompare(b.openOn) || a.deal.rank - b.deal.rank);
 
   const payouts = items.map((i) => i.expectedPayout).sort();
-  return {
+  const strategy: Strategy = {
     id: `${objective}-${pace}`,
     objective,
     pace,
@@ -345,12 +418,13 @@ export function buildStrategy(
       bonus: items.reduce((t, i) => t + i.value.bonus, 0),
       net: items.reduce((t, i) => t + i.value.net, 0),
       accounts: items.length,
-      peakParked: peakParked(sel),
+      peakParked: peakParked(sel.filter((s) => !fixedIds.has(s.deal.id))),
       effort: items.reduce((t, i) => t + i.value.effort, 0),
       firstPayout: payouts[0] ?? null,
       lastPayout: payouts.at(-1) ?? null,
     },
   };
+  return { strategy, sim, atRisk };
 }
 
 function peakParked(sel: Selection[]): number {
