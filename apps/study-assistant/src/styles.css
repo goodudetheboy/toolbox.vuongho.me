@@ -2266,7 +2266,7 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   margin: 0 0 4px;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--ink-soft);
+  color: var(--sky-ink);
   overflow-wrap: anywhere;
 }
 
