@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// churn-machine (database `toolbox-churn-machine`): each signed-in user reads and
+// writes only their own accounts and saved plans. Deals are public static JSON,
+// not in Firestore.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) {
+      return request.auth != null && request.auth.token.email_verified == true && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/accounts/{accountId} {
+      allow read, write: if owner(uid);
+    }
+
+    match /users/{uid}/strategies/{strategyId} {
+      allow read, write: if owner(uid);
+    }
+  }
+}

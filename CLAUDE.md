@@ -15,13 +15,17 @@ homepage.
   `CLAUDE.md`, `docs/adr/`, and `docs/progress/` — see "Docs are split
   per-app" below. Current tools: `pdf-redactor`, `audio-transcriber`,
   `trip-planner`, `study-assistant` (the only one with a Cloud Run backend,
-  `apps/study-assistant/api/`, deployed by CI).
+  `apps/study-assistant/api/`, deployed by CI), `churn-machine` (bank bonus
+  deals + planner + account tracker; its deal data is fetched from Doctor of
+  Credit at build time).
 - `scripts/combine-dist.mjs` — merges every app's `dist/` into one root
   `dist/` before deploy (homepage at root, each tool under `/<tool-name>/`)
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the
   shared `vuonghome` GCP project
 - `.github/workflows/deploy.yml` — CI/CD, deploys `dist/` to Firebase
-  Hosting on push to `main`; also deploys the study-assistant Cloud Run API
+  Hosting on push to `main` and daily (see
+  `docs/adr/0007-daily-scheduled-deploy.md`); refreshes churn-machine's
+  deals before building; also deploys the study-assistant Cloud Run API
   (when its code changed) and publishes Firestore rules
 - `docs/` — toolbox-wide only, see below
 
@@ -80,6 +84,7 @@ npm run dev:pdf-redactor   # start the PDF Redactor dev server
 npm run dev:audio-transcriber
 npm run dev:trip-planner
 npm run dev:study-assistant
+npm run dev:churn-machine
 npm run build              # build every app (apps/*/dist)
 npm run combine            # merge every app's dist/ into root dist/
 ```

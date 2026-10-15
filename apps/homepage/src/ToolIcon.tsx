@@ -114,6 +114,20 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
+      {model === 'coins' && (
+        <g>
+          {[0, 1, 2, 3].map((i) => (
+            <g key={i} transform={`translate(${[0, 1.5, -1.2, 2][i]} ${46 - i * 7})`}>
+              <rect x="12" y="0" width="40" height="7" fill="#9c7424" />
+              <ellipse cx="32" cy="7" rx="20" ry="6" fill="#8a6520" />
+              <ellipse cx="32" cy="0" rx="20" ry="6" fill={url('brass')} />
+            </g>
+          ))}
+          <ellipse cx="34" cy="25" rx="14" ry="3.8" fill="none" stroke="#8a6a24" strokeWidth="0.9" opacity="0.7" />
+          <ellipse cx="28" cy="23" rx="6" ry="1.6" fill="#fff" opacity="0.35" />
+        </g>
+      )}
+
       {model === 'wrench' && (
         <g transform="rotate(-45 32 32)">
           <rect x="16" y="28.5" width="32" height="7" rx="2" fill={url('chrome')} />

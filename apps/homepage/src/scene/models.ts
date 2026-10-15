@@ -550,6 +550,29 @@ export function buildProp(kind: ToolModel | 'screwdriver' | 'nut', m: Mats): Pro
         showQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3, -Math.PI / 2 + 0.6, 0)),
       };
     }
+    case 'coins': {
+      // A small, slightly messy stack of gold coins. Body origin is the stack's middle.
+      const gold = new THREE.MeshStandardMaterial({ color: 0xd8ac3e, metalness: 1, roughness: 0.3 });
+      const T = 0.003;
+      const offsets = [[0, 0], [0.0012, -0.0008], [-0.0009, 0.0011], [0.0015, 0.0006]];
+      offsets.forEach(([x, z], i) => {
+        const coin = mesh(new THREE.CylinderGeometry(0.016, 0.016, T, 48), gold, x, (i - 1.5) * T, z);
+        coin.rotation.y = i * 0.7;
+        g.add(coin);
+      });
+      // Raised rim on the top face.
+      const [tx, tz] = offsets[offsets.length - 1];
+      const rim = mesh(new THREE.TorusGeometry(0.0135, 0.0007, 8, 48), gold, tx, 1.5 * T + T / 2, tz);
+      rim.rotation.x = Math.PI / 2;
+      g.add(rim);
+      return {
+        group: shadow(g),
+        shapes: [{ shape: new CANNON.Cylinder(0.0175, 0.0175, 0.012, 16) }],
+        mass: 0.04,
+        restHalfHeight: 0.006,
+        restQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.3, 0)),
+      };
+    }
     case 'screwdriver': {
       const handle = new THREE.MeshPhysicalMaterial({ color: 0xe8a90c, roughness: 0.18, clearcoat: 1});
       g.add(mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.1, 6), handle, 0, 0.05, 0));

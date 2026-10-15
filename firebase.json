@@ -7,6 +7,10 @@
     {
       "database": "toolbox-study-assistant",
       "rules": "apps/study-assistant/firestore.rules"
+    },
+    {
+      "database": "toolbox-churn-machine",
+      "rules": "apps/churn-machine/firestore.rules"
     }
   ],
   "hosting": {
@@ -16,12 +20,17 @@
     "rewrites": [
       { "source": "/trip-planner/**", "destination": "/trip-planner/index.html" },
       { "source": "/pdf-redactor/**", "destination": "/pdf-redactor/index.html" },
-      { "source": "/study-assistant/**", "destination": "/study-assistant/index.html" }
+      { "source": "/study-assistant/**", "destination": "/study-assistant/index.html" },
+      { "source": "/churn-machine/**", "destination": "/churn-machine/index.html" }
     ],
     "headers": [
       {
         "source": "/study-assistant/**",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "/churn-machine/deals.json",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=600" }]
       },
       {
         "source": "/audio-transcriber/**",

@@ -11,6 +11,7 @@
     "dev:pdf-redactor": "npm run dev -w apps/pdf-redactor",
     "dev:audio-transcriber": "npm run dev -w apps/audio-transcriber",
     "dev:trip-planner": "npm run dev -w apps/trip-planner",
-    "dev:study-assistant": "npm run dev -w apps/study-assistant"
+    "dev:study-assistant": "npm run dev -w apps/study-assistant",
+    "dev:churn-machine": "npm run dev -w apps/churn-machine"
   }
 }
