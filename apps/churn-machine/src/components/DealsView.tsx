@@ -3,29 +3,30 @@ import type { Deal } from '../lib/types';
 import {
   activeAdvancedCount, DEFAULT_FILTERS, filterAndSort, SORT_LABELS, type DealFilters, type SortKey,
 } from '../lib/filters';
-import { usd, requirementSummary } from '../lib/value';
+import { requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { Check, Disclosure, MoneyInput, Segmented, StatusTag, VerdictTag } from './bits';
-import { DealDetail } from './DealDetail';
+import { BankPicker, Check, Disclosure, MoneyInput, Segmented, StatusTag, VerdictTag } from './bits';
 
 const CATEGORY_LABEL: Record<Deal['category'], string> = {
-  checking: 'Checking', savings: 'Savings', business: 'Business', state: 'Local', regional: 'Local', other: '',
+  checking: 'CHK', savings: 'SAV', business: 'BIZ', state: 'LOCAL', regional: 'LOCAL', other: '',
 };
 
-export function DealsView({ deals, today, state, baselineApy, setBaselineApy, trackAction }: {
+export function DealsView({ deals, today, state, baselineApy, setBaselineApy, excludedBanks, setExcludedBanks, banks, onOpenDeal }: {
   deals: Deal[];
   today: string;
   state: string | null;
   baselineApy: number;
   setBaselineApy: (v: number) => void;
-  /** Renders the "track" control for a deal (depends on sign-in state). */
-  trackAction: (d: Deal) => React.ReactNode;
+  excludedBanks: string[];
+  setExcludedBanks: (v: string[]) => void;
+  banks: string[];
+  onOpenDeal: (d: Deal) => void;
 }) {
   const [stored, setFilters] = usePersisted<Omit<DealFilters, 'query' | 'state'>>('deal-filters', DEFAULT_FILTERS);
   const [sort, setSort] = usePersisted<SortKey>('deal-sort', 'value');
   const [query, setQuery] = useState('');
-  const [openId, setOpenId] = useState<string | null>(null);
-  const filters: DealFilters = { ...DEFAULT_FILTERS, ...stored, query, state };
+  const [pickBanks, setPickBanks] = useState(false);
+  const filters: DealFilters = { ...DEFAULT_FILTERS, ...stored, query, state, excludeBanks: excludedBanks };
   const set = (patch: Partial<DealFilters>) => setFilters({ ...stored, ...patch });
 
   const shown = useMemo(
@@ -55,10 +56,22 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, tr
           <button type="button" className={`chip ${filters.online ? 'on' : ''}`} onClick={() => set({ online: !filters.online })}>Online only</button>
           <button type="button" className={`chip ${filters.noHardPull ? 'on' : ''}`} onClick={() => set({ noHardPull: !filters.noHardPull })}>No hard pull</button>
           <button type="button" className={`chip ${filters.maxBalance === 0 ? 'on' : ''}`} onClick={() => set({ maxBalance: filters.maxBalance === 0 ? null : 0 })}>No parking cash</button>
+          <button type="button" className={`chip ${excludedBanks.length ? 'on' : ''}`} aria-expanded={pickBanks} onClick={() => setPickBanks(!pickBanks)}>
+            Banks I have{excludedBanks.length ? ` (${excludedBanks.length} hidden)` : ''} {pickBanks ? '▴' : '▾'}
+          </button>
         </div>
         <span className="grow" />
+        {pickBanks && (
+          <div className="panel" style={{ flexBasis: '100%', order: 1 }}>
+            <div className="field">
+              Hide deals from banks you already have (or had)
+              <BankPicker banks={banks} value={excludedBanks} onChange={setExcludedBanks} />
+              <span className="hint">The planner skips these banks too.</span>
+            </div>
+          </div>
+        )}
         <Disclosure label={`More filters${advanced ? ` (${advanced})` : ''}`}>
-          <div className="panel" style={{ flexBasis: '100%' }}>
+          <div className="panel" style={{ flexBasis: '100%', order: 2 }}>
             <div className="form-grid">
               <label className="field">
                 Business accounts
@@ -121,28 +134,30 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, tr
       {shown.length === 0 ? (
         <div className="empty">Nothing matches. Try loosening a filter.</div>
       ) : (
-        <div className="list">
-          {shown.map(({ deal: d, value: v }) => {
-            const open = openId === d.id;
-            return (
-              <div key={d.id} className={`row ${open ? 'open' : ''}`}>
-                <button type="button" className="row-head" aria-expanded={open} onClick={() => setOpenId(open ? null : d.id)}>
-                  <span className="row-title">
-                    {d.bank} <span className="faint">{CATEGORY_LABEL[d.category]}</span>
-                  </span>
-                  <span className="row-amount">
-                    {d.bonusMin != null && d.bonusMax != null && d.bonusMin < d.bonusMax && <span className="faint small">up to </span>}
-                    {d.bonusMax != null ? usd(d.bonusMax) : '?'}
-                  </span>
-                  <span className="row-sub">{requirementSummary(d)}</span>
-                  <span className="row-side">
-                    <StatusTag deal={d} today={today} /> · <VerdictTag verdict={v.verdict} />
-                  </span>
-                </button>
-                {open && <DealDetail deal={d} today={today} baselineApy={baselineApy} actions={trackAction(d)} />}
-              </div>
-            );
-          })}
+        <div className="list deal-table">
+          <div className="deal-row deal-cols" aria-hidden="true">
+            <span>Bank</span>
+            <span className="num">Bonus</span>
+            <span className="num">Net</span>
+            <span className="c-req">Requirements</span>
+            <span className="c-status">Ends</span>
+            <span className="c-grade">Grade</span>
+          </div>
+          {shown.map(({ deal: d, value: v }) => (
+            <button key={d.id} type="button" className="deal-row" onClick={() => onOpenDeal(d)}>
+              <span className="c-bank">
+                {d.bank} <span className="cat">{CATEGORY_LABEL[d.category]}</span>
+              </span>
+              <span className="num c-bonus">
+                {d.bonusMin != null && d.bonusMax != null && d.bonusMin < d.bonusMax && <span className="faint">≤</span>}
+                {d.bonusMax != null ? usd(d.bonusMax) : '?'}
+              </span>
+              <span className={`num c-net ${v.net > 0 ? 'up' : 'down'}`}>{usd(v.net)}</span>
+              <span className="c-req">{requirementSummary(d)}</span>
+              <span className="c-status"><StatusTag deal={d} today={today} /></span>
+              <span className="c-grade"><VerdictTag verdict={v.verdict} /></span>
+            </button>
+          ))}
         </div>
       )}
     </>

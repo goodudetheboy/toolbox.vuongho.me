@@ -10,7 +10,7 @@
 import type { Deal } from './types';
 import { addDays, daysBetween, maxIso } from './dates';
 import { ASSUMED, dealStatus, keepOpenDays, valueOf, type Value } from './value';
-import { availableIn, isBusiness } from './filters';
+import { availableIn, bankKey, isBusiness } from './filters';
 
 export interface PlanInputs {
   /** Take-home pay per biweekly paycheck. */
@@ -238,8 +238,6 @@ function parkedOk(sel: Selection[], cash: number): boolean {
   }
   return true;
 }
-
-const bankKey = (b: string) => b.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export function candidates(deals: Deal[], inputs: PlanInputs, today: string, baselineApy: number) {
   const excluded = new Set(inputs.excludeBanks.map(bankKey));

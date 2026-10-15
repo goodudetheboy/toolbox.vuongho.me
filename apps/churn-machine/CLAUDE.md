@@ -23,9 +23,11 @@ Bank account bonus churning, three tabs:
   received → closed; or track any deal / add one by hand.
 
 Progressive disclosure is the design rule: a few chips and three inputs up
-front, everything else behind "More filters" / "Tune the plan" / expanding a
-row. UI text uses no em dashes (toolbox-wide preference, see root progress
-2026-10-07).
+front, everything else behind "More filters" / "Tune the plan" / a deal's
+modal. The look is a Bloomberg Terminal (black, amber, IBM Plex Mono); a
+deal row opens a modal with a "Full page" link to `/deal/<id>`. See
+[ADR 0005](docs/adr/0005-terminal-look-and-deal-modal.md). UI text uses
+no em dashes (toolbox-wide preference, see root progress 2026-10-07).
 
 ## Architecture notes
 
@@ -56,8 +58,11 @@ row. UI text uses no em dashes (toolbox-wide preference, see root progress
   `src/components/UpdateToast.tsx`): shell precached, `deals.json`
   network-first, update on tap. See [ADR 0004](docs/adr/0004-installable-pwa.md).
   `public/icon.svg` is the source for every icon PNG.
-- `src/lib/router.ts` — three real paths (`/`, `/plan`, `/accounts`) under
-  `/churn-machine/`, served by the root `firebase.json` rewrite.
+- `src/lib/router.ts` — real paths (`/`, `/plan`, `/accounts`,
+  `/deal/<id>`) under `/churn-machine/`, served by the root `firebase.json`
+  rewrite. `src/components/DealModal.tsx` has the modal and the full page.
+- "Banks I have" (`prefs.excludedBanks`, picked with `BankPicker` in
+  `bits.tsx`) hides those banks on Deals and in the planner.
 
 ## Running
 

@@ -1,9 +1,10 @@
 // Small shared pieces.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Deal } from '../lib/types';
 import { dealStatus, type Verdict } from '../lib/value';
 import { daysBetween, shortDate } from '../lib/dates';
 import { STATE_NAMES } from '../lib/states';
+import { bankKey } from '../lib/filters';
 
 export function StatusTag({ deal, today }: { deal: Deal; today: string }) {
   const s = dealStatus(deal, today);
@@ -93,5 +94,123 @@ export function Disclosure({ label, children, defaultOpen = false }: { label: Re
       </button>
       {open && children}
     </>
+  );
+}
+
+/**
+ * Pick banks from a dropdown (type to narrow it, or just scroll and click).
+ * Chosen banks show as removable chips.
+ */
+export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks you already have' }: {
+  banks: string[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const chosen = new Set(value.map(bankKey));
+  const needle = q.trim().toLowerCase();
+  const opts = banks.filter((b) => !chosen.has(bankKey(b)) && (!needle || b.toLowerCase().includes(needle)));
+  const add = (b: string) => {
+    onChange([...value, b]);
+    setQ('');
+    setHi(0);
+  };
+
+  useEffect(() => {
+    listRef.current?.children[hi]?.scrollIntoView({ block: 'nearest' });
+  }, [hi, open]);
+
+  return (
+    <div
+      className="bank-picker"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <div className="combo">
+        <input
+          ref={inputRef}
+          className="input"
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          aria-label="Banks to exclude"
+          placeholder={placeholder}
+          value={q}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setHi(0);
+            setOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setOpen(true);
+              setHi((h) => Math.min(h + 1, opts.length - 1));
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setHi((h) => Math.max(h - 1, 0));
+            } else if (e.key === 'Enter' && open && opts[hi]) {
+              e.preventDefault();
+              add(opts[hi]);
+            } else if (e.key === 'Escape') {
+              setOpen(false);
+            } else if (e.key === 'Backspace' && !q && value.length) {
+              onChange(value.slice(0, -1));
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="combo-toggle"
+          aria-label={open ? 'Hide bank list' : 'Show all banks'}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setOpen(!open);
+            inputRef.current?.focus();
+          }}
+        >
+          {open ? '▴' : '▾'}
+        </button>
+        {open && (
+          <ul ref={listRef} className="combo-list" role="listbox">
+            {opts.length === 0 ? (
+              <li className="none">No match</li>
+            ) : opts.map((b, i) => (
+              <li
+                key={b}
+                role="option"
+                aria-selected={i === hi}
+                className={i === hi ? 'hi' : ''}
+                onMouseEnter={() => setHi(i)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  add(b);
+                }}
+              >
+                {b}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {value.length > 0 && (
+        <div className="chips" style={{ marginTop: 8 }}>
+          {value.map((b) => (
+            <button key={b} type="button" className="chip on" title={`Show ${b} again`} onClick={() => onChange(value.filter((x) => x !== b))}>
+              {b} ✕
+            </button>
+          ))}
+          <button type="button" className="more" onClick={() => onChange([])}>Clear all</button>
+        </div>
+      )}
+    </div>
   );
 }

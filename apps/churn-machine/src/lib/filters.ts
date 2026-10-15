@@ -6,6 +6,8 @@ export interface DealFilters {
   query: string;
   /** Your state (2-letter); null = don't filter by location. */
   state: string | null;
+  /** Banks to hide (ones you already have). Compared by bankKey. */
+  excludeBanks: string[];
   noDd: boolean;
   noHardPull: boolean;
   online: boolean;
@@ -23,6 +25,7 @@ export interface DealFilters {
 export const DEFAULT_FILTERS: DealFilters = {
   query: '',
   state: null,
+  excludeBanks: [],
   noDd: false,
   noHardPull: false,
   online: false,
@@ -46,6 +49,16 @@ export const SORT_LABELS: Record<SortKey, string> = {
   rank: 'Doctor of Credit order',
 };
 
+/** Case/punctuation-insensitive bank identity ("U.S. Bank" = "us bank"). */
+export const bankKey = (b: string) => b.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** Every bank name in the data, deduped by bankKey, sorted. */
+export function bankNames(deals: Deal[]): string[] {
+  const byKey = new Map<string, string>();
+  for (const d of deals) if (!byKey.has(bankKey(d.bank))) byKey.set(bankKey(d.bank), d.bank);
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+}
+
 export function availableIn(d: Deal, state: string | null): boolean {
   return !state || d.nationwide || d.states.includes(state);
 }
@@ -59,6 +72,7 @@ export function matches(d: Deal, f: DealFilters, today: string): boolean {
   if (status === 'ended' && !f.showEnded) return false;
   if (status === 'date-passed' && !f.showDatePassed) return false;
   if (!availableIn(d, f.state)) return false;
+  if (f.excludeBanks.length && f.excludeBanks.some((b) => bankKey(b) === bankKey(d.bank))) return false;
   if (f.noDd && d.dd.required !== false) return false;
   if (f.noHardPull && d.pull === 'hard') return false;
   if (f.online && d.inBranch) return false;

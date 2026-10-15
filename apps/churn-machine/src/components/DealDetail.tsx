@@ -22,16 +22,28 @@ function ddLine(d: Deal): string {
   return parts.join(', ');
 }
 
-export function DealDetail({ deal: d, today, baselineApy, actions }: {
+/** Bloomberg-style panel: a thin header bar over its content. */
+export function Pane({ title, children, className = '' }: { title: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`pane ${className}`}>
+      <h3 className="pane-head">{title}</h3>
+      <div className="pane-body">{children}</div>
+    </section>
+  );
+}
+
+export function DealDetail({ deal: d, today, baselineApy, actions, full = false }: {
   deal: Deal;
   today: string;
   baselineApy: number;
   actions?: React.ReactNode;
+  /** Full-page layout: two columns and the index's at-a-glance lines. */
+  full?: boolean;
 }) {
   const v = valueOf(d, baselineApy);
   const status = dealStatus(d, today);
   return (
-    <div className="detail">
+    <div className={`detail ${full ? 'full' : ''}`}>
       {d.latestNote && <p className="note">{d.latestNote}</p>}
       {status === 'date-passed' && (
         <div className="notice">
@@ -39,80 +51,88 @@ export function DealDetail({ deal: d, today, baselineApy, actions }: {
         </div>
       )}
 
-      <h3>Worth it?</h3>
-      <div className="worth">
-        Net about <b>{usd(v.net)}</b>
-        <span className="meta">
-          {' '}= {usd(v.bonus)} bonus
-          {v.capitalCost > 0 && <> − {usd(v.capitalCost)} interest you’d skip on the parked cash ({Math.round(baselineApy * 1000) / 10}% APY)</>}
-          {v.feeCost > 0 && <> − {usd(v.feeCost)} unavoidable fees</>}
-        </span>
-        {v.effectiveApy != null && (
-          <div className="meta">That’s like a {(v.effectiveApy * 100).toFixed(1)}% APY on {usd(d.balance!.amount)}.</div>
+      <div className="panes">
+        <Pane title="Worth it?">
+          <div className="worth">
+            Net about <b className="big-num">{usd(v.net)}</b>
+            <div className="meta">
+              = {usd(v.bonus)} bonus
+              {v.capitalCost > 0 && <> − {usd(v.capitalCost)} interest you’d skip on the parked cash ({Math.round(baselineApy * 1000) / 10}% APY)</>}
+              {v.feeCost > 0 && <> − {usd(v.feeCost)} unavoidable fees</>}
+            </div>
+            {v.effectiveApy != null && (
+              <div className="meta">That’s like a {(v.effectiveApy * 100).toFixed(1)}% APY on {usd(d.balance!.amount)}.</div>
+            )}
+            {v.effortNotes.length > 0 && <div className="meta">Effort: {v.effortNotes.join(', ')}.</div>}
+          </div>
+        </Pane>
+
+        {full && d.blurb.length > 0 && (
+          <Pane title="At a glance">
+            <ul>{d.blurb.map((l, i) => <li key={i}>{l}</li>)}</ul>
+          </Pane>
         )}
-        {v.effortNotes.length > 0 && <div className="meta">Effort: {v.effortNotes.join(', ')}.</div>}
+
+        {d.requirements.length > 0 && (
+          <Pane title="The offer" className="wide">
+            <ul>{d.requirements.map((r, i) => <li key={i}>{r}</li>)}</ul>
+          </Pane>
+        )}
+
+        <Pane title="Details" className="wide">
+          <dl className="facts">
+            <dt>Bonus</dt>
+            <dd>
+              {d.bonusMin != null && d.bonusMax != null && d.bonusMin !== d.bonusMax ? `${usd(d.bonusMin)} – ${usd(d.bonusMax)}` : d.bonusMax != null ? usd(d.bonusMax) : 'See post'}
+              {d.bonusNote && <span className="meta"> · {d.bonusNote}</span>}
+              {d.bonusPostMax != null && (
+                <div className="raw">The post’s terms are for {usd(d.bonusPostMax)}, so value and plans count that. The higher amount may be a newer or portal offer; check the post.</div>
+              )}
+            </dd>
+            <dt>Direct deposit</dt>
+            <dd>{ddLine(d)}<Raw text={d.ddText} /></dd>
+            {d.balance && (
+              <>
+                <dt>Park cash</dt>
+                <dd>{usd(d.balance.amount)} for {d.balance.holdDays ? `${d.balance.holdDays} days` : `~${ASSUMED.holdDays} days (assumed)`}</dd>
+              </>
+            )}
+            {d.transactions != null && (<><dt>Transactions</dt><dd>{d.transactions}</dd></>)}
+            {d.extraReqText && !/^(see below|none|unknown|n\/a)\.?$/i.test(d.extraReqText.trim()) && (<><dt>Also</dt><dd>{d.extraReqText}</dd></>)}
+            {d.promoCode && (<><dt>Promo code</dt><dd><span className="code">{d.promoCode}</span></dd></>)}
+            <dt>Ends</dt>
+            <dd><StatusTag deal={d} today={today} /><Raw text={d.expirationText} /></dd>
+            <dt>Where</dt>
+            <dd>
+              {d.nationwide ? 'Nationwide' : d.states.join(', ') || 'See post'}
+              {d.inBranch && <span className="tag warn"> · in branch</span>}
+              {d.availability && <Raw text={d.availability} />}
+            </dd>
+            <dt>Credit pull</dt>
+            <dd>{PULL[d.pull]}<Raw text={d.pullText && !/^soft( pull)?$|^hard( pull)?$/i.test(d.pullText) ? d.pullText : null} /></dd>
+            <dt>ChexSystems</dt>
+            <dd>{d.chexText ?? 'Unknown'}</dd>
+            <dt>Card funding</dt>
+            <dd>{d.ccFunding ? `Up to ${usd(d.ccFunding)}` : d.ccFunding === 0 ? 'No' : 'Unknown'}<Raw text={d.ccText && d.ccFunding ? d.ccText : null} /></dd>
+            <dt>Monthly fee</dt>
+            <dd>{d.monthlyFeeText ?? 'Unknown'}</dd>
+            <dt>Keep open</dt>
+            <dd>
+              {d.eatf.days ? `${d.eatf.days} days` : `${keepOpenDays(d)} days (assumed)`}
+              {d.eatfText && <Raw text={d.eatfText} />}
+            </dd>
+            <dt>Bonus posts</dt>
+            <dd>{d.payoutDays ? `Within ~${d.payoutDays} days of meeting it` : 'See post'}</dd>
+            {d.householdText && (<><dt>Household limit</dt><dd>{d.householdText}</dd></>)}
+          </dl>
+        </Pane>
+
+        {d.verdict.length > 0 && (
+          <Pane title="Doctor of Credit’s take" className="wide">
+            {d.verdict.map((l, i) => <p key={i} style={{ margin: '4px 0' }}>{l}</p>)}
+          </Pane>
+        )}
       </div>
-
-      {d.requirements.length > 0 && (
-        <>
-          <h3>The offer</h3>
-          <ul>{d.requirements.map((r, i) => <li key={i}>{r}</li>)}</ul>
-        </>
-      )}
-
-      <h3>Details</h3>
-      <dl className="facts">
-        <dt>Bonus</dt>
-        <dd>
-          {d.bonusMin != null && d.bonusMax != null && d.bonusMin !== d.bonusMax ? `${usd(d.bonusMin)} – ${usd(d.bonusMax)}` : d.bonusMax != null ? usd(d.bonusMax) : 'See post'}
-          {d.bonusNote && <span className="meta"> · {d.bonusNote}</span>}
-          {d.bonusPostMax != null && (
-            <div className="raw">The post’s terms are for {usd(d.bonusPostMax)}, so value and plans count that. The higher amount may be a newer or portal offer; check the post.</div>
-          )}
-        </dd>
-        <dt>Direct deposit</dt>
-        <dd>{ddLine(d)}<Raw text={d.ddText} /></dd>
-        {d.balance && (
-          <>
-            <dt>Park cash</dt>
-            <dd>{usd(d.balance.amount)} for {d.balance.holdDays ? `${d.balance.holdDays} days` : `~${ASSUMED.holdDays} days (assumed)`}</dd>
-          </>
-        )}
-        {d.transactions != null && (<><dt>Transactions</dt><dd>{d.transactions}</dd></>)}
-        {d.extraReqText && !/^(see below|none|unknown|n\/a)\.?$/i.test(d.extraReqText.trim()) && (<><dt>Also</dt><dd>{d.extraReqText}</dd></>)}
-        {d.promoCode && (<><dt>Promo code</dt><dd><span className="code">{d.promoCode}</span></dd></>)}
-        <dt>Ends</dt>
-        <dd><StatusTag deal={d} today={today} /><Raw text={d.expirationText} /></dd>
-        <dt>Where</dt>
-        <dd>
-          {d.nationwide ? 'Nationwide' : d.states.join(', ') || 'See post'}
-          {d.inBranch && <span className="tag warn"> · in branch</span>}
-          {d.availability && <Raw text={d.availability} />}
-        </dd>
-        <dt>Credit pull</dt>
-        <dd>{PULL[d.pull]}<Raw text={d.pullText && !/^soft( pull)?$|^hard( pull)?$/i.test(d.pullText) ? d.pullText : null} /></dd>
-        <dt>ChexSystems</dt>
-        <dd>{d.chexText ?? 'Unknown'}</dd>
-        <dt>Card funding</dt>
-        <dd>{d.ccFunding ? `Up to ${usd(d.ccFunding)}` : d.ccFunding === 0 ? 'No' : 'Unknown'}<Raw text={d.ccText && d.ccFunding ? d.ccText : null} /></dd>
-        <dt>Monthly fee</dt>
-        <dd>{d.monthlyFeeText ?? 'Unknown'}</dd>
-        <dt>Keep open</dt>
-        <dd>
-          {d.eatf.days ? `${d.eatf.days} days` : `${keepOpenDays(d)} days (assumed)`}
-          {d.eatfText && <Raw text={d.eatfText} />}
-        </dd>
-        <dt>Bonus posts</dt>
-        <dd>{d.payoutDays ? `Within ~${d.payoutDays} days of meeting it` : 'See post'}</dd>
-        {d.householdText && (<><dt>Household limit</dt><dd>{d.householdText}</dd></>)}
-      </dl>
-
-      {d.verdict.length > 0 && (
-        <>
-          <h3>Doctor of Credit’s take</h3>
-          {d.verdict.map((l, i) => <p key={i} style={{ margin: '4px 0' }}>{l}</p>)}
-        </>
-      )}
 
       <div className="links">
         {d.url && <a className="doc-link" href={d.url} target="_blank" rel="noreferrer">Read the full post on Doctor of Credit ↗</a>}

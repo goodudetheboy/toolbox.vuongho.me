@@ -6,8 +6,7 @@ import {
 import { addDays, monthLabel, nextWeekday, shortDate } from '../lib/dates';
 import { compactUsd, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { Check, Disclosure, MoneyInput, Segmented } from './bits';
-import { DealDetail } from './DealDetail';
+import { BankPicker, Check, Disclosure, MoneyInput, Segmented } from './bits';
 
 type StoredInputs = Omit<PlanInputs, 'state' | 'excludeBanks'> & { skipTracked: boolean };
 
@@ -36,11 +35,17 @@ function rollForward(payday: string, today: string): string {
   return d;
 }
 
-export function PlanView({ deals, today, state, baselineApy, trackedBanks, signedIn, onSave }: {
+export function PlanView({
+  deals, today, state, baselineApy, excludedBanks, setExcludedBanks, banks, onOpenDeal, trackedBanks, signedIn, onSave,
+}: {
   deals: Deal[];
   today: string;
   state: string | null;
   baselineApy: number;
+  excludedBanks: string[];
+  setExcludedBanks: (v: string[]) => void;
+  banks: string[];
+  onOpenDeal: (d: Deal) => void;
   trackedBanks: string[];
   signedIn: boolean;
   onSave: (s: Strategy, inputs: PlanInputs) => Promise<void>;
@@ -55,7 +60,7 @@ export function PlanView({ deals, today, state, baselineApy, trackedBanks, signe
     ...stored,
     firstPayday: rollForward(stored.firstPayday, today),
     state,
-    excludeBanks: stored.skipTracked ? trackedBanks : [],
+    excludeBanks: [...excludedBanks, ...(stored.skipTracked ? trackedBanks : [])],
   };
   const key = JSON.stringify(inputs);
   const strategies = useMemo(
@@ -88,6 +93,10 @@ export function PlanView({ deals, today, state, baselineApy, trackedBanks, signe
               options={[3, 6, 9, 12].map((m) => ({ value: m, label: `${m} mo` }))}
             />
           </label>
+          <div className="field wide-field">
+            Skip banks I already have (or had)
+            <BankPicker banks={banks} value={excludedBanks} onChange={setExcludedBanks} />
+          </div>
         </div>
         <div style={{ marginTop: 12 }}>
           <Disclosure label="Tune the plan">
@@ -164,7 +173,7 @@ export function PlanView({ deals, today, state, baselineApy, trackedBanks, signe
                   <span className="row-side meta">{OBJECTIVES[s.objective].hint}</span>
                 </button>
                 {open && (
-                  <StrategyDetail strategy={s} today={today} baselineApy={baselineApy} signedIn={signedIn} onSave={() => onSave(s, inputs)} />
+                  <StrategyDetail strategy={s} today={today} signedIn={signedIn} onOpenDeal={onOpenDeal} onSave={() => onSave(s, inputs)} />
                 )}
               </div>
             );
@@ -178,15 +187,14 @@ export function PlanView({ deals, today, state, baselineApy, trackedBanks, signe
   );
 }
 
-function StrategyDetail({ strategy: s, today, baselineApy, signedIn, onSave }: {
+function StrategyDetail({ strategy: s, today, signedIn, onOpenDeal, onSave }: {
   strategy: Strategy;
   today: string;
-  baselineApy: number;
+  onOpenDeal: (d: Deal) => void;
   signedIn: boolean;
   onSave: () => Promise<void>;
 }) {
   const [view, setView] = useState<'accounts' | 'paychecks'>('accounts');
-  const [dealOpen, setDealOpen] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const months = [...new Set(s.items.map((i) => i.openOn.slice(0, 7)))];
 
@@ -211,9 +219,7 @@ function StrategyDetail({ strategy: s, today, baselineApy, signedIn, onSave }: {
                 <span className="when">{i.openOn === today ? 'Today' : shortDate(i.openOn, today)}</span>
                 <div className="what">
                   <div>
-                    Open <button type="button" className="more" style={{ color: 'var(--ink)', fontSize: 15 }} onClick={() => setDealOpen(dealOpen === i.deal.id ? null : i.deal.id)}>
-                      <b>{i.deal.bank}</b>
-                    </button>{' '}
+                    Open <button type="button" className="bank-link" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button>{' '}
                     · {usd(i.value.bonus)}
                   </div>
                   {i.deposits.length > 0 && (
@@ -224,7 +230,6 @@ function StrategyDetail({ strategy: s, today, baselineApy, signedIn, onSave }: {
                   {i.deal.promoCode && <div className="small">Promo code <span className="code">{i.deal.promoCode}</span></div>}
                   <div className="meta">Bonus ~{shortDate(i.expectedPayout, today)} · keep open until {shortDate(i.closeAfter, today)}</div>
                   {i.assumed.length > 0 && <div className="assume">Assumed: {i.assumed.join('; ')}</div>}
-                  {dealOpen === i.deal.id && <DealDetail deal={i.deal} today={today} baselineApy={baselineApy} />}
                 </div>
               </li>
             ))}
@@ -236,7 +241,15 @@ function StrategyDetail({ strategy: s, today, baselineApy, signedIn, onSave }: {
             <li key={p.date}>
               <span className="when">{shortDate(p.date, today)}</span>
               <div className="splits">
-                {p.splits.map((x) => <span key={x.dealId}>{usd(x.amount)} → <b>{x.bank}</b></span>)}
+                {p.splits.map((x) => {
+                  const deal = s.items.find((i) => i.deal.id === x.dealId)?.deal;
+                  return (
+                    <span key={x.dealId}>
+                      {usd(x.amount)} →{' '}
+                      {deal ? <button type="button" className="bank-link" onClick={() => onOpenDeal(deal)}>{x.bank}</button> : <b>{x.bank}</b>}
+                    </span>
+                  );
+                })}
                 {(p.toMain > 0 || !p.splits.length) && (
                   <span className="to-main">{p.splits.length ? `rest (${usd(p.toMain)}) → your main account` : 'All to your main account'}</span>
                 )}
