@@ -52,6 +52,10 @@ row. UI text uses no em dashes (toolbox-wide preference, see root progress
 - `src/lib/accounts.ts` — Firestore (`toolbox-churn-machine` database):
   `users/{uid}/accounts`, `users/{uid}/strategies`; owner-only rules in
   `firestore.rules`. See [ADR 0003](docs/adr/0003-accounts-in-firestore.md).
+- Installable PWA scoped to `/churn-machine/` (`vite.config.ts`,
+  `src/components/UpdateToast.tsx`): shell precached, `deals.json`
+  network-first, update on tap. See [ADR 0004](docs/adr/0004-installable-pwa.md).
+  `public/icon.svg` is the source for every icon PNG.
 - `src/lib/router.ts` — three real paths (`/`, `/plan`, `/accounts`) under
   `/churn-machine/`, served by the root `firebase.json` rewrite.
 

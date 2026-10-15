@@ -10,6 +10,7 @@ import { DealsView } from './components/DealsView';
 import { PlanView } from './components/PlanView';
 import { AccountsView } from './components/AccountsView';
 import { StateSelect } from './components/bits';
+import { UpdateToast } from './components/UpdateToast';
 
 const TABS: { tab: Tab; label: string }[] = [
   { tab: 'deals', label: 'Deals' },
@@ -129,6 +130,7 @@ export default function App() {
         />
       )}
 
+      <UpdateToast />
       {data && (
         <footer className="footer">
           Deals from Doctor of Credit’s{' '}

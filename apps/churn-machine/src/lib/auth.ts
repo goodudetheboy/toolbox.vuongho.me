@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { auth } from './firebase';
 
@@ -12,8 +12,16 @@ export function useAuth() {
   return { user, loading };
 }
 
-export function signInWithGoogle(): Promise<unknown> {
-  return signInWithPopup(auth, new GoogleAuthProvider());
+export async function signInWithGoogle(): Promise<void> {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    // Some phones (and installed apps) block popups; a full-page redirect always works.
+    if ((err as { code?: string }).code === 'auth/popup-blocked') await signInWithRedirect(auth, provider);
+    else throw err;
+  }
 }
 
 export function signOutUser(): Promise<void> {

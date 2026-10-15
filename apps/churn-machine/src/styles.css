@@ -294,3 +294,25 @@ button, input, select, textarea {
 
 .grow { flex: 1; }
 textarea.input { resize: vertical; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 8px 6px 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* Installed app: keep content clear of the notch / home indicator. */
+@media (display-mode: standalone) {
+  .app { padding-top: calc(20px + env(safe-area-inset-top)); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
