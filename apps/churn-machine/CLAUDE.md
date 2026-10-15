@@ -24,9 +24,12 @@ Bank account bonus churning, three tabs:
 
 Progressive disclosure is the design rule: a few chips and three inputs up
 front, everything else behind "More filters" / "Tune the plan" / a deal's
-modal. The look is a Bloomberg Terminal (black, amber, IBM Plex Mono); a
-deal row opens a modal with a "Full page" link to `/deal/<id>`. See
-[ADR 0005](docs/adr/0005-terminal-look-and-deal-modal.md). UI text uses
+modal. The look copies Robinhood: white, one purple accent, Inter, big
+numbers, pill buttons, hairline lists, a right-hand panel on desktop and a
+bottom tab bar + bottom sheets on phones (see
+[ADR 0006](docs/adr/0006-robinhood-look.md)). A deal row opens a modal with a
+"Full page" link to `/deal/<id>` (see
+[ADR 0005](docs/adr/0005-terminal-look-and-deal-modal.md)). UI text uses
 no em dashes (toolbox-wide preference, see root progress 2026-10-07).
 
 ## Architecture notes

@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  activeAdvancedCount, DEFAULT_FILTERS, filterAndSort, SORT_LABELS, type DealFilters, type SortKey,
+  activeAdvancedCount, DEFAULT_FILTERS, filterAndSort, SORT_LABELS, sortDeals, type DealFilters, type SortKey,
 } from '../lib/filters';
 import { requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { BankPicker, Check, Disclosure, MoneyInput, Segmented, StatusTag, VerdictTag } from './bits';
+import { STATE_NAMES } from '../lib/states';
+import { BankPicker, Check, MoneyInput, Segmented, StatusTag, VerdictTag } from './bits';
 
 const CATEGORY_LABEL: Record<Deal['category'], string> = {
-  checking: 'CHK', savings: 'SAV', business: 'BIZ', state: 'LOCAL', regional: 'LOCAL', other: '',
+  checking: 'Checking', savings: 'Savings', business: 'Business', state: 'Local', regional: 'Local', other: '',
 };
 
 export function DealsView({ deals, today, state, baselineApy, setBaselineApy, excludedBanks, setExcludedBanks, banks, onOpenDeal }: {
@@ -25,7 +26,7 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
   const [stored, setFilters] = usePersisted<Omit<DealFilters, 'query' | 'state'>>('deal-filters', DEFAULT_FILTERS);
   const [sort, setSort] = usePersisted<SortKey>('deal-sort', 'value');
   const [query, setQuery] = useState('');
-  const [pickBanks, setPickBanks] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const filters: DealFilters = { ...DEFAULT_FILTERS, ...stored, query, state, excludeBanks: excludedBanks };
   const set = (patch: Partial<DealFilters>) => setFilters({ ...stored, ...patch });
 
@@ -34,45 +35,33 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [deals, JSON.stringify(filters), sort, today, baselineApy],
   );
-  const advanced = activeAdvancedCount(filters);
+  const picks = useMemo(() => sortDeals(shown, 'value').slice(0, 6), [shown]);
+  const advanced = activeAdvancedCount(filters) + (excludedBanks.length ? 1 : 0);
 
   return (
     <>
-      <div className="toolbar">
-        <input
-          className="input search"
-          type="search"
-          placeholder="Search banks"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select className="input" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-          {Object.entries(SORT_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-        </select>
+      <div className="page-head">
+        <h1>Deals</h1>
+        <p className="muted">
+          {shown.length} bank {shown.length === 1 ? 'bonus' : 'bonuses'}
+          {state ? ` you can get in ${STATE_NAMES[state] ?? state}` : ' · pick your state up top to hide ones you can’t get'}
+        </p>
       </div>
-      <div className="toolbar">
-        <div className="chips">
-          <button type="button" className={`chip ${filters.noDd ? 'on' : ''}`} onClick={() => set({ noDd: !filters.noDd })}>No direct deposit</button>
-          <button type="button" className={`chip ${filters.online ? 'on' : ''}`} onClick={() => set({ online: !filters.online })}>Online only</button>
-          <button type="button" className={`chip ${filters.noHardPull ? 'on' : ''}`} onClick={() => set({ noHardPull: !filters.noHardPull })}>No hard pull</button>
-          <button type="button" className={`chip ${filters.maxBalance === 0 ? 'on' : ''}`} onClick={() => set({ maxBalance: filters.maxBalance === 0 ? null : 0 })}>No parking cash</button>
-          <button type="button" className={`chip ${excludedBanks.length ? 'on' : ''}`} aria-expanded={pickBanks} onClick={() => setPickBanks(!pickBanks)}>
-            Banks I have{excludedBanks.length ? ` (${excludedBanks.length} hidden)` : ''} {pickBanks ? '▴' : '▾'}
-          </button>
-        </div>
-        <span className="grow" />
-        {pickBanks && (
-          <div className="panel" style={{ flexBasis: '100%', order: 1 }}>
-            <div className="field">
-              Hide deals from banks you already have (or had)
-              <BankPicker banks={banks} value={excludedBanks} onChange={setExcludedBanks} />
-              <span className="hint">The planner skips these banks too.</span>
-            </div>
+      {filtersOpen && <div className="filters-backdrop" onClick={() => setFiltersOpen(false)} />}
+      <div className="layout">
+        <aside className={`layout-side filters-side ${filtersOpen ? 'open' : ''}`}>
+          <div className="filters-sheet-head">
+            <span>Filters</span>
+            <button type="button" className="btn primary small" onClick={() => setFiltersOpen(false)}>Show {shown.length} deals</button>
           </div>
-        )}
-        <Disclosure label={`More filters${advanced ? ` (${advanced})` : ''}`}>
-          <div className="panel" style={{ flexBasis: '100%', order: 2 }}>
-            <div className="form-grid">
+          <div className="card">
+            <h3>Banks I have</h3>
+            <p className="muted small">Hide banks you already have (or had). Plans skip them too.</p>
+            <BankPicker banks={banks} value={excludedBanks} onChange={setExcludedBanks} />
+          </div>
+          <div className="card">
+            <h3 className="desktop-only">Filters</h3>
+            <div className="stack">
               <label className="field">
                 Business accounts
                 <Segmented
@@ -96,11 +85,10 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
                 <MoneyInput ariaLabel="Max cash to park" value={filters.maxBalance} placeholder="Any" onChange={(v) => set({ maxBalance: v })} />
               </label>
               <label className="field">
-                My savings APY (for “worth it”)
-                <span className="money-input">
+                My savings APY
+                <span className="money-input suffix">
                   <input
                     className="input"
-                    style={{ width: 80, paddingLeft: 10 }}
                     inputMode="decimal"
                     aria-label="Baseline savings APY percent"
                     defaultValue={(baselineApy * 100).toFixed(1)}
@@ -109,57 +97,83 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
                       if (Number.isFinite(n) && n >= 0 && n < 50) setBaselineApy(n / 100);
                     }}
                   />
-                  <span style={{ position: 'static', marginLeft: 6 }}>%</span>
+                  <span>%</span>
                 </span>
-                <span className="hint">What parked cash would earn elsewhere.</span>
+                <span className="hint">What parked cash would earn elsewhere. Used for “net”.</span>
               </label>
-              <div className="field" style={{ gap: 8 }}>
-                <Check checked={filters.noChexSensitive} onChange={(v) => set({ noChexSensitive: v })}>Skip ChexSystems-sensitive banks</Check>
-                <Check checked={filters.showDatePassed} onChange={(v) => set({ showDatePassed: v })}>Show deals past their listed end date</Check>
-                <Check checked={filters.showEnded} onChange={(v) => set({ showEnded: v })}>Show ended deals</Check>
-              </div>
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <button type="button" className="btn quiet small" onClick={() => setFilters(DEFAULT_FILTERS)}>Reset filters</button>
+              <Check checked={filters.noChexSensitive} onChange={(v) => set({ noChexSensitive: v })}>Skip ChexSystems-sensitive banks</Check>
+              <Check checked={filters.showDatePassed} onChange={(v) => set({ showDatePassed: v })}>Show deals past their listed end date</Check>
+              <Check checked={filters.showEnded} onChange={(v) => set({ showEnded: v })}>Show ended deals</Check>
+              <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setFilters(DEFAULT_FILTERS)}>Reset filters</button>
             </div>
           </div>
-        </Disclosure>
-      </div>
+        </aside>
 
-      <p className="meta" style={{ margin: '4px 2px 8px' }}>
-        {shown.length} {shown.length === 1 ? 'deal' : 'deals'}
-        {!state && ' · pick your state above to hide ones you can’t get'}
-      </p>
+        <div className="layout-main">
 
-      {shown.length === 0 ? (
-        <div className="empty">Nothing matches. Try loosening a filter.</div>
-      ) : (
-        <div className="list deal-table">
-          <div className="deal-row deal-cols" aria-hidden="true">
-            <span>Bank</span>
-            <span className="num">Bonus</span>
-            <span className="num">Net</span>
-            <span className="c-req">Requirements</span>
-            <span className="c-status">Ends</span>
-            <span className="c-grade">Grade</span>
-          </div>
-          {shown.map(({ deal: d, value: v }) => (
-            <button key={d.id} type="button" className="deal-row" onClick={() => onOpenDeal(d)}>
-              <span className="c-bank">
-                {d.bank} <span className="cat">{CATEGORY_LABEL[d.category]}</span>
-              </span>
-              <span className="num c-bonus">
-                {d.bonusMin != null && d.bonusMax != null && d.bonusMin < d.bonusMax && <span className="faint">≤</span>}
-                {d.bonusMax != null ? usd(d.bonusMax) : '?'}
-              </span>
-              <span className={`num c-net ${v.net > 0 ? 'up' : 'down'}`}>{usd(v.net)}</span>
-              <span className="c-req">{requirementSummary(d)}</span>
-              <span className="c-status"><StatusTag deal={d} today={today} /></span>
-              <span className="c-grade"><VerdictTag verdict={v.verdict} /></span>
+          <input className="input search" type="search" placeholder="Search banks" value={query} onChange={(e) => setQuery(e.target.value)} />
+
+          <div className="chips scroll">
+            <button type="button" className={`chip filters-toggle ${filtersOpen ? 'on' : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>
+              Filters{advanced ? ` · ${advanced}` : ''}
             </button>
-          ))}
+            <button type="button" className={`chip ${filters.noDd ? 'on' : ''}`} onClick={() => set({ noDd: !filters.noDd })}>No direct deposit</button>
+            <button type="button" className={`chip ${filters.online ? 'on' : ''}`} onClick={() => set({ online: !filters.online })}>Online only</button>
+            <button type="button" className={`chip ${filters.noHardPull ? 'on' : ''}`} onClick={() => set({ noHardPull: !filters.noHardPull })}>No hard pull</button>
+            <button type="button" className={`chip ${filters.maxBalance === 0 ? 'on' : ''}`} onClick={() => set({ maxBalance: filters.maxBalance === 0 ? null : 0 })}>No parking cash</button>
+          </div>
+
+          {picks.length >= 3 && !query && (
+            <section className="section">
+              <h2>Top picks</h2>
+              <div className="picks">
+                {picks.map(({ deal: d, value: v }) => (
+                  <button key={d.id} type="button" className="pick" onClick={() => onOpenDeal(d)}>
+                    <span className="pick-bank">{d.bank}</span>
+                    <span className="pick-bonus">{d.bonusMax != null ? usd(d.bonusMax) : '?'}</span>
+                    <span className={`pick-net ${v.net > 0 ? 'up' : 'down'}`}>{usd(v.net)} net</span>
+                    <span className="pick-sub">{requirementSummary(d)}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="section">
+            <div className="list-head">
+              <h2>All deals</h2>
+              <select className="input select-quiet" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+                {Object.entries(SORT_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            </div>
+            {shown.length === 0 ? (
+              <div className="empty">Nothing matches. Try loosening a filter.</div>
+            ) : (
+              <div className="items">
+                {shown.map(({ deal: d, value: v }) => (
+                  <button key={d.id} type="button" className="item" onClick={() => onOpenDeal(d)}>
+                    <span className="item-main">
+                      <span className="item-name">
+                        {d.bank}
+                        {CATEGORY_LABEL[d.category] && <span className="badge">{CATEGORY_LABEL[d.category]}</span>}
+                      </span>
+                      <span className="item-sub">{requirementSummary(d)}</span>
+                      <span className="item-meta"><StatusTag deal={d} today={today} /> · <VerdictTag verdict={v.verdict} /></span>
+                    </span>
+                    <span className="item-side">
+                      <span className="pill">
+                        {d.bonusMin != null && d.bonusMax != null && d.bonusMin < d.bonusMax && <span className="pill-pre">up to </span>}
+                        {d.bonusMax != null ? usd(d.bonusMax) : '?'}
+                      </span>
+                      <span className={`item-net ${v.net > 0 ? '' : 'down'}`}>{usd(v.net)} net</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-      )}
+      </div>
     </>
   );
 }

@@ -24,10 +24,13 @@ export function AccountsView({ user, authLoading, accounts, strategies, loading,
   if (authLoading) return <div className="empty">Loading…</div>;
   if (!user) {
     return (
-      <div className="panel signin">
-        <h2 style={{ margin: 0, fontSize: 18 }}>Keep a record of your accounts</h2>
+      <div className="narrow">
+      <div className="page-head"><h1>Accounts</h1></div>
+      <div className="card signin">
+        <h2>Keep a record of your accounts</h2>
         <p>Sign in to save a plan, track which accounts you have open, what each one still needs, and when it’s safe to close.</p>
         <button type="button" className="btn primary" onClick={() => signInWithGoogle().catch(() => {})}>Sign in with Google</button>
+      </div>
       </div>
     );
   }
@@ -49,13 +52,19 @@ export function AccountsView({ user, authLoading, accounts, strategies, loading,
   const planned = visible.filter((a) => a.status === 'planned').length;
 
   return (
-    <>
-      <div className="summary">
-        <div><b>{usd(earned)}</b><span>earned</span></div>
-        <div><b>{usd(pending)}</b><span>in progress</span></div>
-        <div><b>{openCount}</b><span>open accounts</span></div>
-        {planned > 0 && <div><b>{planned}</b><span>planned</span></div>}
+    <div className="narrow">
+      <div className="page-head"><h1>Accounts</h1></div>
+      <div className="readout page-readout">
+        <div className="readout-kicker">Bonuses earned</div>
+        <div className="readout-number">{usd(earned)}</div>
+        <div className="readout-sub"><span className="up">{usd(pending)}</span> still on the way</div>
       </div>
+      <dl className="stats compact">
+        <div><dt>Open accounts</dt><dd>{openCount}</dd></div>
+        <div><dt>Planned</dt><dd>{planned}</dd></div>
+        <div><dt>Closed</dt><dd>{closed.length}</dd></div>
+        <div><dt>Saved plans</dt><dd>{strategies.length}</dd></div>
+      </dl>
 
       {strategies.length > 0 && (
         <div className="toolbar">
@@ -125,7 +134,7 @@ export function AccountsView({ user, authLoading, accounts, strategies, loading,
           </Disclosure>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -150,7 +159,7 @@ function AccountDetail({ uid, a, today }: { uid: string; a: Account; today: stri
 
       {(a.deposits.length > 0 || a.park || a.transactions) && (
         <>
-          <h3>The plan</h3>
+          <h4>The plan</h4>
           <ul>
             {a.openOn && <li>Open by {shortDate(a.openOn, today)}</li>}
             {a.deposits.length > 0 && <li>Route {a.deposits.map((d) => `${usd(d.amount)} on ${shortDate(d.date, today)}`).join(', ')}</li>}
@@ -163,7 +172,7 @@ function AccountDetail({ uid, a, today }: { uid: string; a: Account; today: stri
         </>
       )}
 
-      <h3>What happened</h3>
+      <h4>What happened</h4>
       <div className="form-grid">
         <label className="field">
           Status

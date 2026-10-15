@@ -13,16 +13,18 @@ import { AccountsView } from './components/AccountsView';
 import { StateSelect } from './components/bits';
 import { UpdateToast } from './components/UpdateToast';
 import { DealModal, DealPage } from './components/DealModal';
+import { AccountsIcon, DealsIcon, LogoMark, PlanIcon } from './components/icons';
 
-const TABS: { tab: Tab; key: string; label: string }[] = [
-  { tab: 'deals', key: '1', label: 'Deals' },
-  { tab: 'plan', key: '2', label: 'Plan' },
-  { tab: 'accounts', key: '3', label: 'My accounts' },
+const TABS: { tab: Tab; label: string; Icon: () => JSX.Element }[] = [
+  { tab: 'deals', label: 'Deals', Icon: DealsIcon },
+  { tab: 'plan', label: 'Plan', Icon: PlanIcon },
+  { tab: 'accounts', label: 'Accounts', Icon: AccountsIcon },
 ];
 
 export default function App() {
   const [route, go] = useRoute();
   const tab = route.tab;
+  const isOn = (t: Tab) => tab === t || (tab === 'deal' && t === 'deals');
   const { data, error } = useDeals();
   const { user, loading: authLoading } = useAuth();
   const acc = useAccounts(user?.uid ?? null);
@@ -42,12 +44,12 @@ export default function App() {
   const trackedDealIds = new Set(acc.accounts.map((a) => a.dealId).filter(Boolean));
 
   const trackAction = (d: Deal) => {
-    if (!user) return <button type="button" className="btn small" onClick={signIn}>Sign in to track</button>;
-    if (trackedDealIds.has(d.id)) return <span className="tag good">✓ Tracking this</span>;
+    if (!user) return <button type="button" className="btn primary block" onClick={signIn}>Sign in to track it</button>;
+    if (trackedDealIds.has(d.id)) return <div className="tracking">✓ You’re tracking this one</div>;
     return (
       <button
         type="button"
-        className="btn small"
+        className="btn primary block"
         disabled={busy === d.id}
         onClick={async () => {
           setBusy(d.id);
@@ -68,29 +70,57 @@ export default function App() {
   return (
     <div className="app">
       <header className="top">
-        <a className="home" href="/" aria-label="Back to toolbox">← <span className="home-label">Toolbox</span></a>
-        <h1>Churn Machine <span className="go">&lt;GO&gt;</span></h1>
-        <span className="spacer" />
-        <StateSelect value={prefs.state} onChange={(state) => setPrefs({ ...prefs, state })} />
-        {user ? (
-          <button type="button" className="btn quiet small" title={user.email ?? ''} onClick={() => signOutUser()}>Sign out</button>
-        ) : (
-          !authLoading && <button type="button" className="btn small" onClick={signIn}>Sign in</button>
-        )}
+        <div className="top-inner">
+          <a className="home" href="/" aria-label="Back to toolbox">←</a>
+          <a
+            className="brand"
+            href={hrefFor('deals')}
+            onClick={(e) => {
+              e.preventDefault();
+              go('deals');
+            }}
+          >
+            <LogoMark /> <span>Churn Machine</span>
+          </a>
+          <nav className="nav">
+            {TABS.map((t) => (
+              <a
+                key={t.tab}
+                href={hrefFor(t.tab)}
+                className={isOn(t.tab) ? 'on' : ''}
+                onClick={(e) => {
+                  e.preventDefault();
+                  go(t.tab);
+                }}
+              >
+                {t.label}
+              </a>
+            ))}
+          </nav>
+          <span className="spacer" />
+          <StateSelect value={prefs.state} onChange={(state) => setPrefs({ ...prefs, state })} />
+          {user ? (
+            <button type="button" className="btn ghost small" title={user.email ?? ''} onClick={() => signOutUser()}>Sign out</button>
+          ) : (
+            !authLoading && <button type="button" className="btn primary small" onClick={signIn}>Sign in</button>
+          )}
+        </div>
       </header>
 
-      <nav className="tabs">
+      {/* Phone: app-style tab bar at the bottom. */}
+      <nav className="tabbar">
         {TABS.map((t) => (
           <a
             key={t.tab}
             href={hrefFor(t.tab)}
-            className={tab === t.tab || (tab === 'deal' && t.tab === 'deals') ? 'on' : ''}
+            className={isOn(t.tab) ? 'on' : ''}
             onClick={(e) => {
               e.preventDefault();
               go(t.tab);
             }}
           >
-            <span className="fkey">{t.key}</span>{t.label}
+            <t.Icon />
+            <span>{t.label}</span>
           </a>
         ))}
       </nav>
