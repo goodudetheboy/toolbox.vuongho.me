@@ -13,6 +13,7 @@ import { AccountsView } from './components/AccountsView';
 import { StateSelect, type Exclusion } from './components/bits';
 import { UpdateToast } from './components/UpdateToast';
 import { DealModal, DealPage } from './components/DealModal';
+import { GuidePage } from './components/GuidePage';
 import { AccountsIcon, DealsIcon, LogoMark, PlanIcon } from './components/icons';
 
 const TABS: { tab: Tab; label: string; Icon: () => JSX.Element }[] = [
@@ -109,6 +110,18 @@ export default function App() {
             ))}
           </nav>
           <span className="spacer" />
+          <a
+            className={`icon-btn help ${tab === 'guide' ? 'on' : ''}`}
+            href={hrefFor('guide')}
+            aria-label="Guide: how to use Churn Machine"
+            title="Guide"
+            onClick={(e) => {
+              e.preventDefault();
+              go('guide');
+            }}
+          >
+            ?
+          </a>
           <StateSelect value={prefs.state} onChange={(state) => setPrefs({ ...prefs, state })} />
           {user ? (
             <button type="button" className="btn ghost small" title={user.email ?? ''} onClick={() => signOutUser()}>Sign out</button>
@@ -137,7 +150,9 @@ export default function App() {
       </nav>
 
       <main className="main">
-      {tab === 'accounts' ? (
+      {tab === 'guide' ? (
+        <GuidePage />
+      ) : tab === 'accounts' ? (
         <AccountsView
           user={user}
           authLoading={authLoading}
@@ -211,6 +226,7 @@ export default function App() {
           <a href={data.source} target="_blank" rel="noreferrer">Best Bank Account Bonuses</a>
           {' '}(updated {shortDate(data.sourceUpdated.slice(0, 10), today)}, checked {shortDate(data.fetchedAt.slice(0, 10), today)}).
           {' '}Always read the full post before opening an account.
+          {' '}<a href={hrefFor('guide')} onClick={(e) => { e.preventDefault(); go('guide'); }}>How to use Churn Machine</a>
         </footer>
       )}
       </main>

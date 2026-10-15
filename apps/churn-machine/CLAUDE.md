@@ -83,6 +83,20 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   `App.tsx`, UI in `ExcludeBanks` in `bits.tsx`): an "Exclude banks I
   already have" toggle plus an "Exclude banks" picker (localStorage).
 
+## User guide: keep it current
+
+`src/guide.md` is the user manual, shown in the app at `/guide` (the "?"
+button in the top bar, and a footer link) by `GuidePage.tsx` (a small
+markdown subset: `#`/`##`/`###`, paragraphs, `- ` lists, `> ` tips,
+`**bold**`, `_italic_`, `` `code` ``, `[links](url)`).
+
+**Any user-visible feature change updates the guide in the same commit**:
+new features get a section or bullet, changed ones are re-described,
+removed ones are deleted, and the "Last updated" date is bumped. Write it
+for the user, not developers: what it does and where to find it, plain
+words, no em dashes (UI text rule). If a change is too small to mention,
+say so in the progress log instead of skipping silently.
+
 ## Running
 
 ```bash

@@ -601,6 +601,19 @@ select.input { cursor: pointer; }
 .edit-form .segmented { flex-wrap: wrap; border-radius: 18px; align-self: flex-start; }
 .edit-form .order-rows { margin-top: 0; }
 
+/* ---------- guide ---------- */
+.icon-btn.help { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); text-decoration: none; }
+.icon-btn.help:hover, .icon-btn.help.on { color: var(--accent); background: var(--accent-soft); }
+.guide-toc nav { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.guide-toc nav a { color: var(--ink); font-weight: 500; padding: 5px 8px; margin: 0 -8px; border-radius: 8px; font-size: 14.5px; }
+.guide-toc nav a:hover { background: var(--hover); color: var(--accent); text-decoration: none; }
+.guide-body { max-width: 720px; }
+.guide-body h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 40px 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); scroll-margin-top: calc(var(--top-h) + 16px); }
+.guide-body h3 { font-size: 17px; font-weight: 700; margin: 24px 0 6px; }
+.guide-body p { margin: 8px 0; line-height: 1.65; }
+.guide-body .bullets li { line-height: 1.6; }
+.guide-body .callout { margin: 20px 0; }
+
 /* ---------- accounts ---------- */
 .list { border-top: 1px solid var(--line); margin-top: 8px; }
 .row { border-bottom: 1px solid var(--line); }
@@ -660,6 +673,7 @@ textarea.input { resize: vertical; }
 @media (max-width: 900px) {
   .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'side' 'main'; gap: 0; }
   .layout-side { position: static; margin-top: 16px; }
+  .guide .guide-toc { display: none; }
   .filters-side:not(.open) { display: none; }
   .filters-toggle { display: inline-block; }
   /* Filters open as a bottom sheet. */

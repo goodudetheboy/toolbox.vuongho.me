@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 // Real paths under /churn-machine/ (the root firebase.json rewrite serves
 // index.html for all of them): /, /plan, /accounts, /deal/<id> for one deal's
 // full page, /plan/<strategyId>?<inputs> for a strategy permalink (see
-// planLink.ts), and /accounts/<savedId> for one saved strategy's tracker.
-export type Tab = 'deals' | 'plan' | 'accounts' | 'deal';
+// planLink.ts), /accounts/<savedId> for one saved strategy's tracker, and
+// /guide for the user guide.
+export type Tab = 'deals' | 'plan' | 'accounts' | 'deal' | 'guide';
 export interface Route {
   tab: Tab;
   /** Set on the 'deal' tab only. */
@@ -26,6 +27,7 @@ function routeFromLocation(path: string, search: string): Route {
   const strategy = rest.match(/^\/plan\/([^/]+)/);
   if (strategy) return { ...none, tab: 'plan', strategyId: decodeURIComponent(strategy[1]), search };
   if (rest.startsWith('/plan')) return { ...none, tab: 'plan' };
+  if (rest.startsWith('/guide')) return { ...none, tab: 'guide' };
   const saved = rest.match(/^\/accounts\/([^/]+)/);
   if (saved) return { ...none, tab: 'accounts', savedId: decodeURIComponent(saved[1]) };
   if (rest.startsWith('/accounts')) return { ...none, tab: 'accounts' };
