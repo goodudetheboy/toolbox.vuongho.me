@@ -1,35 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Churn Machine app icon: the homepage's coin stack on the app's purple.
-       Kept inside the central 80% so it also works as a maskable icon. -->
+  <!-- Churn Machine app icon: a flat white coin stack on the app's purple
+       (matches LogoMark in src/components/icons.tsx). Full-bleed background,
+       artwork kept inside the central 80% so it also works as a maskable icon. -->
   <defs>
-    <linearGradient id="face" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe9a3"/>
-      <stop offset="0.5" stop-color="#e2b54a"/>
-      <stop offset="1" stop-color="#b8892c"/>
-    </linearGradient>
-    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#8a6420"/>
-      <stop offset="0.35" stop-color="#c79a3a"/>
-      <stop offset="1" stop-color="#7a561a"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8243f7"/>
+      <stop offset="1" stop-color="#5a1ad8"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="#6f2cf3"/>
+  <rect width="512" height="512" fill="url(#bg)"/>
   <g>
-    <path d="M132 299 V335 A124 42 0 0 0 380 335 V299 Z" fill="url(#edge)"/>
-    <ellipse cx="256" cy="299" rx="124" ry="42" fill="url(#face)"/>
+    <path d="M150 318 V346 A106 36 0 0 0 362 346 V318 Z" fill="#b99bf9"/>
+    <ellipse cx="256" cy="318" rx="106" ry="36" fill="#e6d9fd"/>
   </g>
   <g>
-    <path d="M142 259 V295 A124 42 0 0 0 390 295 V259 Z" fill="url(#edge)"/>
-    <ellipse cx="266" cy="259" rx="124" ry="42" fill="url(#face)"/>
+    <path d="M150 268 V296 A106 36 0 0 0 362 296 V268 Z" fill="#c9b1fa"/>
+    <ellipse cx="256" cy="268" rx="106" ry="36" fill="#f3edfe"/>
   </g>
   <g>
-    <path d="M124 219 V255 A124 42 0 0 0 372 255 V219 Z" fill="url(#edge)"/>
-    <ellipse cx="248" cy="219" rx="124" ry="42" fill="url(#face)"/>
+    <path d="M150 218 V246 A106 36 0 0 0 362 246 V218 Z" fill="#d8c6fb"/>
+    <ellipse cx="256" cy="218" rx="106" ry="36" fill="#ffffff"/>
+    <ellipse cx="256" cy="218" rx="74" ry="23" fill="none" stroke="#6f2cf3" stroke-opacity="0.18" stroke-width="6"/>
   </g>
-  <g>
-    <path d="M137 179 V215 A124 42 0 0 0 385 215 V179 Z" fill="url(#edge)"/>
-    <ellipse cx="261" cy="179" rx="124" ry="42" fill="url(#face)"/>
-  </g>
-  <ellipse cx="261" cy="179" rx="98" ry="32" fill="none" stroke="#a87d26" stroke-width="7" opacity="0.75"/>
-  <ellipse cx="221" cy="165" rx="38" ry="9" fill="#fff" opacity="0.45"/>
+  <!-- a small sparkle: "bonus" -->
+  <path d="M352 132 L360 154 L382 162 L360 170 L352 192 L344 170 L322 162 L344 154 Z" fill="#ffffff"/>
 </svg>

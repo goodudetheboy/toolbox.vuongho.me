@@ -20,11 +20,7 @@ export const PlanIcon = () => (
 export const AccountsIcon = () => (
   <svg {...base}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><path d="M7 15h3" /></svg>
 );
+/** The app icon itself (public/icon.svg), rounded like a home-screen icon. */
 export const LogoMark = () => (
-  <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-    <rect width="28" height="28" rx="8" fill="var(--accent)" />
-    <ellipse cx="14" cy="17.5" rx="7" ry="2.6" fill="#fff" opacity="0.55" />
-    <ellipse cx="14" cy="14" rx="7" ry="2.6" fill="#fff" opacity="0.8" />
-    <ellipse cx="14" cy="10.5" rx="7" ry="2.6" fill="#fff" />
-  </svg>
+  <img src={`${import.meta.env.BASE_URL}icon.svg`} width={28} height={28} alt="" style={{ borderRadius: 8, display: 'block' }} />
 );
