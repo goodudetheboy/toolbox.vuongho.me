@@ -6,10 +6,10 @@ import {
 import { addDays, monthLabel, nextWeekday, shortDate } from '../lib/dates';
 import { compactUsd, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { BankPicker, Check, Disclosure, MoneyInput, Segmented } from './bits';
+import { Check, Disclosure, ExcludeBanks, MoneyInput, Segmented, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
 
-type StoredInputs = Omit<PlanInputs, 'state' | 'excludeBanks'> & { skipTracked: boolean };
+type StoredInputs = Omit<PlanInputs, 'state' | 'excludeBanks'>;
 
 function defaults(today: string): StoredInputs {
   return {
@@ -25,7 +25,6 @@ function defaults(today: string): StoredInputs {
     online: true,
     business: false,
     includeDatePassed: false,
-    skipTracked: true,
   };
 }
 
@@ -37,17 +36,14 @@ function rollForward(payday: string, today: string): string {
 }
 
 export function PlanView({
-  deals, today, state, baselineApy, excludedBanks, setExcludedBanks, banks, onOpenDeal, trackedBanks, signedIn, onSave,
+  deals, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave,
 }: {
   deals: Deal[];
   today: string;
   state: string | null;
   baselineApy: number;
-  excludedBanks: string[];
-  setExcludedBanks: (v: string[]) => void;
-  banks: string[];
+  exclusion: Exclusion;
   onOpenDeal: (d: Deal) => void;
-  trackedBanks: string[];
   signedIn: boolean;
   onSave: (s: Strategy, inputs: PlanInputs) => Promise<void>;
 }) {
@@ -61,7 +57,7 @@ export function PlanView({
     ...stored,
     firstPayday: rollForward(stored.firstPayday, today),
     state,
-    excludeBanks: [...excludedBanks, ...(stored.skipTracked ? trackedBanks : [])],
+    excludeBanks: exclusion.effective,
   };
   const key = JSON.stringify(inputs);
   const strategies = useMemo(
@@ -105,9 +101,8 @@ export function PlanView({
                 />
               </div>
             </div>
-            <div className="field" style={{ marginTop: 14 }}>
-              Skip banks I already have (or had)
-              <BankPicker banks={banks} value={excludedBanks} onChange={setExcludedBanks} />
+            <div style={{ marginTop: 16 }}>
+              <ExcludeBanks x={exclusion} />
             </div>
             <div style={{ marginTop: 14 }}>
               <Disclosure label="More options">
@@ -138,9 +133,6 @@ export function PlanView({
                   <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
                   <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
                   <Check checked={stored.includeDatePassed} onChange={(includeDatePassed) => set({ includeDatePassed })}>Include deals past their listed end date</Check>
-                  {signedIn && (
-                    <Check checked={stored.skipTracked} onChange={(skipTracked) => set({ skipTracked })}>Skip banks I already track</Check>
-                  )}
                   <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored(defaults(today))}>Reset</button>
                 </div>
               </Disclosure>

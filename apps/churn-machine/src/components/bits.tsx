@@ -49,10 +49,15 @@ export function MoneyInput({ value, onChange, placeholder, ariaLabel }: {
   );
 }
 
-export function Check({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+export function Check({ checked, onChange, children, disabled = false }: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
   return (
-    <label className="check">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className={`check ${disabled ? 'disabled' : ''}`}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span>{children}</span>
     </label>
   );
@@ -101,8 +106,11 @@ export function Disclosure({ label, children, defaultOpen = false }: { label: Re
  * Pick banks from a dropdown (type to narrow it, or just scroll and click).
  * Chosen banks show as removable chips.
  */
-export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks you already have' }: {
+export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks', ariaLabel = 'Banks', allowCustom = false }: {
   banks: string[];
+  ariaLabel?: string;
+  /** Offer "Add “typed name”" for banks that aren't in the deal data. */
+  allowCustom?: boolean;
   value: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
@@ -114,7 +122,10 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks y
   const listRef = useRef<HTMLUListElement>(null);
   const chosen = new Set(value.map(bankKey));
   const needle = q.trim().toLowerCase();
-  const opts = banks.filter((b) => !chosen.has(bankKey(b)) && (!needle || b.toLowerCase().includes(needle)));
+  const matches = banks.filter((b) => !chosen.has(bankKey(b)) && (!needle || b.toLowerCase().includes(needle)));
+  const typed = q.trim();
+  const custom = allowCustom && typed && !chosen.has(bankKey(typed)) && !banks.some((b) => bankKey(b) === bankKey(typed));
+  const opts = custom ? [...matches, typed] : matches;
   const add = (b: string) => {
     onChange([...value, b]);
     setQ('');
@@ -139,7 +150,7 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks y
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
-          aria-label="Banks to exclude"
+          aria-label={ariaLabel}
           placeholder={placeholder}
           value={q}
           onFocus={() => setOpen(true)}
@@ -195,7 +206,7 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks y
                   add(b);
                 }}
               >
-                {b}
+                {custom && i === opts.length - 1 ? <>Add “{b}”</> : b}
               </li>
             ))}
           </ul>
@@ -211,6 +222,49 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks y
           <button type="button" className="more" onClick={() => onChange([])}>Clear all</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Everything about which banks to leave out, shared by Deals and Plan. */
+export interface Exclusion {
+  /** Every bank name in the data, for the pickers. */
+  banks: string[];
+  signedIn: boolean;
+  /** Banks you have or had (your list in My accounts + accounts you opened). */
+  have: string[];
+  excludeHave: boolean;
+  setExcludeHave: (v: boolean) => void;
+  /** Extra banks to leave out, picked right here. */
+  excluded: string[];
+  setExcluded: (v: string[]) => void;
+  /** What actually gets left out. */
+  effective: string[];
+  goToAccounts: () => void;
+}
+
+export function ExcludeBanks({ x }: { x: Exclusion }) {
+  return (
+    <div className="exclude">
+      <div className="exclude-toggle">
+        <Check checked={x.signedIn && x.excludeHave} disabled={!x.signedIn} onChange={x.setExcludeHave}>
+          Exclude banks I already have
+        </Check>
+        <span className="hint">
+          {x.signedIn ? (
+            <>
+              {x.have.length ? `${x.have.length} ${x.have.length === 1 ? 'bank' : 'banks'}` : 'None listed yet'} ·{' '}
+              <button type="button" className="more" onClick={x.goToAccounts}>{x.have.length ? 'edit' : 'add them'} in My accounts</button>
+            </>
+          ) : (
+            'Sign in and list them in My accounts.'
+          )}
+        </span>
+      </div>
+      <div className="field">
+        Exclude banks
+        <BankPicker banks={x.banks} value={x.excluded} onChange={x.setExcluded} placeholder="Pick banks to hide" ariaLabel="Banks to exclude" />
+      </div>
     </div>
   );
 }

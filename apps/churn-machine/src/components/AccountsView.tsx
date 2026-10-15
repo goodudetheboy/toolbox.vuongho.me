@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
-  addManualAccount, advance, archiveStrategy, deleteAccount, deleteStrategy, nextStep, STATUS_LABELS, updateAccount,
+  addManualAccount, advance, allBanksIHave, saveBanksIHave, archiveStrategy, deleteAccount, deleteStrategy, nextStep, STATUS_LABELS, updateAccount,
   type Account, type AccountStatus, type SavedStrategy,
 } from '../lib/accounts';
 import { shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
 import { signInWithGoogle } from '../lib/auth';
-import { Disclosure, MoneyInput } from './bits';
+import { BankPicker, Disclosure, MoneyInput } from './bits';
 
-export function AccountsView({ user, authLoading, accounts, strategies, loading, error, today }: {
+export function AccountsView({ user, authLoading, accounts, strategies, banksIHave, banks, loading, error, today }: {
   user: User | null;
   authLoading: boolean;
   accounts: Account[];
   strategies: SavedStrategy[];
+  /** Banks you listed by hand. */
+  banksIHave: string[];
+  /** Every bank in the deal data, for the picker. */
+  banks: string[];
   loading: boolean;
   error: string | null;
   today: string;
@@ -50,6 +54,7 @@ export function AccountsView({ user, authLoading, accounts, strategies, loading,
   const pending = visible.reduce((t, a) => t + (a.status === 'open' || a.status === 'met' ? a.bonus : 0), 0);
   const openCount = visible.filter((a) => a.status !== 'planned' && a.status !== 'closed').length;
   const planned = visible.filter((a) => a.status === 'planned').length;
+  const fromTracked = allBanksIHave(banksIHave, accounts).slice(banksIHave.length);
 
   return (
     <div className="narrow">
@@ -100,6 +105,24 @@ export function AccountsView({ user, authLoading, accounts, strategies, loading,
           })}
         </div>
       )}
+
+      <section className="section">
+        <h2>Banks I have</h2>
+        <p className="muted">
+          Banks you have (or had) an account with. Turn on “Exclude banks I already have” on Deals or Plan to hide them.
+        </p>
+        <BankPicker
+          banks={banks}
+          value={banksIHave}
+          onChange={(v) => saveBanksIHave(uid, v).catch((e: Error) => alert(`Couldn’t save: ${e.message}`))}
+          placeholder="Add a bank you have"
+          ariaLabel="Banks I have"
+          allowCustom
+        />
+        {fromTracked.length > 0 && (
+          <p className="hint">Also counted, from accounts you track: {fromTracked.join(', ')}.</p>
+        )}
+      </section>
 
       <div className="toolbar" style={{ marginTop: 16, gap: 18 }}>
         <Disclosure label="Add an account by hand"><AddAccount uid={uid} today={today} /></Disclosure>

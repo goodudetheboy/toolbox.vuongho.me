@@ -184,7 +184,7 @@ h1, h2, h3, h4 { margin: 0; }
   transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
 }
 .input::placeholder { color: var(--faint); }
-.input:focus { outline: none; background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input:focus { outline: none; background-color: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 select.input { cursor: pointer; }
 .select-quiet, select.input.select-quiet {
   width: auto;
@@ -250,6 +250,7 @@ select.input { cursor: pointer; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: var(--ink); }
 .field .hint { font-size: 13px; font-weight: 400; color: var(--muted); }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; cursor: pointer; }
+.check.disabled { color: var(--faint); cursor: default; }
 .check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
 
 .muted { color: var(--muted); }
@@ -270,6 +271,13 @@ select.input { cursor: pointer; }
 }
 .callout { background: var(--accent-soft); color: #3d1594; border-radius: 12px; padding: 12px 16px; font-size: 14.5px; margin: 16px 0; }
 .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; background: var(--accent-soft); color: var(--accent-strong); border-radius: 6px; padding: 1px 7px; }
+
+/* ---------- exclude banks ---------- */
+.exclude { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
+.exclude-toggle { display: flex; flex-direction: column; gap: 2px; }
+.exclude-toggle .hint { font-size: 13px; color: var(--muted); padding-left: 26px; }
+.exclude-toggle .more { font-size: 13px; }
+.hint { font-size: 13px; color: var(--muted); }
 
 /* ---------- bank picker ---------- */
 .bank-picker { margin-top: 10px; font-weight: 400; }

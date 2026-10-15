@@ -1,7 +1,7 @@
 # 0005. Bloomberg-terminal look, deal modal and full deal page
 
 Status: Look superseded by [0006](0006-robinhood-look.md) (the user disliked it); the modal,
-full deal page and "Banks I have" parts still stand.
+full deal page still stand; "Banks I have" was reworked in [0007](0007-banks-i-have-in-accounts.md).
 
 ## Context
 

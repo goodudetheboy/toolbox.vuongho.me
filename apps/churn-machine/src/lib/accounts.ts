@@ -1,8 +1,9 @@
 // Your own record of accounts and the strategies they belong to, in Firestore
-// (database `toolbox-churn-machine`): users/{uid}/accounts and users/{uid}/strategies.
+// (database `toolbox-churn-machine`): users/{uid}/accounts, users/{uid}/strategies,
+// and users/{uid}/profile/main (the banks you already have).
 // Only the signed-in owner can read or write them (firestore.rules).
 import {
-  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, writeBatch,
+  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from './firebase';
@@ -10,6 +11,7 @@ import type { Deal } from './types';
 import type { PlanInputs, Strategy } from './planner';
 import { addDays, todayIso } from './dates';
 import { ASSUMED, keepOpenDays } from './value';
+import { bankKey } from './filters';
 
 export type AccountStatus = 'planned' | 'open' | 'met' | 'paid' | 'closed';
 
@@ -61,10 +63,12 @@ export interface SavedStrategy {
 
 const accountsCol = (uid: string) => collection(db, 'users', uid, 'accounts');
 const strategiesCol = (uid: string) => collection(db, 'users', uid, 'strategies');
+const profileDoc = (uid: string) => doc(db, 'users', uid, 'profile', 'main');
 
 export function useAccounts(uid: string | null) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [strategies, setStrategies] = useState<SavedStrategy[]>([]);
+  const [banksIHave, setBanksIHave] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +76,7 @@ export function useAccounts(uid: string | null) {
     if (!uid) {
       setAccounts([]);
       setStrategies([]);
+      setBanksIHave([]);
       setLoading(false);
       return;
     }
@@ -84,13 +89,34 @@ export function useAccounts(uid: string | null) {
     const unS = onSnapshot(query(strategiesCol(uid), orderBy('createdAt')), (snap) => {
       setStrategies(snap.docs.map((d) => ({ ...(d.data() as Omit<SavedStrategy, 'id'>), id: d.id })));
     }, onErr);
+    const unP = onSnapshot(profileDoc(uid), (snap) => {
+      setBanksIHave((snap.data()?.banksIHave as string[] | undefined) ?? []);
+    }, onErr);
     return () => {
       unA();
       unS();
+      unP();
     };
   }, [uid]);
 
-  return { accounts, strategies, loading, error };
+  return { accounts, strategies, banksIHave, loading, error };
+}
+
+/** Banks you listed by hand in My accounts. */
+export function saveBanksIHave(uid: string, banksIHave: string[]): Promise<void> {
+  return setDoc(profileDoc(uid), { banksIHave, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+/** Banks you have (or had): your list plus every tracked account you actually opened. */
+export function allBanksIHave(listed: string[], accounts: Account[]): string[] {
+  const seen = new Set(listed.map(bankKey));
+  const out = [...listed];
+  for (const a of accounts) {
+    if (a.status === 'planned' || seen.has(bankKey(a.bank))) continue;
+    seen.add(bankKey(a.bank));
+    out.push(a.bank);
+  }
+  return out;
 }
 
 function blankAccount(): Omit<Account, 'id' | 'bank' | 'title' | 'bonus'> {

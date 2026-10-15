@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { hrefFor, useRoute, type Tab } from './lib/router';
 import { useDeals } from './lib/useDeals';
 import { signInWithGoogle, signOutUser, useAuth } from './lib/auth';
-import { saveStrategy, trackDeal, useAccounts } from './lib/accounts';
+import { allBanksIHave, saveStrategy, trackDeal, useAccounts } from './lib/accounts';
 import { usePersisted } from './lib/settings';
 import { shortDate, todayIso } from './lib/dates';
 import type { Deal } from './lib/types';
@@ -10,7 +10,7 @@ import { bankNames } from './lib/filters';
 import { DealsView } from './components/DealsView';
 import { PlanView } from './components/PlanView';
 import { AccountsView } from './components/AccountsView';
-import { StateSelect } from './components/bits';
+import { StateSelect, type Exclusion } from './components/bits';
 import { UpdateToast } from './components/UpdateToast';
 import { DealModal, DealPage } from './components/DealModal';
 import { AccountsIcon, DealsIcon, LogoMark, PlanIcon } from './components/icons';
@@ -28,7 +28,7 @@ export default function App() {
   const { data, error } = useDeals();
   const { user, loading: authLoading } = useAuth();
   const acc = useAccounts(user?.uid ?? null);
-  const [prefs, setPrefs] = usePersisted('prefs', { state: null as string | null, baselineApy: 0.04, excludedBanks: [] as string[] });
+  const [prefs, setPrefs] = usePersisted('prefs', { state: null as string | null, baselineApy: 0.04, excludedBanks: [] as string[], excludeHave: true });
   const [modalId, setModalId] = useState<string | null>(null);
   const closeModal = useCallback(() => setModalId(null), []);
   const banks = useMemo(() => (data ? bankNames(data.deals) : []), [data]);
@@ -36,11 +36,22 @@ export default function App() {
   const modalDeal = dealById(modalId);
   const openDeal = (d: Deal) => setModalId(d.id);
   useEffect(closeModal, [route.tab, route.dealId, closeModal]);
-  const setExcluded = (excludedBanks: string[]) => setPrefs({ ...prefs, excludedBanks });
   const [busy, setBusy] = useState<string | null>(null);
   const today = todayIso();
 
   const signIn = () => signInWithGoogle().catch(() => {});
+  const have = user ? allBanksIHave(acc.banksIHave, acc.accounts) : [];
+  const exclusion: Exclusion = {
+    banks,
+    signedIn: !!user,
+    have,
+    excludeHave: prefs.excludeHave,
+    setExcludeHave: (excludeHave) => setPrefs({ ...prefs, excludeHave }),
+    excluded: prefs.excludedBanks,
+    setExcluded: (excludedBanks) => setPrefs({ ...prefs, excludedBanks }),
+    effective: [...prefs.excludedBanks, ...(prefs.excludeHave ? have : [])],
+    goToAccounts: () => go('accounts'),
+  };
   const trackedDealIds = new Set(acc.accounts.map((a) => a.dealId).filter(Boolean));
 
   const trackAction = (d: Deal) => {
@@ -132,6 +143,8 @@ export default function App() {
           authLoading={authLoading}
           accounts={acc.accounts}
           strategies={acc.strategies}
+          banksIHave={acc.banksIHave}
+          banks={banks}
           loading={acc.loading}
           error={acc.error}
           today={today}
@@ -155,9 +168,7 @@ export default function App() {
           state={prefs.state}
           baselineApy={prefs.baselineApy}
           setBaselineApy={(baselineApy) => setPrefs({ ...prefs, baselineApy })}
-          excludedBanks={prefs.excludedBanks}
-          setExcludedBanks={setExcluded}
-          banks={banks}
+          exclusion={exclusion}
           onOpenDeal={openDeal}
         />
       ) : (
@@ -166,11 +177,8 @@ export default function App() {
           today={today}
           state={prefs.state}
           baselineApy={prefs.baselineApy}
-          excludedBanks={prefs.excludedBanks}
-          setExcludedBanks={setExcluded}
-          banks={banks}
+          exclusion={exclusion}
           onOpenDeal={openDeal}
-          trackedBanks={acc.accounts.filter((a) => a.status !== 'planned').map((a) => a.bank)}
           signedIn={!!user}
           onSave={async (s, inputs) => {
             if (!user) {

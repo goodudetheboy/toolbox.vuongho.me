@@ -64,8 +64,11 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
 - `src/lib/router.ts` — real paths (`/`, `/plan`, `/accounts`,
   `/deal/<id>`) under `/churn-machine/`, served by the root `firebase.json`
   rewrite. `src/components/DealModal.tsx` has the modal and the full page.
-- "Banks I have" (`prefs.excludedBanks`, picked with `BankPicker` in
-  `bits.tsx`) hides those banks on Deals and in the planner.
+- Leaving banks out (ADR 0007): "Banks I have" lives in My accounts
+  (Firestore `users/{uid}/profile/main.banksIHave`, plus every tracked
+  account you opened). Deals and Plan share one `Exclusion` (built in
+  `App.tsx`, UI in `ExcludeBanks` in `bits.tsx`): an "Exclude banks I
+  already have" toggle plus an "Exclude banks" picker (localStorage).
 
 ## Running
 
@@ -77,7 +80,8 @@ npm run refresh -w apps/churn-machine # refresh public/deals.json from DoC
 
 Testing the signed-in side locally without touching production data:
 start the emulators (`firebase emulators:start --only firestore,auth` with
-Firestore on 8085 and Auth on 9099, needs Java) and run
+Firestore on 8085 and Auth on 9099, needs Java; with no Java installed, a
+portable Adoptium JRE tarball unpacked into /tmp works) and run
 `VITE_FIREBASE_EMULATORS=1 npm run dev:churn-machine`. The Auth emulator's
 fake Google popup works with Playwright.
 

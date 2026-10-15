@@ -6,28 +6,26 @@ import {
 import { requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
 import { STATE_NAMES } from '../lib/states';
-import { BankPicker, Check, MoneyInput, Segmented, StatusTag, VerdictTag } from './bits';
+import { Check, ExcludeBanks, MoneyInput, Segmented, StatusTag, VerdictTag, type Exclusion } from './bits';
 
 const CATEGORY_LABEL: Record<Deal['category'], string> = {
   checking: 'Checking', savings: 'Savings', business: 'Business', state: 'Local', regional: 'Local', other: '',
 };
 
-export function DealsView({ deals, today, state, baselineApy, setBaselineApy, excludedBanks, setExcludedBanks, banks, onOpenDeal }: {
+export function DealsView({ deals, today, state, baselineApy, setBaselineApy, exclusion, onOpenDeal }: {
   deals: Deal[];
   today: string;
   state: string | null;
   baselineApy: number;
   setBaselineApy: (v: number) => void;
-  excludedBanks: string[];
-  setExcludedBanks: (v: string[]) => void;
-  banks: string[];
+  exclusion: Exclusion;
   onOpenDeal: (d: Deal) => void;
 }) {
   const [stored, setFilters] = usePersisted<Omit<DealFilters, 'query' | 'state'>>('deal-filters', DEFAULT_FILTERS);
   const [sort, setSort] = usePersisted<SortKey>('deal-sort', 'value');
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const filters: DealFilters = { ...DEFAULT_FILTERS, ...stored, query, state, excludeBanks: excludedBanks };
+  const filters: DealFilters = { ...DEFAULT_FILTERS, ...stored, query, state, excludeBanks: exclusion.effective };
   const set = (patch: Partial<DealFilters>) => setFilters({ ...stored, ...patch });
 
   const shown = useMemo(
@@ -36,7 +34,7 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
     [deals, JSON.stringify(filters), sort, today, baselineApy],
   );
   const picks = useMemo(() => sortDeals(shown, 'value').slice(0, 6), [shown]);
-  const advanced = activeAdvancedCount(filters) + (excludedBanks.length ? 1 : 0);
+  const advanced = activeAdvancedCount(filters) + (exclusion.effective.length ? 1 : 0);
 
   return (
     <>
@@ -55,9 +53,8 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
             <button type="button" className="btn primary small" onClick={() => setFiltersOpen(false)}>Show {shown.length} deals</button>
           </div>
           <div className="card">
-            <h3>Banks I have</h3>
-            <p className="muted small">Hide banks you already have (or had). Plans skip them too.</p>
-            <BankPicker banks={banks} value={excludedBanks} onChange={setExcludedBanks} />
+            <h3>Banks</h3>
+            <ExcludeBanks x={exclusion} />
           </div>
           <div className="card">
             <h3 className="desktop-only">Filters</h3>
