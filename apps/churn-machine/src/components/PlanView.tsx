@@ -101,12 +101,10 @@ export function PlanView({
                 />
               </div>
             </div>
-            <div style={{ marginTop: 16 }}>
-              <ExcludeBanks x={exclusion} />
-            </div>
             <div style={{ marginTop: 14 }}>
-              <Disclosure label="More options">
+              <Disclosure label={`More options${exclusion.effective.length ? ` · ${exclusion.effective.length} ${exclusion.effective.length === 1 ? 'bank' : 'banks'} excluded` : ''}`}>
                 <div className="stack" style={{ marginTop: 12 }}>
+                  <ExcludeBanks x={exclusion} />
                   <label className="field">
                     Cash I can park
                     <MoneyInput ariaLabel="Cash to park" value={stored.cash} onChange={(v) => set({ cash: v ?? 0 })} />
