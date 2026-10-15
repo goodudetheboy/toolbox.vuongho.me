@@ -141,3 +141,21 @@ test('a committed account that can no longer make its deadline is flagged, not d
   // The at-risk account doesn't stop new picks.
   assert.ok(r.strategy.items.length > 0);
 });
+
+test('an on-track opened account keeps its exact deposits through a revision', () => {
+  const deals = Array.from({ length: 6 }, (_, i) => deal(`d${i}`, { rank: i + 1 }));
+  const fixed = [{ date: '2026-10-23', amount: 1500 }, { date: '2026-11-06', amount: 700 }];
+  const committed: Committed[] = [{
+    dealId: 'kept', bank: 'Kept', openedOn: '2026-10-15', ddDeadline: '2027-01-13',
+    remainingNeed: 2200, remainingDeposits: 2, park: null, fixedDeposits: fixed,
+  }];
+  const r = revisePlan(deals, INPUTS, 'money', 3, TODAY, 0.04, addDays(TODAY, 182), committed);
+  assert.deepEqual(r.committedDeposits.get('kept'), fixed);
+  // Its reservation comes off those paychecks before any new pick gets a share.
+  for (const p of r.strategy.paychecks) {
+    assert.equal(p.splits.reduce((t, x) => t + x.amount, 0) + p.toMain, INPUTS.paycheck);
+    assert.ok(p.splits.length <= INPUTS.maxSplits);
+  }
+  const oct23 = r.strategy.paychecks.find((p) => p.date === '2026-10-23')!;
+  assert.equal(oct23.splits.find((x) => x.dealId === 'kept')?.amount, 1500);
+});

@@ -94,6 +94,8 @@ interface Selection {
   deal: Deal;
   req: Requirement;
   open: string;
+  /** An on-track opened account: these exact deposits, nothing re-planned. */
+  fixed?: PlannedDeposit[];
 }
 
 export interface PlannedDeposit {
@@ -165,7 +167,7 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
     remaining: s.req.need,
     deposits: [] as PlannedDeposit[],
     bucketGot: s.req.months ? new Array(s.req.months).fill(0) : null,
-    done: s.req.need === 0 ? s.open : null as string | null,
+    done: s.fixed ? s.fixed.at(-1)?.date ?? s.open : s.req.need === 0 ? s.open : null as string | null,
     failed: false,
   }));
   const paychecks: Paycheck[] = [];
@@ -173,6 +175,16 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
   for (const p of pays) {
     let avail = inputs.paycheck;
     const splits: Paycheck['splits'] = [];
+    // Reserved deposits of on-track accounts come off the paycheck first.
+    for (const x of state) {
+      for (const d of x.s.fixed ?? []) {
+        if (d.date !== p) continue;
+        const give = Math.min(d.amount, avail);
+        avail -= give;
+        x.deposits.push({ date: p, amount: give });
+        splits.push({ dealId: x.s.deal.id, bank: x.s.deal.bank, amount: give });
+      }
+    }
     const wants = state
       .filter((x) => !x.done && !x.failed && p >= addDays(x.s.open, inputs.leadDays) && p <= addDays(x.s.open, x.s.req.windowDays))
       .map((x) => {
@@ -193,7 +205,7 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
       })
       .filter((w) => w.want > 0)
       .sort((a, b) => a.deadline.localeCompare(b.deadline) || a.x.s.deal.rank - b.x.s.deal.rank)
-      .slice(0, inputs.maxSplits);
+      .slice(0, Math.max(0, inputs.maxSplits - splits.length));
 
     for (const w of wants) {
       const give = Math.min(w.want, avail);
@@ -301,6 +313,8 @@ export interface Committed {
   openedOn: string;
   /** Deadline for the remaining deposits. */
   ddDeadline: string;
+  /** On track (nothing missed): keep exactly these upcoming deposits. */
+  fixedDeposits?: PlannedDeposit[];
   remainingNeed: number;
   remainingDeposits: number;
   park: { amount: number; until: string } | null;
@@ -328,10 +342,11 @@ export function revisePlan(
   const fixed: Selection[] = committed.map((c) => ({
     deal: { id: c.dealId, bank: c.bank, rank: -1 } as Deal,
     open: c.openedOn,
+    fixed: c.fixedDeposits,
     req: {
-      need: c.remainingNeed,
+      need: c.fixedDeposits ? 0 : c.remainingNeed,
       months: null,
-      minDeposits: c.remainingNeed > 0 ? Math.max(1, c.remainingDeposits) : 0,
+      minDeposits: !c.fixedDeposits && c.remainingNeed > 0 ? Math.max(1, c.remainingDeposits) : 0,
       windowDays: Math.max(0, daysBetween(c.openedOn, c.ddDeadline)),
       balance: c.park && c.park.until > today ? c.park.amount : 0,
       holdDays: c.park && c.park.until > today ? daysBetween(c.openedOn, c.park.until) : 0,

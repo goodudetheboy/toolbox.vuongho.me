@@ -596,6 +596,11 @@ select.input { cursor: pointer; }
 .changes li.good::before { content: '+'; color: var(--accent); font-weight: 700; }
 .changes li.warn::before { content: '!'; color: var(--warn); font-weight: 700; }
 
+/* edit plan settings */
+.edit-form { margin-top: 20px; }
+.edit-form .segmented { flex-wrap: wrap; border-radius: 18px; align-self: flex-start; }
+.edit-form .order-rows { margin-top: 0; }
+
 /* ---------- accounts ---------- */
 .list { border-top: 1px solid var(--line); margin-top: 8px; }
 .row { border-bottom: 1px solid var(--line); }
@@ -762,6 +767,8 @@ textarea.input { resize: vertical; }
   .task.compact .task-actions { margin-left: 0; }
   .order-row .money-input, .order-row > .input { width: 140px; }
   .toast { bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom)); }
+  .sheet-foot .save-row > .grow { flex: 1 1 100%; white-space: nowrap; }
+  .sheet-foot .save-row { gap: 8px 12px; }
 
   /* The deal modal becomes a bottom sheet. */
   .sheet-backdrop { align-items: flex-end; padding: 0; z-index: 50; }

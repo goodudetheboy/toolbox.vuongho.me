@@ -70,6 +70,7 @@ export function AccountsView({
         strategy={s}
         accounts={mine}
         deals={deals}
+        banks={banks}
         today={today}
         alsoExclude={allBanksIHave(banksIHave, accounts.filter((a) => a.strategyId !== s.id))}
         onBack={onBack}

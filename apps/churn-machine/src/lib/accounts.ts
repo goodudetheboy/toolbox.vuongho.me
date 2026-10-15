@@ -243,6 +243,8 @@ export async function applyRevision(uid: string, strategyId: string, change: {
   totalBonus: number;
   accounts: number;
   revisions: { on: string; note: string }[];
+  /** New settings, when the plan was edited. */
+  strategy?: Partial<SavedStrategy>;
 }): Promise<void> {
   const batch = writeBatch(db);
   for (const u of change.update) batch.update(doc(accountsCol(uid), u.id), { ...u.patch, updatedAt: serverTimestamp() });
@@ -252,6 +254,7 @@ export async function applyRevision(uid: string, strategyId: string, change: {
     totalBonus: change.totalBonus,
     accounts: change.accounts,
     revisions: change.revisions,
+    ...change.strategy,
   });
   await batch.commit();
 }

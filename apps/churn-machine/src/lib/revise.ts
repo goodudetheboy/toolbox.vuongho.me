@@ -5,7 +5,7 @@ import { accountFromItem, type Account, type SavedStrategy } from './accounts';
 import {
   OBJECTIVES, PACE_LABELS, requirementOf, revisePlan, type Committed, type Objective, type Pace, type PlanInputs,
 } from './planner';
-import { addDays, maxIso, shortDate } from './dates';
+import { addDays, daysBetween, maxIso, shortDate } from './dates';
 import { ASSUMED } from './value';
 
 export interface PlanSettings {
@@ -46,7 +46,16 @@ export interface RevisionPreview {
     totalBonus: number;
     accounts: number;
     revisions: { on: string; note: string }[];
+    /** Set when the plan's settings were edited. */
+    strategy?: Partial<SavedStrategy>;
   };
+}
+
+export const strategyName = (o: Objective, p: Pace) => `${OBJECTIVES[o].label} · ${PACE_LABELS[p]}`;
+
+/** When the plan started counting its months (so editing the length keeps the start). */
+export function planStart(set: PlanSettings): string {
+  return addDays(set.endsOn, -Math.round(set.inputs.months * 30.4));
 }
 
 const money = (n: number) => `$${n.toLocaleString('en-US')}`;
@@ -56,13 +65,15 @@ const money = (n: number) => `$${n.toLocaleString('en-US')}`;
  * @param alsoExclude banks you have elsewhere (so the re-plan doesn't pick them)
  */
 export function previewRevision(
-  deals: Deal[], saved: SavedStrategy, accounts: Account[], today: string, alsoExclude: string[],
+  deals: Deal[], saved: SavedStrategy, accounts: Account[], today: string, alsoExclude: string[], edited?: PlanSettings,
 ): RevisionPreview {
-  const set = planSettings(saved);
+  const set = edited ?? planSettings(saved);
+  const name = strategyName(set.objective, set.pace);
   let payday = set.inputs.firstPayday;
   while (payday < today) payday = addDays(payday, 14);
   const dealOf = (a: Account) => deals.find((d) => d.id === a.dealId) ?? null;
   const keyOf = (a: Account) => a.dealId ?? a.id;
+  const onPayday = (iso: string) => ((daysBetween(payday, iso) % 14) + 14) % 14 === 0;
 
   const opened = accounts.filter((a) => a.status !== 'planned');
   const committed: Committed[] = opened.map((a) => {
@@ -78,6 +89,9 @@ export function previewRevision(
       ddDeadline: window != null ? addDays(openedOn, window) : maxIso(a.doneBy ?? today, lastPlanned ? addDays(lastPlanned, 14) : today),
       remainingNeed: undone.reduce((t, d) => t + d.amount, 0),
       remainingDeposits: undone.length,
+      // Nothing missed: keep its schedule exactly; only missed deposits get re-planned.
+      // (Only while they still fall on paydays: a changed payday re-plans them too.)
+      fixedDeposits: undone.every((d) => d.date >= today && onPayday(d.date)) ? undone : undefined,
       park: a.park,
     };
   });
@@ -93,6 +107,7 @@ export function previewRevision(
   // Accounts you opened: missed deposits move onto upcoming paychecks.
   for (const a of opened) {
     if (a.status !== 'open') continue;
+    if (committed.find((c) => c.dealId === keyOf(a))?.fixedDeposits) continue; // on track: untouched
     const fresh = r.committedDeposits.get(keyOf(a)) ?? [];
     const kept = a.deposits.filter((d) => a.done?.[`dd:${d.date}`]);
     const deposits = [...kept, ...fresh].sort((x, y) => x.date.localeCompare(y.date));
@@ -116,7 +131,7 @@ export function previewRevision(
       lines.push({ tone: 'warn', text: `Dropped ${a.bank} (${money(a.bonus)}): it no longer fits in time.` });
       continue;
     }
-    const next = accountFromItem(item, saved.id, saved.name);
+    const next = accountFromItem(item, saved.id, name);
     if (item.openOn === a.openOn && JSON.stringify(item.deposits) === JSON.stringify(a.deposits)) continue;
     update.push({ id: a.id, patch: { ...next, done: {} } });
     if (item.openOn !== a.openOn) {
@@ -125,16 +140,26 @@ export function previewRevision(
   }
   for (const item of r.strategy.items) {
     if (planned.some((a) => a.dealId === item.deal.id)) continue;
-    add.push(accountFromItem(item, saved.id, saved.name));
+    add.push(accountFromItem(item, saved.id, name));
     lines.push({ tone: 'good', text: `Added ${item.deal.bank} (${money(item.value.bonus)}): open on ${shortDate(item.openOn, today)}.` });
   }
 
   const before = accounts.reduce((t, a) => t + (a.status === 'paid' || a.status === 'closed' ? a.bonusReceived ?? a.bonus : a.bonus), 0);
   const after = opened.reduce((t, a) => t + (a.status === 'paid' || a.status === 'closed' ? a.bonusReceived ?? a.bonus : a.bonus), 0)
     + r.strategy.items.reduce((t, i) => t + i.value.bonus, 0);
-  if (!lines.length) lines.push({ tone: 'plain', text: 'Nothing to change: the plan still works from today.' });
+  const rescheduled = update.length;
+  // A renamed plan (new goal or pace) renames it on its accounts too.
+  if (name !== saved.name) {
+    for (const a of accounts) {
+      const u = update.find((x) => x.id === a.id);
+      if (u) u.patch.strategyName = name;
+      else if (!remove.includes(a.id)) update.push({ id: a.id, patch: { strategyName: name } });
+    }
+  }
+  if (!lines.length) lines.push({ tone: 'plain', text: edited ? 'The schedule stays the same with these settings.' : 'Nothing to change: the plan still works from today.' });
   const counts = [
-    update.length && `${update.length} rescheduled`,
+    edited && 'settings edited',
+    rescheduled && `${rescheduled} rescheduled`,
     remove.length && `${remove.length} dropped`,
     add.length && `${add.length} added`,
   ].filter(Boolean).join(', ');
@@ -150,6 +175,16 @@ export function previewRevision(
       totalBonus: after,
       accounts: opened.length + r.strategy.items.length,
       revisions: [...(saved.revisions ?? []), { on: today, note: counts || 'No changes needed' }],
+      strategy: edited ? {
+        name,
+        planId: `${set.objective}-${set.pace}`,
+        inputs: set.inputs,
+        baselineApy: set.baselineApy,
+        endsOn: set.endsOn,
+        paycheck: set.inputs.paycheck,
+        months: set.inputs.months,
+        firstPayday: set.inputs.firstPayday,
+      } : undefined,
     },
   };
 }

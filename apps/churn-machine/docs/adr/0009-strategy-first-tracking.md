@@ -52,3 +52,21 @@ email for later.
 - **Email later:** the same `tasksForStrategy` / `neglected` functions can
   run in a scheduled job (the daily deploy workflow already has Google Cloud
   credentials). Still undecided: the sending provider and who may opt in.
+
+## Addendum (same day): editing a running plan's settings
+
+The tracker's **Edit settings** opens a sheet with the plan's goal, pace,
+paycheck, next payday, length (counted from the plan's original start),
+cash, splits, lead days, minimum bonus, options and banks to leave out.
+Saving *is* a revision: `previewRevision(..., edited)` re-plans from today
+with the new settings. As you edit, a live preview shows the planned total
+before → after and every change. Applying writes the accounts and the
+strategy's new settings (`inputs`, `planId`, `name`, `endsOn`…) in one
+batch, and renames the plan on its accounts if the goal or pace changed.
+
+Refinement found while testing: opened accounts that are **on track** (no
+missed deposit, still on the payday grid) now keep their exact deposits as
+fixed reservations (`Selection.fixed` in the planner). Only accounts with
+missed deposits get rescheduled. Without this, any edit, or even a no-op
+revise, re-split healthy accounts' deposits, which was noise. Tested in
+`planner.test.ts`.

@@ -1,6 +1,6 @@
 // One saved strategy, run day to day: where you are, what's due today, the
 // whole plan as a timeline, and a check-in that can re-plan the rest.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
   applyRevision, archiveStrategy, deleteStrategy, STATUS_LABELS, updateAccount, type Account, type SavedStrategy,
@@ -8,10 +8,11 @@ import {
 import {
   completeTask, neglected, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
 } from '../lib/tasks';
-import { previewRevision, planSettings, type RevisionPreview } from '../lib/revise';
+import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
+import { OBJECTIVES, PACE_LABELS, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
-import { Disclosure } from './bits';
+import { BankPicker, Check, Disclosure, MoneyInput, Segmented } from './bits';
 import { Sheet } from './DealModal';
 import { AccountDetail } from './AccountsView';
 
@@ -28,12 +29,14 @@ export function ProgressBar({ collected, onTheWay, planned }: { collected: numbe
   );
 }
 
-export function StrategyTracker({ uid, strategy: s, accounts, deals, today, alsoExclude, onBack, onOpenDeal }: {
+export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, today, alsoExclude, onBack, onOpenDeal }: {
   uid: string;
   strategy: SavedStrategy;
   /** This strategy's accounts. */
   accounts: Account[];
   deals: Deal[] | null;
+  /** Every bank in the deal data, for the "leave out" picker. */
+  banks: string[];
   today: string;
   /** Banks you have outside this plan, so a revision doesn't pick them. */
   alsoExclude: string[];
@@ -41,6 +44,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, today, also
   onOpenDeal: (d: Deal) => void;
 }) {
   const [revision, setRevision] = useState<RevisionPreview | null>(null);
+  const [editing, setEditing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [openAccount, setOpenAccount] = useState<string | null>(null);
   const tasks = tasksForStrategy(accounts, today);
@@ -73,6 +77,8 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, today, also
         <h1 className="hero-name">{s.name}</h1>
         <p className="muted small" style={{ margin: '6px 0 0' }}>
           {usd(set.inputs.paycheck)} paychecks every 2 weeks · {set.inputs.months} months{s.archived && ' · archived'}
+          {' · '}
+          <button type="button" className="more" disabled={!deals} onClick={() => setEditing(true)}>Edit settings</button>
         </p>
       </div>
 
@@ -185,6 +191,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, today, also
             <button type="button" className="btn small" disabled={!deals} onClick={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude))}>
               Revise from today
             </button>
+            <button type="button" className="btn small" disabled={!deals} onClick={() => setEditing(true)}>Edit settings</button>
             <button type="button" className="btn small" onClick={() => archiveStrategy(uid, s.id, !s.archived)}>{s.archived ? 'Unarchive' : 'Archive'}</button>
             <button
               type="button"
@@ -200,6 +207,19 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, today, also
           </div>
         </Disclosure>
       </div>
+
+      {editing && deals && (
+        <EditPlanSheet
+          uid={uid}
+          strategy={s}
+          accounts={accounts}
+          deals={deals}
+          banks={banks}
+          today={today}
+          alsoExclude={alsoExclude}
+          onClose={() => setEditing(false)}
+        />
+      )}
 
       {revision && (
         <Sheet
@@ -302,5 +322,143 @@ function TaskRow({ task: t, today, compact, onDone, onUndo, onBank }: {
         )}
       </div>
     </div>
+  );
+}
+
+/** Change a running plan's settings; the rest of the plan is re-planned from today. */
+function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoExclude, onClose }: {
+  uid: string;
+  strategy: SavedStrategy;
+  accounts: Account[];
+  deals: Deal[];
+  banks: string[];
+  today: string;
+  alsoExclude: string[];
+  onClose: () => void;
+}) {
+  const original = planSettings(s);
+  const start = planStart(original);
+  const [draft, setDraft] = useState<PlanSettings>(() => {
+    let payday = original.inputs.firstPayday;
+    while (payday < today) payday = addDays(payday, 14);
+    return { ...original, inputs: { ...original.inputs, firstPayday: payday } };
+  });
+  const [saving, setSaving] = useState(false);
+  const setIn = (patch: Partial<PlanSettings['inputs']>) => {
+    const inputs = { ...draft.inputs, ...patch };
+    setDraft({ ...draft, inputs, endsOn: addDays(start, Math.round(inputs.months * 30.4)) });
+  };
+  const key = JSON.stringify(draft);
+  const preview = useMemo(
+    () => previewRevision(deals, s, accounts, today, alsoExclude, draft),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [key, deals, accounts, today],
+  );
+  const i = draft.inputs;
+
+  return (
+    <Sheet
+      label="Edit plan settings"
+      onClose={onClose}
+      foot={
+        <div className="save-row" style={{ marginTop: 0 }}>
+          <span className="muted small grow">
+            Planned {usd(preview.before)} → <b className={preview.after >= preview.before ? 'up' : 'down'}>{usd(preview.after)}</b>
+          </span>
+          <button type="button" className="btn quiet" onClick={onClose}>Cancel</button>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await applyRevision(uid, s.id, preview.change);
+                onClose();
+              } catch (e) {
+                alert(`Couldn’t save: ${(e as Error).message}`);
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {saving ? 'Saving…' : 'Save and re-plan'}
+          </button>
+        </div>
+      }
+    >
+      <div className="hero">
+        <div className="hero-kicker">{s.name}</div>
+        <h1 className="hero-name">Edit settings</h1>
+      </div>
+      <p className="muted">
+        Accounts you’ve already opened stay. Everything else is re-planned from today with these settings. Nothing changes until you save.
+      </p>
+
+      <div className="stack edit-form">
+        <div className="field">
+          Goal
+          <Segmented<Objective> ariaLabel="Goal" value={draft.objective} onChange={(objective) => setDraft({ ...draft, objective })}
+            options={(Object.keys(OBJECTIVES) as Objective[]).map((o) => ({ value: o, label: OBJECTIVES[o].label }))} />
+          <span className="hint">{OBJECTIVES[draft.objective].hint}</span>
+        </div>
+        <div className="field">
+          Pace
+          <Segmented<Pace> ariaLabel="Pace" value={draft.pace} onChange={(pace) => setDraft({ ...draft, pace })}
+            options={([1, 2, 3] as Pace[]).map((p) => ({ value: p, label: PACE_LABELS[p] }))} />
+          <span className="hint">Up to {draft.pace} new {draft.pace === 1 ? 'account' : 'accounts'} a month.</span>
+        </div>
+        <div className="order-rows">
+          <label className="order-row">
+            <span>Paycheck <span className="faint">every 2 weeks</span></span>
+            <MoneyInput ariaLabel="Paycheck amount" value={i.paycheck} onChange={(v) => setIn({ paycheck: v ?? 0 })} />
+          </label>
+          <label className="order-row">
+            <span>Next payday</span>
+            <input className="input" type="date" value={i.firstPayday} min={today} onChange={(e) => e.target.value && setIn({ firstPayday: e.target.value })} />
+          </label>
+          <div className="order-row">
+            <span>Plan length <span className="faint">ends ~{shortDate(draft.endsOn, today)}</span></span>
+            <Segmented ariaLabel="Plan length" value={i.months} onChange={(months) => setIn({ months })}
+              options={[3, 6, 9, 12].map((m) => ({ value: m, label: `${m} mo` }))} />
+          </div>
+          <label className="order-row">
+            <span>Cash I can park</span>
+            <MoneyInput ariaLabel="Cash to park" value={i.cash} onChange={(v) => setIn({ cash: v ?? 0 })} />
+          </label>
+          <label className="order-row">
+            <span>Skip bonuses under</span>
+            <MoneyInput ariaLabel="Minimum bonus" value={i.minBonus} onChange={(v) => setIn({ minBonus: v ?? 0 })} />
+          </label>
+        </div>
+        <label className="field">
+          Split a paycheck across up to
+          <Segmented ariaLabel="Max splits" value={i.maxSplits} onChange={(maxSplits) => setIn({ maxSplits })}
+            options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}` }))} />
+        </label>
+        <label className="field">
+          Open accounts ahead of payday by
+          <Segmented ariaLabel="Lead days" value={i.leadDays} onChange={(leadDays) => setIn({ leadDays })}
+            options={[3, 7, 14].map((n) => ({ value: n, label: `${n} days` }))} />
+        </label>
+        <Check checked={i.noHardPull} onChange={(noHardPull) => setIn({ noHardPull })}>Avoid hard credit pulls</Check>
+        <Check checked={i.online} onChange={(online) => setIn({ online })}>Online only (no branch visits)</Check>
+        <Check checked={i.noChexSensitive} onChange={(noChexSensitive) => setIn({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
+        <Check checked={i.business} onChange={(business) => setIn({ business })}>Include business accounts</Check>
+        <Check checked={i.includeDatePassed} onChange={(includeDatePassed) => setIn({ includeDatePassed })}>Include deals past their listed end date</Check>
+        <div className="field">
+          Leave out these banks
+          <BankPicker banks={banks} value={i.excludeBanks} onChange={(excludeBanks) => setIn({ excludeBanks })} placeholder="Pick banks to leave out" ariaLabel="Banks to leave out" />
+          <span className="hint">Banks in “Banks I have” are always left out.</span>
+        </div>
+      </div>
+
+      <section className="section">
+        <h2>What changes</h2>
+        <ul className="changes">
+          {preview.lines.map((l, n) => <li key={n} className={l.tone}>{l.text}</li>)}
+        </ul>
+      </section>
+    </Sheet>
   );
 }
