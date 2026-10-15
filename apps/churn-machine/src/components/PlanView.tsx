@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
   buildStrategies, OBJECTIVES, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
@@ -8,6 +8,9 @@ import { compactUsd, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
 import { Check, Disclosure, ExcludeBanks, MoneyInput, Segmented, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
+import { Sheet } from './DealModal';
+import { decodePlanLink, encodePlanLink } from '../lib/planLink';
+import type { Route } from '../lib/router';
 
 type StoredInputs = Omit<PlanInputs, 'state' | 'excludeBanks'>;
 
@@ -36,8 +39,12 @@ function rollForward(payday: string, today: string): string {
 }
 
 export function PlanView({
-  deals, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave,
+  deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy,
 }: {
+  dealsDate: string;
+  route: Route;
+  openStrategy: (id: string, search: string) => void;
+  closeStrategy: () => void;
   deals: Deal[];
   today: string;
   state: string | null;
@@ -50,7 +57,6 @@ export function PlanView({
   const [stored, setStored] = usePersisted<StoredInputs>('plan-inputs', defaults(today));
   const [sort, setSort] = usePersisted<StrategySort>('plan-sort', 'net');
   const [maxAccounts, setMaxAccounts] = usePersisted<number>('plan-max-accounts', 0);
-  const [openId, setOpenId] = useState<string | null>(null);
   const set = (patch: Partial<StoredInputs>) => setStored({ ...stored, ...patch });
 
   const inputs: PlanInputs = {
@@ -66,7 +72,19 @@ export function PlanView({
     [deals, key, today, baselineApy],
   );
   const shown = sortStrategies(strategies, sort).filter((s) => !maxAccounts || s.totals.accounts <= maxAccounts);
-  useEffect(() => setOpenId(null), [key]);
+  const linkFor = (i: PlanInputs) => encodePlanLink({ inputs: i, baselineApy, dealsDate });
+
+  // A strategy permalink: rebuild it from the link's own inputs, not the form's.
+  const link = route.strategyId ? decodePlanLink(route.search, today) : null;
+  const linkKey = link ? JSON.stringify(link) : '';
+  const linked = useMemo(() => {
+    if (!route.strategyId) return null;
+    const list = link ? buildStrategies(deals, link.inputs, today, link.baselineApy) : strategies;
+    return list.find((x) => x.id === route.strategyId) ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deals, route.strategyId, linkKey, key, today]);
+  const linkInputs = link?.inputs ?? inputs;
+  const formMatches = !link || linkFor(link.inputs) === linkFor(inputs);
 
   return (
     <>
@@ -158,10 +176,9 @@ export function PlanView({
           ) : (
             <div className="items">
               {shown.map((s) => {
-                const open = openId === s.id;
                 return (
-                  <div key={s.id} className={`strategy ${open ? 'open' : ''}`}>
-                    <button type="button" className="item" aria-expanded={open} onClick={() => setOpenId(open ? null : s.id)}>
+                  <div key={s.id} className="strategy">
+                    <button type="button" className="item" onClick={() => openStrategy(s.id, linkFor(inputs))}>
                       <span className="item-main">
                         <span className="item-name">{s.name}</span>
                         <span className="item-sub">
@@ -176,9 +193,6 @@ export function PlanView({
                         <span className="item-net">net</span>
                       </span>
                     </button>
-                    {open && (
-                      <StrategyDetail strategy={s} today={today} signedIn={signedIn} onOpenDeal={onOpenDeal} onSave={() => onSave(s, inputs)} />
-                    )}
                   </div>
                 );
               })}
@@ -189,22 +203,116 @@ export function PlanView({
           </p>
         </div>
       </div>
+
+      {route.strategyId && (
+        <Sheet
+          label={linked?.name ?? 'Plan'}
+          onClose={closeStrategy}
+          bar={linked && <ShareButton title={`${linked.name}: ${usd(linked.totals.net)} in bank bonuses`} />}
+          foot={linked && <SaveRow signedIn={signedIn} onSave={() => onSave(linked, linkInputs)} />}
+        >
+          {linked ? (
+            <>
+              <div className="hero">
+                <div className="hero-kicker">{OBJECTIVES[linked.objective].hint}</div>
+                <h1 className="hero-name">{linked.name}</h1>
+                <p className="muted small" style={{ margin: '6px 0 0' }}>
+                  {usd(linkInputs.paycheck)} paychecks every 2 weeks from {shortDate(linkInputs.firstPayday, today)} · {linkInputs.months} months
+                  {linkInputs.cash > 0 && ` · ${usd(linkInputs.cash)} to park`}
+                  {linkInputs.state && ` · ${linkInputs.state}`}
+                  {linkInputs.excludeBanks.length > 0 && ` · ${linkInputs.excludeBanks.length} ${linkInputs.excludeBanks.length === 1 ? 'bank' : 'banks'} excluded`}
+                </p>
+                {!formMatches && link && (
+                  <button
+                    type="button"
+                    className="btn ghost small"
+                    style={{ marginTop: 8, marginLeft: -14 }}
+                    onClick={() => {
+                      const { state: _s, excludeBanks: _e, ...rest } = link.inputs;
+                      setStored(rest);
+                    }}
+                  >
+                    Use these settings in my plan
+                  </button>
+                )}
+              </div>
+              {link?.dealsDate && link.dealsDate !== dealsDate && (
+                <div className="notice">
+                  This link was made with deals from {shortDate(link.dealsDate, today)}. It’s rebuilt from today’s deals, so it may differ from what was shared.
+                </div>
+              )}
+              <StrategyDetail strategy={linked} today={today} onOpenDeal={onOpenDeal} />
+            </>
+          ) : (
+            <div className="empty">
+              This plan can’t be rebuilt from today’s deals (some of them may have ended). Close this to see the plans that fit now.
+            </div>
+          )}
+        </Sheet>
+      )}
     </>
+  );
+}
+
+/** Share sheet on phones, copy to clipboard elsewhere. */
+function ShareButton({ title }: { title: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn ghost small"
+      title="The link carries this plan’s settings, including the banks it leaves out, so it opens the same plan for anyone."
+      onClick={async () => {
+        const url = window.location.href;
+        if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+          await navigator.share({ title, url }).catch(() => {});
+          return;
+        }
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      {copied ? '✓ Link copied' : 'Share link'}
+    </button>
+  );
+}
+
+function SaveRow({ signedIn, onSave }: { signedIn: boolean; onSave: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false);
+  return (
+    <div className="save-row">
+      <span className="muted small grow">
+        {signedIn ? 'Saving adds these accounts to Accounts as “planned”.' : 'Sign in to save this plan and track it.'}
+      </span>
+      <button
+        type="button"
+        className="btn primary"
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true);
+          try {
+            await onSave();
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        {signedIn ? (saving ? 'Saving…' : 'Use this plan') : 'Sign in to use this plan'}
+      </button>
+    </div>
   );
 }
 
 const payoutPoints = (s: Strategy): PayoutPoint[] =>
   s.items.map((i) => ({ date: i.expectedPayout, amount: i.value.bonus, label: i.deal.bank }));
 
-function StrategyDetail({ strategy: s, today, signedIn, onOpenDeal, onSave }: {
+function StrategyDetail({ strategy: s, today, onOpenDeal }: {
   strategy: Strategy;
   today: string;
-  signedIn: boolean;
   onOpenDeal: (d: Deal) => void;
-  onSave: () => Promise<void>;
 }) {
   const [view, setView] = useState<'accounts' | 'paychecks'>('accounts');
-  const [saving, setSaving] = useState(false);
   const [active, setActive] = useState<number | null>(null);
   const months = [...new Set(s.items.map((i) => i.openOn.slice(0, 7)))];
   const points = payoutPoints(s);
@@ -291,26 +399,6 @@ function StrategyDetail({ strategy: s, today, signedIn, onOpenDeal, onSave }: {
         </ul>
       )}
 
-      <div className="save-row">
-        <span className="muted small grow">
-          {signedIn ? 'Saving adds these accounts to Accounts as “planned”.' : 'Sign in to save this plan and track it.'}
-        </span>
-        <button
-          type="button"
-          className="btn primary"
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave();
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          {signedIn ? (saving ? 'Saving…' : 'Use this plan') : 'Sign in to use this plan'}
-        </button>
-      </div>
     </div>
   );
 }

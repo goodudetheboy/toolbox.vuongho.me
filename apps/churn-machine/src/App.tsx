@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { hrefFor, useRoute, type Tab } from './lib/router';
+import { cameFromApp, hrefFor, useRoute, type Tab } from './lib/router';
 import { useDeals } from './lib/useDeals';
 import { signInWithGoogle, signOutUser, useAuth } from './lib/auth';
 import { allBanksIHave, saveStrategy, trackDeal, useAccounts } from './lib/accounts';
@@ -35,7 +35,7 @@ export default function App() {
   const dealById = (id: string | null) => (id && data?.deals.find((d) => d.id === id)) || null;
   const modalDeal = dealById(modalId);
   const openDeal = (d: Deal) => setModalId(d.id);
-  useEffect(closeModal, [route.tab, route.dealId, closeModal]);
+  useEffect(closeModal, [route.tab, route.dealId, route.strategyId, closeModal]);
   const [busy, setBusy] = useState<string | null>(null);
   const today = todayIso();
 
@@ -174,6 +174,10 @@ export default function App() {
       ) : (
         <PlanView
           deals={data.deals}
+          dealsDate={data.fetchedAt.slice(0, 10)}
+          route={route}
+          openStrategy={(id, search) => go('plan', id, search)}
+          closeStrategy={() => (cameFromApp() ? window.history.back() : go('plan'))}
           today={today}
           state={prefs.state}
           baselineApy={prefs.baselineApy}

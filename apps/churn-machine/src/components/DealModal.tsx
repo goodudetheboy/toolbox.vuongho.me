@@ -3,18 +3,24 @@ import type { Deal } from '../lib/types';
 import { cameFromApp } from '../lib/router';
 import { ActionCard, DealHero, DealSections, KeyStats } from './DealDetail';
 
-/** A centered dialog on desktop, a bottom sheet on phones. */
-export function DealModal({ deal, today, baselineApy, actions, onClose, onFullPage }: {
-  deal: Deal;
-  today: string;
-  baselineApy: number;
-  actions?: React.ReactNode;
+/**
+ * A centered dialog on desktop, a bottom sheet on phones. Sheets can stack (a
+ * deal opened from a strategy); Esc closes only the top one.
+ */
+export function Sheet({ label, bar, foot, onClose, children }: {
+  label: string;
+  bar?: React.ReactNode;
+  foot?: React.ReactNode;
   onClose: () => void;
-  onFullPage: () => void;
+  children: React.ReactNode;
 }) {
+  const backdropRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      const sheets = document.querySelectorAll('.sheet-backdrop');
+      if (e.key === 'Escape' && sheets[sheets.length - 1] === backdropRef.current) onClose();
+    };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -26,25 +32,43 @@ export function DealModal({ deal, today, baselineApy, actions, onClose, onFullPa
   }, [onClose]);
 
   return (
-    <div className="sheet-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={boxRef} className="sheet" role="dialog" aria-modal="true" aria-label={deal.title} tabIndex={-1}>
+    <div ref={backdropRef} className="sheet-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={boxRef} className="sheet" role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
         <div className="sheet-grabber" aria-hidden="true" />
         <div className="sheet-bar">
-          <button type="button" className="btn ghost small" onClick={onFullPage}>Open full page</button>
+          <span className="sheet-bar-left">{bar}</span>
           <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>✕</button>
         </div>
-        <div className="sheet-body">
-          <DealHero deal={deal} today={today} baselineApy={baselineApy} />
-          <KeyStats deal={deal} baselineApy={baselineApy} />
-          <DealSections deal={deal} today={today} baselineApy={baselineApy} />
-          <div className="sheet-links">
-            {deal.url && <a href={deal.url} target="_blank" rel="noreferrer">Read the post on Doctor of Credit ↗</a>}
-            {deal.offerLink && <a href={deal.offerLink} target="_blank" rel="noreferrer">Bank’s offer page ↗</a>}
-          </div>
-        </div>
-        <div className="sheet-foot">{actions}</div>
+        <div className="sheet-body">{children}</div>
+        {foot && <div className="sheet-foot">{foot}</div>}
       </div>
     </div>
+  );
+}
+
+export function DealModal({ deal, today, baselineApy, actions, onClose, onFullPage }: {
+  deal: Deal;
+  today: string;
+  baselineApy: number;
+  actions?: React.ReactNode;
+  onClose: () => void;
+  onFullPage: () => void;
+}) {
+  return (
+    <Sheet
+      label={deal.title}
+      onClose={onClose}
+      bar={<button type="button" className="btn ghost small" onClick={onFullPage}>Open full page</button>}
+      foot={actions}
+    >
+      <DealHero deal={deal} today={today} baselineApy={baselineApy} />
+      <KeyStats deal={deal} baselineApy={baselineApy} />
+      <DealSections deal={deal} today={today} baselineApy={baselineApy} />
+      <div className="sheet-links">
+        {deal.url && <a href={deal.url} target="_blank" rel="noreferrer">Read the post on Doctor of Credit ↗</a>}
+        {deal.offerLink && <a href={deal.offerLink} target="_blank" rel="noreferrer">Bank’s offer page ↗</a>}
+      </div>
+    </Sheet>
   );
 }
 

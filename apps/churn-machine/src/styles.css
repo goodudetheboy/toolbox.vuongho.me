@@ -454,6 +454,7 @@ select.input { cursor: pointer; }
 }
 .sheet-grabber { display: none; }
 .sheet-bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 0 20px; }
+.sheet-bar-left { display: flex; gap: 6px; align-items: center; }
 .sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 4px 28px 24px; }
 .sheet-body .hero { margin-top: 4px; }
 .sheet-body .section:first-of-type { margin-top: 28px; }
@@ -483,8 +484,7 @@ select.input { cursor: pointer; }
 .order-row .segmented button { padding: 6px 8px; font-size: 13.5px; }
 .order-row .input { text-align: right; }
 
-.strategy.open > .item { background: var(--hover); border-bottom-color: transparent; }
-.strategy-detail { padding: 20px 12px 28px; border-bottom: 1px solid var(--line); }
+.strategy-detail { margin-top: 20px; }
 
 .readout-kicker { color: var(--muted); font-weight: 600; font-size: 14px; }
 .readout-number { font-size: 48px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.1; }
@@ -676,7 +676,6 @@ textarea.input { resize: vertical; }
   .facts dt { padding-bottom: 0; }
   .facts dd { border-top: 0; padding-top: 2px; }
   .timeline > li { grid-template-columns: 62px 1fr; gap: 10px; }
-  .strategy-detail { padding: 16px 4px 24px; }
   .order-row .money-input, .order-row > .input { width: 140px; }
   .toast { bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom)); }
 

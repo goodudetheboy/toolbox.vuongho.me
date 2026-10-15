@@ -61,9 +61,12 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   `src/components/UpdateToast.tsx`): shell precached, `deals.json`
   network-first, update on tap. See [ADR 0004](docs/adr/0004-installable-pwa.md).
   `public/icon.svg` is the source for every icon PNG.
-- `src/lib/router.ts` — real paths (`/`, `/plan`, `/accounts`,
-  `/deal/<id>`) under `/churn-machine/`, served by the root `firebase.json`
-  rewrite. `src/components/DealModal.tsx` has the modal and the full page.
+- `src/lib/router.ts` — real paths (`/`, `/plan`, `/plan/<strategyId>`,
+  `/accounts`, `/deal/<id>`) under `/churn-machine/`, served by the root `firebase.json`
+  rewrite. `src/components/DealModal.tsx` has the shared `Sheet` (modal /
+  bottom sheet, stackable), the deal modal and the full page. Strategies
+  open in a `Sheet` at `/plan/<strategyId>?<inputs>`, a permalink that
+  rebuilds the plan from its inputs (`src/lib/planLink.ts`, ADR 0008).
 - Leaving banks out (ADR 0007): "Banks I have" lives in My accounts
   (Firestore `users/{uid}/profile/main.banksIHave`, plus every tracked
   account you opened). Deals and Plan share one `Exclusion` (built in
