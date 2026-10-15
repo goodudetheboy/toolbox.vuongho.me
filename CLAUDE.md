@@ -23,7 +23,7 @@ homepage.
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the
   shared `vuonghome` GCP project
 - `.github/workflows/deploy.yml` — CI/CD, deploys `dist/` to Firebase
-  Hosting on push to `main` and daily (see
+  Hosting on push to `main` and weekly on Mondays (see
   `docs/adr/0007-daily-scheduled-deploy.md`); refreshes churn-machine's
   deals before building; also deploys the study-assistant Cloud Run API
   (when its code changed) and publishes Firestore rules

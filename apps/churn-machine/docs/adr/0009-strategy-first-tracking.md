@@ -50,7 +50,7 @@ email for later.
 - Revising can drop accounts not opened yet, and add new ones, if they no
   longer fit. The preview says which.
 - **Email later:** the same `tasksForStrategy` / `neglected` functions can
-  run in a scheduled job (the daily deploy workflow already has Google Cloud
+  run in a scheduled job (the scheduled deploy workflow already has Google Cloud
   credentials). Still undecided: the sending provider and who may opt in.
 
 ## Addendum (same day): editing a running plan's settings

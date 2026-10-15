@@ -1,6 +1,7 @@
-# 0007. The deploy workflow also runs daily (and on demand), for build-time data
+# 0007. The deploy workflow also runs on a schedule (and on demand), for build-time data
 
-Status: Accepted
+Status: Accepted; amended 2026-10-15: weekly instead of daily (see the end).
+The filename still says "daily" so existing links keep working.
 
 ## Context
 
@@ -28,3 +29,18 @@ combine + hosting deploy steps.
   this is harmless, just a few CI minutes.
 - Any future tool with build-time data can rely on the daily rebuild instead
   of adding its own workflow.
+
+## Amendment (2026-10-15): weekly, Mondays
+
+At the user's request, the schedule is now weekly, `17 11 * * 1` (Mondays
+11:17 UTC, about 7am US Eastern; 6am in winter). Daily freshness wasn't
+needed. Doctor of Credit's list changes a few times a week, and every push
+to `main` still refreshes the deals in between. Deal end dates and "ending
+soon" are computed in the browser against today's date, so they stay right
+during the week; only brand-new or newly ended deals can lag by up to a
+week. Cost wasn't the reason: the runs were already free (public repo,
+standard runners) and well inside Hosting's free storage.
+
+Still true: GitHub disables schedules on public repos after 60 days without
+repository activity, so a quiet repo needs the schedule re-enabled in the
+Actions tab.

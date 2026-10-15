@@ -39,7 +39,7 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
 
 - `scripts/refresh-deals.mjs` — fetches the index + posts through DoC's
   WordPress REST API (~8 requests) and writes `public/deals.json`. Runs in
-  CI before every build and on the daily scheduled deploy; on failure it
+  CI before every build and on the weekly (Monday) scheduled deploy; on failure it
   keeps the committed `deals.json`. See
   [ADR 0001](docs/adr/0001-deal-data-from-doc-rest-api.md).
   `CHURN_CACHE_DIR=/tmp/doc node scripts/refresh-deals.mjs` caches raw API

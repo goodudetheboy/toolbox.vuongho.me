@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { DealsFile } from './types';
 
-// deals.json is refreshed from Doctor of Credit on every deploy (and daily), see
+// deals.json is refreshed from Doctor of Credit on every deploy (and weekly, Mondays), see
 // scripts/refresh-deals.mjs. Fetched rather than bundled so it can change without
 // a new JS build.
 export function useDeals() {

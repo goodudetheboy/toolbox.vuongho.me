@@ -45,7 +45,7 @@ Options considered:
     planner either skips the deal (no glance block, unknown DD) or labels
     its defaults "assumed".
 - `public/deals.json` is regenerated in CI before every build (and by the
-  daily scheduled deploy, see the toolbox-wide
+  weekly scheduled deploy, daily until 2026-10-15; see the toolbox-wide
   [ADR 0007](../../../../docs/adr/0007-daily-scheduled-deploy.md)). A
   failed refresh warns and keeps the committed file, so DoC being down never
   blocks a deploy; the footer shows when the data was fetched.
