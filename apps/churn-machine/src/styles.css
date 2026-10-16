@@ -874,3 +874,18 @@ textarea.input { resize: vertical; }
   .step-actions .btn { width: 100%; }
 }
 .plan-step .order-card .order-rows { margin-top: -6px; }
+
+/* Plan results: all settings in the side panel; on phones it folds into one line */
+.plan-settings-toggle { display: none; }
+.plan-settings h3 { margin-bottom: 4px; }
+@media (max-width: 900px) {
+  .plan-settings { padding: 0; }
+  .plan-settings-toggle {
+    display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 18px; background: none; border: 0; font: inherit; color: var(--ink); cursor: pointer; text-align: left;
+  }
+  .plan-settings-label { display: flex; flex-direction: column; gap: 2px; }
+  .plan-settings-body { display: none; padding: 0 18px 18px; }
+  .plan-settings.open .plan-settings-body { display: block; }
+  .plan-settings h3 { display: none; }
+}

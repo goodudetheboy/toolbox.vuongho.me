@@ -37,3 +37,14 @@ The strategy list is only built on the results screens.
   tedious, a "skip to my plans" shortcut can be added.
 - The Suggested / Custom switch is gone; which kind you're looking at comes
   from the URL.
+
+## Addendum (2026-10-16): lighter step 1, full settings on the results
+
+At the user's request, step 1 asks only for what's needed to start:
+paycheck, Paid, Start, Next payday (plan length defaults to 6 months). The
+results screens (`/plan/suggested`, `/plan/custom`) bring back the full
+settings card as a side panel: everything from step 1 plus Plan for and
+"More options and filters" (custom: your deals instead of the filters).
+On phones it folds into a one-line "Your settings" card that opens on tap.
+So tweaking never means going back to step 1; the steps are only the way
+in. The separate "Filters" disclosure on suggested results is gone.

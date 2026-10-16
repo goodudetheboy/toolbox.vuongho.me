@@ -65,6 +65,7 @@ export function PlanView({
   // Only the results screens need the (slow-ish) strategy build.
   const onResults = results === 'suggested' || results === 'custom';
   const set = (patch: Partial<StoredInputs>) => setStored({ ...stored, ...patch });
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Inputs stored before the pay schedule setting get the 1st and 15th.
   const payFreq = stored.payFreq ?? 'semimonthly';
@@ -113,6 +114,104 @@ export function PlanView({
       {' · '}
       <button type="button" className="more" onClick={() => goStep(null)}>Edit</button>
     </p>
+  );
+
+  const paycheckRows = (
+    <PaycheckRows
+      paycheck={stored.paycheck}
+      payFreq={payFreq}
+      firstPayday={inputs.firstPayday}
+      today={start}
+      onChange={set}
+      beforePayday={
+        <label className="order-row">
+          <span>Start</span>
+          <input
+            className="input"
+            type="date"
+            aria-label="Plan start date"
+            value={start}
+            min={today}
+            onChange={(e) => e.target.value && set({ startOn: e.target.value > today ? e.target.value : null })}
+          />
+        </label>
+      }
+    />
+  );
+
+  // Results screens keep every setting at hand (right panel on desktop,
+  // a collapsible card on phones), so nothing means going back to step 1.
+  const settingsPanel = (
+    <aside className="layout-side">
+      <div className={`card order-card plan-settings ${settingsOpen ? 'open' : ''}`}>
+        <button type="button" className="plan-settings-toggle" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(!settingsOpen)}>
+          <span className="plan-settings-label">
+            <b>Your settings</b>
+            <span className="muted small">{usd(stored.paycheck)} {payWhen(payFreq)} · {stored.months} mo{custom ? ` · ${inputs.picks.length} deals` : ''}</span>
+          </span>
+          <span aria-hidden="true">{settingsOpen ? '▴' : '▾'}</span>
+        </button>
+        <div className="plan-settings-body">
+          <h3>Your settings</h3>
+          {custom && (
+            <div className="field" style={{ marginTop: 10 }}>
+              Deals you want
+              <DealPicker deals={deals} value={inputs.picks} onChange={(picks) => set({ picks })} today={today} />
+            </div>
+          )}
+          <div className="order-rows">
+            {paycheckRows}
+            <div className="order-row">
+              <span>Plan for</span>
+              <Segmented
+                ariaLabel="Plan length"
+                value={stored.months}
+                onChange={(months) => set({ months })}
+                options={[3, 6, 9, 12].map((m) => ({ value: m, label: `${m} mo` }))}
+              />
+            </div>
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Disclosure label={custom ? 'More options' : 'More options and filters'}>
+              <div className="stack" style={{ marginTop: 12 }}>
+                {!custom && <ExcludeBanks x={exclusion} />}
+                <label className="field">
+                  Cash I can park
+                  <MoneyInput ariaLabel="Cash to park" value={stored.cash} onChange={(v) => set({ cash: v ?? 0 })} />
+                  <span className="hint">Unlocks savings / balance bonuses.</span>
+                </label>
+                <label className="field">
+                  Split a paycheck across up to
+                  <Segmented ariaLabel="Max splits" value={stored.maxSplits} onChange={(maxSplits) => set({ maxSplits })}
+                    options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}` }))} />
+                  <span className="hint">Accounts per paycheck your payroll allows.</span>
+                </label>
+                <label className="field">
+                  Open accounts ahead of payday by
+                  <Segmented ariaLabel="Lead days" value={stored.leadDays} onChange={(leadDays) => set({ leadDays })}
+                    options={[3, 7, 14].map((n) => ({ value: n, label: `${n} days` }))} />
+                  <span className="hint">Time to switch your direct deposit.</span>
+                </label>
+                <Check checked={stored.includeDatePassed} onChange={(includeDatePassed) => set({ includeDatePassed })}>Include deals past their listed end date</Check>
+                {!custom && (
+                  <>
+                    <label className="field">
+                      Skip bonuses under
+                      <MoneyInput ariaLabel="Minimum bonus" value={stored.minBonus} onChange={(v) => set({ minBonus: v ?? 0 })} />
+                    </label>
+                    <Check checked={stored.noHardPull} onChange={(noHardPull) => set({ noHardPull })}>Avoid hard credit pulls</Check>
+                    <Check checked={stored.online} onChange={(online) => set({ online })}>Online only (no branch visits)</Check>
+                    <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
+                    <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
+                  </>
+                )}
+                <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored({ ...defaults(today), picks: stored.picks ?? [] })}>Reset</button>
+              </div>
+            </Disclosure>
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 
   const strategyList = (
@@ -180,62 +279,7 @@ export function PlanView({
             <p className="muted">Tell us how you get paid and we’ll work out which accounts to open when.</p>
           </div>
           <div className="card order-card">
-            <div className="order-rows">
-              <PaycheckRows
-                paycheck={stored.paycheck}
-                payFreq={payFreq}
-                firstPayday={inputs.firstPayday}
-                today={start}
-                onChange={set}
-                beforePayday={
-                  <label className="order-row">
-                    <span>Start</span>
-                    <input
-                      className="input"
-                      type="date"
-                      aria-label="Plan start date"
-                      value={start}
-                      min={today}
-                      onChange={(e) => e.target.value && set({ startOn: e.target.value > today ? e.target.value : null })}
-                    />
-                  </label>
-                }
-              />
-              <div className="order-row">
-                <span>Plan for</span>
-                <Segmented
-                  ariaLabel="Plan length"
-                  value={stored.months}
-                  onChange={(months) => set({ months })}
-                  options={[3, 6, 9, 12].map((m) => ({ value: m, label: `${m} mo` }))}
-                />
-              </div>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <Disclosure label="More options">
-                <div className="stack" style={{ marginTop: 12 }}>
-                  <label className="field">
-                    Cash I can park
-                    <MoneyInput ariaLabel="Cash to park" value={stored.cash} onChange={(v) => set({ cash: v ?? 0 })} />
-                    <span className="hint">Unlocks savings / balance bonuses.</span>
-                  </label>
-                  <label className="field">
-                    Split a paycheck across up to
-                    <Segmented ariaLabel="Max splits" value={stored.maxSplits} onChange={(maxSplits) => set({ maxSplits })}
-                      options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}` }))} />
-                    <span className="hint">Accounts per paycheck your payroll allows.</span>
-                  </label>
-                  <label className="field">
-                    Open accounts ahead of payday by
-                    <Segmented ariaLabel="Lead days" value={stored.leadDays} onChange={(leadDays) => set({ leadDays })}
-                      options={[3, 7, 14].map((n) => ({ value: n, label: `${n} days` }))} />
-                    <span className="hint">Time to switch your direct deposit.</span>
-                  </label>
-                  <Check checked={stored.includeDatePassed} onChange={(includeDatePassed) => set({ includeDatePassed })}>Include deals past their listed end date</Check>
-                  <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored({ ...defaults(today), picks: stored.picks ?? [] })}>Reset</button>
-                </div>
-              </Disclosure>
-            </div>
+            <div className="order-rows">{paycheckRows}</div>
           </div>
           <div className="step-actions">
             <button type="button" className="btn primary" onClick={() => goStep('how')}>Next</button>
@@ -284,45 +328,30 @@ export function PlanView({
       )}
 
       {results === 'suggested' && (
-        <div className="narrow plan-step">
+        <>
           <button type="button" className="back" onClick={() => goStep('how')}>← How to plan</button>
           <div className="page-head">
             <h1>Plans for you</h1>
-            {summary}
             {!state && <p className="muted small">Showing deals in all states. Set yours in the menu up top.</p>}
           </div>
-          <div className="filters-row">
-            <Disclosure label="Filters">
-              <div className="stack" style={{ marginTop: 12 }}>
-                <ExcludeBanks x={exclusion} />
-                <label className="field">
-                  Skip bonuses under
-                  <MoneyInput ariaLabel="Minimum bonus" value={stored.minBonus} onChange={(v) => set({ minBonus: v ?? 0 })} />
-                </label>
-                <Check checked={stored.noHardPull} onChange={(noHardPull) => set({ noHardPull })}>Avoid hard credit pulls</Check>
-                <Check checked={stored.online} onChange={(online) => set({ online })}>Online only (no branch visits)</Check>
-                <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
-                <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
-              </div>
-            </Disclosure>
+          <div className="layout">
+            {settingsPanel}
+            <div className="layout-main">{strategyList}</div>
           </div>
-          {strategyList}
-        </div>
+        </>
       )}
 
       {results === 'custom' && (
-        <div className="narrow plan-step">
+        <>
           <button type="button" className="back" onClick={() => goStep('pick')}>← Your deals</button>
           <div className="page-head">
             <h1>Your plan</h1>
-            {summary}
-            <p className="muted small">
-              {inputs.picks.length} {inputs.picks.length === 1 ? 'deal' : 'deals'} picked ·{' '}
-              <button type="button" className="more" onClick={() => goStep('pick')}>Change</button>
-            </p>
           </div>
-          {strategyList}
-        </div>
+          <div className="layout">
+            {settingsPanel}
+            <div className="layout-main">{strategyList}</div>
+          </div>
+        </>
       )}
 
       {route.strategyId && (
