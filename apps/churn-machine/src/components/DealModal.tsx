@@ -3,6 +3,15 @@ import type { Deal } from '../lib/types';
 import { cameFromApp } from '../lib/router';
 import { ActionCard, DealHero, DealSections, KeyStats } from './DealDetail';
 
+// The page behind stays still while any sheet is open. A count, not a saved
+// value per sheet: stacked sheets that close together (back gesture, tab
+// switch) could otherwise restore in the wrong order and leave it locked.
+let openSheets = 0;
+function lockScroll(on: boolean) {
+  openSheets = Math.max(0, openSheets + (on ? 1 : -1));
+  document.body.style.overflow = openSheets ? 'hidden' : '';
+}
+
 /**
  * A centered dialog on desktop, a bottom sheet on phones. Sheets can stack (a
  * deal opened from a strategy); Esc closes only the top one.
@@ -16,25 +25,24 @@ export function Sheet({ label, bar, foot, onClose, children }: {
 }) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const sheets = document.querySelectorAll('.sheet-backdrop');
-      if (e.key === 'Escape' && sheets[sheets.length - 1] === backdropRef.current) onClose();
+      if (e.key === 'Escape' && sheets[sheets.length - 1] === backdropRef.current) closeRef.current();
     };
     window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    lockScroll(true);
     boxRef.current?.focus();
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
+      lockScroll(false);
     };
-  }, [onClose]);
+  }, []);
 
   // Phones: drag the sheet down to close it, from the grabber/top bar any
   // time, or from the content once it's scrolled to the top.
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
