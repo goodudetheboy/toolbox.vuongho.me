@@ -153,9 +153,9 @@ interface SimResult {
 }
 
 export type PayFreq = 'semimonthly' | 'biweekly';
-export const PAY_FREQ_LABELS: Record<PayFreq, string> = { semimonthly: '1st and 15th', biweekly: 'Every 2 weeks' };
-/** "on the 1st and 15th" / "every 2 weeks", for sentences. */
-export const payWhen = (f: PayFreq) => (f === 'biweekly' ? 'every 2 weeks' : 'on the 1st and 15th');
+export const PAY_FREQ_LABELS: Record<PayFreq, string> = { semimonthly: 'Semi-monthly', biweekly: 'Every 2 weeks' };
+/** "semi-monthly" / "every 2 weeks", for sentences. */
+export const payWhen = (f: PayFreq) => (f === 'biweekly' ? 'every 2 weeks' : 'semi-monthly');
 
 /** The first 1st or 15th on or after `iso`. */
 function semimonthlyOnOrAfter(iso: string): string {

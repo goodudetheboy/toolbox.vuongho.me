@@ -48,7 +48,7 @@ Click a deal to open it. You'll see the bonus, the net value and grade, **Key st
 Fill in the card on the right (top on a phone):
 
 - **Paycheck**: the take-home pay from one paycheck that you can route.
-- **Paid**: **1st and 15th** (twice a month, the default) or **Every 2 weeks**. On the 1st and 15th your next payday is filled in for you. Every 2 weeks asks for your **Next payday**.
+- **Paid**: **Semi-monthly** (the 1st and 15th, the default) or **Every 2 weeks**. Semi-monthly fills in your next payday for you. Every 2 weeks asks for your **Next payday**.
 - **Plan for**: 3, 6, 9 or 12 months.
 
 **More options** has the rest: the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts, deals past their end date.
