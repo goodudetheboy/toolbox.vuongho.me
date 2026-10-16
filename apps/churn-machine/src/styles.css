@@ -838,3 +838,15 @@ textarea.input { resize: vertical; }
 .missed { margin: 8px 0 0; padding-left: 18px; text-align: left; }
 .missed li { margin: 3px 0; }
 .order-card > .segmented { margin-top: 10px; }
+
+/* Chosen entries in a picker: a list of tiles */
+.picked { list-style: none; margin: 10px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.picked-tile { display: flex; align-items: center; gap: 12px; padding: 11px 8px 11px 14px; background: #fff; }
+.picked-tile + .picked-tile { border-top: 1px solid var(--line); }
+.picked-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.picked-name { font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picked-sub { font-size: 13px; color: var(--muted); }
+.picked-side { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.picked-x { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+.picked-x:hover { background: var(--field); color: var(--ink); }
+.picked-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 13px; color: var(--muted); }

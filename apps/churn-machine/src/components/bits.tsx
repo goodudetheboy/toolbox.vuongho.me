@@ -4,7 +4,7 @@ import type { Deal } from '../lib/types';
 import { dealStatus, usd, type Verdict } from '../lib/value';
 import { daysBetween, shortDate } from '../lib/dates';
 import { STATE_NAMES } from '../lib/states';
-import { PAY_FREQ_LABELS, rollPayday, type PayFreq } from '../lib/planner';
+import { PAY_FREQ_LABELS, requirementOf, rollPayday, type PayFreq } from '../lib/planner';
 import { bankKey } from '../lib/filters';
 
 export function StatusTag({ deal, today }: { deal: Deal; today: string }) {
@@ -148,9 +148,13 @@ export function Disclosure({ label, children, defaultOpen = false }: { label: Re
  * Pick banks from a dropdown (type to narrow it, or just scroll and click).
  * Chosen banks show as removable chips.
  */
-export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks', ariaLabel = 'Banks', allowCustom = false, removeTitle = (b) => `Show ${b} again` }: {
+export function BankPicker({
+  banks, value, onChange, placeholder = 'Pick banks', ariaLabel = 'Banks', allowCustom = false, removeTitle = (b) => `Show ${b} again`, tile,
+}: {
   banks: string[];
   removeTitle?: (b: string) => string;
+  /** How a chosen entry's tile reads (defaults to just its name). */
+  tile?: (b: string) => { name?: React.ReactNode; sub?: React.ReactNode; side?: React.ReactNode };
   ariaLabel?: string;
   /** Offer "Add “typed name”" for banks that aren't in the deal data. */
   allowCustom?: boolean;
@@ -256,14 +260,31 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks',
         )}
       </div>
       {value.length > 0 && (
-        <div className="chips" style={{ marginTop: 8 }}>
-          {value.map((b) => (
-            <button key={b} type="button" className="chip on" title={removeTitle(b)} onClick={() => onChange(value.filter((x) => x !== b))}>
-              {b} ✕
-            </button>
-          ))}
-          <button type="button" className="more" onClick={() => onChange([])}>Clear all</button>
-        </div>
+        <>
+          <ul className="picked">
+            {value.map((b) => {
+              const t = tile?.(b) ?? {};
+              return (
+                <li key={b} className="picked-tile">
+                  <span className="picked-main">
+                    <span className="picked-name">{t.name ?? b}</span>
+                    {t.sub && <span className="picked-sub">{t.sub}</span>}
+                  </span>
+                  {t.side && <span className="picked-side">{t.side}</span>}
+                  <button type="button" className="picked-x" aria-label={removeTitle(b)} title={removeTitle(b)} onClick={() => onChange(value.filter((x) => x !== b))}>
+                    ✕
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {value.length > 1 && (
+            <div className="picked-foot">
+              <span>{value.length} chosen</span>
+              <button type="button" className="more" onClick={() => onChange([])}>Clear all</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -296,6 +317,19 @@ export function DealPicker({ deals, value, onChange, today }: {
     [deals, today],
   );
   const idOf = new Map([...labels].map(([id, l]) => [l, id]));
+  const byId = new Map(deals.map((d) => [d.id, d]));
+  const tile = (label: string) => {
+    const d = byId.get(idOf.get(label) ?? label);
+    if (!d) return { sub: 'No longer listed' };
+    const req = requirementOf(d);
+    const sub = [
+      d.category === 'checking' || d.category === 'savings' || d.category === 'business' ? d.category[0].toUpperCase() + d.category.slice(1) : null,
+      req.need > 0 ? `${usd(req.need)} direct deposit` : d.dd.required ? 'Direct deposit' : 'No direct deposit',
+      req.balance > 0 ? `park ${usd(req.balance)}` : null,
+      d.expires ? `ends ${shortDate(d.expires, today)}` : null,
+    ].filter(Boolean).join(' · ');
+    return { name: d.bank, sub, side: usd(d.bonusMax ?? 0) };
+  };
   const options = [...labels].filter(([id]) => !value.includes(id)).map(([, l]) => l);
   return (
     <BankPicker
@@ -305,6 +339,7 @@ export function DealPicker({ deals, value, onChange, today }: {
       placeholder="Search banks to add"
       ariaLabel="Deals for your plan"
       removeTitle={(b) => `Remove ${b}`}
+      tile={tile}
     />
   );
 }
