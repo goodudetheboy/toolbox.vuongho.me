@@ -9,7 +9,7 @@ import {
   completeTask, neglected, ongoingFor, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
 } from '../lib/tasks';
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
-import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, SPLIT_OPTIONS, SUGGESTED, type Objective, type Pace } from '../lib/planner';
+import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, snapSplits, SPLIT_OPTIONS, SUGGESTED, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
 import { BankPicker, Check, DealPicker, MoneyInput, PaycheckRows, Segmented } from './bits';
@@ -418,7 +418,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
   const start = planStart(original);
   const [draft, setDraft] = useState<PlanSettings>(() => (
     // Paychecks are on the 1st and 15th; a plan saved as every 2 weeks switches when you save.
-    { ...original, inputs: { ...original.inputs, payFreq: 'semimonthly', firstPayday: rollPayday(original.inputs.firstPayday, planStartOn(original.inputs, today), 'semimonthly') } }
+    { ...original, inputs: { ...original.inputs, maxSplits: snapSplits(original.inputs.maxSplits), payFreq: 'semimonthly', firstPayday: rollPayday(original.inputs.firstPayday, planStartOn(original.inputs, today), 'semimonthly') } }
   ));
   const [saving, setSaving] = useState(false);
   const setIn = (patch: Partial<PlanSettings['inputs']>) => {
