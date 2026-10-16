@@ -263,7 +263,7 @@ export function PlanView({
         </div>
       )}
       <p className="footnote">
-        Plans are a starting point built from parsed deal terms. Anything marked “assumed” wasn’t in the post; check the Doctor of Credit post for each bank before opening.
+        Make sure to check the Doctor of Credit post and the bank’s own deal terms before opening!
       </p>
     </>
   );
