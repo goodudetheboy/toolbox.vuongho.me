@@ -40,7 +40,7 @@ export function AccountsView({
   if (!user) {
     return (
       <div className="narrow">
-        <div className="page-head"><h1>My Bag</h1></div>
+        <div className="page-head"><h1>My Bag</h1><p className="muted">Time to get some fries</p></div>
         <div className="card signin">
           <h2>Run your plan day by day</h2>
           <p>Sign in to save a plan, see what to do each day, track the money as it comes in, and get back on track if you fall behind.</p>
@@ -91,7 +91,7 @@ export function AccountsView({
 
   return (
     <div className="narrow">
-      <div className="page-head"><h1>My Bag</h1></div>
+      <div className="page-head"><h1>My Bag</h1><p className="muted">Time to get some fries</p></div>
       <div className="readout page-readout">
         <div className="readout-kicker">Collected so far</div>
         <div className="readout-number">{usd(all.collected)}</div>
