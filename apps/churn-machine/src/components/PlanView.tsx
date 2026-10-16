@@ -3,8 +3,8 @@ import type { Deal } from '../lib/types';
 import {
   buildStrategies, buildStrategy, OBJECTIVES, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
-import { monthLabel, shortDate } from '../lib/dates';
-import { compactUsd, usd } from '../lib/value';
+import { shortDate } from '../lib/dates';
+import { compactUsd, requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
 import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
@@ -168,6 +168,13 @@ export function PlanView({
           <div style={{ marginTop: 14 }}>
             <Disclosure label={custom ? 'More options' : 'More options and filters'}>
               <div className="stack" style={{ marginTop: 12 }}>
+                <label className="field">
+                  Most accounts in a plan
+                  <select className="input" value={maxAccounts} onChange={(e) => setMaxAccounts(Number(e.target.value))}>
+                    <option value={0}>Any number</option>
+                    {[4, 6, 8, 10, 12].map((n) => <option key={n} value={n}>Up to {n}</option>)}
+                  </select>
+                </label>
                 {!custom && <ExcludeBanks x={exclusion} />}
                 <label className="field">
                   Cash I can park
@@ -214,10 +221,6 @@ export function PlanView({
         <h2>{custom ? 'Your plan' : 'Strategies'}</h2>
         {shown.length > 1 && (
           <span className="list-head-controls">
-            <select className="input select-quiet" aria-label="Max accounts" value={maxAccounts} onChange={(e) => setMaxAccounts(Number(e.target.value))}>
-              <option value={0}>Any number of accounts</option>
-              {[4, 6, 8, 10, 12].map((n) => <option key={n} value={n}>Up to {n} accounts</option>)}
-            </select>
             <select className="input select-quiet" aria-label="Sort plans" value={sort} onChange={(e) => setSort(e.target.value as StrategySort)}>
               {Object.entries(STRATEGY_SORTS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
             </select>
@@ -233,6 +236,8 @@ export function PlanView({
           None of your picks can be planned with these settings:
           <ul className="missed">{noFit.map((m) => <li key={m.dealId}><b>{m.bank}</b> {m.reason}.</li>)}</ul>
         </div>
+      ) : shown.length === 0 && strategies.length > 0 ? (
+        <div className="empty">No plan has {maxAccounts} accounts or fewer. Raise “Most accounts in a plan” under More options.</div>
       ) : shown.length === 0 ? (
         <div className="empty">No plan fits. Try a longer plan, a bigger paycheck, more cash to park, or fewer filters.</div>
       ) : (
@@ -454,9 +459,8 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
   today: string;
   onOpenDeal: (d: Deal) => void;
 }) {
-  const [view, setView] = useState<'accounts' | 'paychecks'>('accounts');
+  const [view, setView] = useState<'accounts' | 'schedule'>('accounts');
   const [active, setActive] = useState<number | null>(null);
-  const months = [...new Set(s.items.map((i) => i.openOn.slice(0, 7)))];
   const points = payoutPoints(s);
   const running = cumulative(points);
   const hover = active != null ? running[active] : null;
@@ -486,61 +490,47 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
         <div><dt>Parks up to</dt><dd>{s.totals.peakParked > 0 ? usd(s.totals.peakParked) : 'Nothing'}</dd></div>
       </dl>
 
-      <div className="list-head">
-        <h3>Schedule</h3>
+      <div className="detail-tabs">
         <Segmented ariaLabel="View" value={view} onChange={setView}
-          options={[{ value: 'accounts', label: 'By account' }, { value: 'paychecks', label: 'By paycheck' }]} />
+          options={[{ value: 'accounts', label: 'Accounts to open' }, { value: 'schedule', label: 'Schedule' }]} />
       </div>
 
-      {view === 'accounts' ? months.map((m) => (
-        <div key={m}>
-          <div className="month">{monthLabel(`${m}-01`)}</div>
-          <ul className="timeline">
-            {s.items.filter((i) => i.openOn.startsWith(m)).map((i) => (
-              <li key={i.deal.id}>
-                <span className="when">{i.openOn === today ? 'Today' : shortDate(i.openOn, today)}</span>
-                <div className="what">
-                  <div className="what-head">
-                    <span>Open <button type="button" className="bank-link" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button></span>
-                    <span className="what-amount">{usd(i.value.bonus)}</span>
-                  </div>
-                  {i.deposits.length > 0 && (
-                    <div className="small">Route {i.deposits.map((d) => `${usd(d.amount)} on ${shortDate(d.date, today)}`).join(', ')}</div>
-                  )}
-                  {i.park && <div className="small">Park {usd(i.park.amount)} until {shortDate(i.park.until, today)}</div>}
-                  {i.transactionsBy && <div className="small">Make {i.deal.transactions} transactions by {shortDate(i.transactionsBy, today)}</div>}
-                  {i.deal.promoCode && <div className="small">Promo code <span className="code">{i.deal.promoCode}</span></div>}
-                  <div className="muted small">Bonus ~{shortDate(i.expectedPayout, today)} · keep open until {shortDate(i.closeAfter, today)}</div>
-                  {i.assumed.length > 0 && <div className="assume">Assumed: {i.assumed.join('; ')}</div>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )) : (
-        <ul className="timeline" style={{ marginTop: 6 }}>
-          {s.paychecks.map((p) => (
-            <li key={p.date}>
-              <span className="when">{shortDate(p.date, today)}</span>
-              <div className="splits">
-                {p.splits.map((x) => {
-                  const deal = s.items.find((i) => i.deal.id === x.dealId)?.deal;
-                  return (
-                    <span key={x.dealId}>
-                      {usd(x.amount)} →{' '}
-                      {deal ? <button type="button" className="bank-link" onClick={() => onOpenDeal(deal)}>{x.bank}</button> : <b>{x.bank}</b>}
-                    </span>
-                  );
-                })}
-                {(p.toMain > 0 || !p.splits.length) && (
-                  <span className="to-main">{p.splits.length ? `rest (${usd(p.toMain)}) → your main account` : 'All to your main account'}</span>
+      {view === 'accounts' ? (
+        <ul className="open-list">
+          {s.items.map((i) => (
+            <li key={i.deal.id}>
+              <span className="open-main">
+                <button type="button" className="bank-link open-bank" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button>
+                <span className="open-sub">{requirementSummary(i.deal)}</span>
+              </span>
+              <span className="open-amount">{usd(i.value.bonus)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="schedule">
+          {scheduleDays(s).map((day) => (
+            <li key={day.date}>
+              <span className="when">{day.date === today ? 'Today' : shortDate(day.date, today)}</span>
+              <div className="schedule-what">
+                {day.opens.length > 0 && <div>Open {day.opens.join(', ')}</div>}
+                {day.routes.length > 0 && (
+                  <div>Paycheck: {day.routes.map((r) => `${usd(r.amount)} to ${r.bank}`).join(', ')}</div>
                 )}
               </div>
             </li>
           ))}
         </ul>
       )}
-
     </div>
   );
+}
+
+/** What to do on each date: accounts to open and paychecks to route (all-to-main paydays left out). */
+function scheduleDays(s: Strategy): { date: string; opens: string[]; routes: { amount: number; bank: string }[] }[] {
+  const days = new Map<string, { opens: string[]; routes: { amount: number; bank: string }[] }>();
+  const day = (date: string) => days.get(date) ?? days.set(date, { opens: [], routes: [] }).get(date)!;
+  for (const i of s.items) day(i.openOn).opens.push(i.deal.bank);
+  for (const p of s.paychecks) for (const x of p.splits) day(p.date).routes.push({ amount: x.amount, bank: x.bank });
+  return [...days].sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({ date, ...d }));
 }

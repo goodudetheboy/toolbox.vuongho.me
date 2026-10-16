@@ -69,7 +69,7 @@ Then **Next**.
 **Step 3, the plans.** Suggested plans are listed under **Plans for you**. Every setting is right there in **Your settings** (the panel on the right; on a phone, tap it to open), so you never have to go back to change something:
 
 - Paycheck, Start, Next payday, and **Plan for** (3, 6, 9 or 12 months; 6 to start).
-- **More options and filters**: the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, deals past their listed end date, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts. **Reset** puts them back.
+- **More options and filters**: the most accounts a plan can have, the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, deals past their listed end date, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts. **Reset** puts them back.
 
 ### Custom plans
 
@@ -87,14 +87,15 @@ Each strategy is a **goal** × **pace**:
 - Paces: **Relaxed**, **Steady**, **Aggressive** (up to 1, 2 or 3 new accounts a month).
 - Custom plans use the same paces with your own deals.
 
-Rows show the number of accounts, cash parked (if any), a small chart, and the total net in the pill. Sort and limit them with the menus above the list.
+Rows show the number of accounts, cash parked (if any), a small chart, and the total net in the pill. Sort them with the menu above the list.
 
 ### A strategy's details
 
 Click a strategy to open it:
 
 - The big number and chart show bonuses adding up over time. Move your mouse or finger along the chart (or use the arrow keys) to see each payout.
-- **Schedule**: **By account** (when to open each one, what to route, cash to park, transactions, when the bonus should post, when it's safe to close) or **By paycheck** (how to split each paycheck). Click a bank to see its deal.
+- **Accounts to open** (shown first): each account with what it needs and its bonus. Click a bank to see its deal.
+- **Schedule**: date by date, which accounts to open and how much of that paycheck goes to which bank. Paydays where everything stays in your main account are left out. Cash to park, promo codes and payout dates are on each deal's page, and in the plan's checklist once you save it.
 - **Share link** copies a link to this exact strategy (on a phone it opens the share menu). Anyone can open it, signed in or not. It includes the plan's settings and the banks it leaves out. It's rebuilt from that day's deals, so it can differ if the deals changed; a note says so.
 - If someone else's link has different settings from yours, **Use these settings in my plan** copies them into your form.
 - **Use this plan** saves it to My plans and takes you to its tracker.
