@@ -10,7 +10,7 @@ import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, 
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
 import { Sheet } from './DealModal';
 import { decodePlanLink, encodePlanLink } from '../lib/planLink';
-import type { Route } from '../lib/router';
+import type { PlanStep, Route } from '../lib/router';
 
 type StoredInputs = Omit<PlanInputs, 'state' | 'excludeBanks'>;
 
@@ -34,15 +34,16 @@ function defaults(today: string): StoredInputs {
   };
 }
 
-type Mode = 'suggested' | 'custom';
 
 export function PlanView({
-  deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy,
+  deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy, goStep,
 }: {
   dealsDate: string;
   route: Route;
   openStrategy: (id: string, search: string) => void;
-  closeStrategy: () => void;
+  /** Closes the strategy modal; `fallback` is the step to land on when there's no history to go back to. */
+  closeStrategy: (fallback: PlanStep) => void;
+  goStep: (step: PlanStep | null) => void;
   deals: Deal[];
   today: string;
   state: string | null;
@@ -55,8 +56,14 @@ export function PlanView({
   const [stored, setStored] = usePersisted<StoredInputs>('plan-inputs', defaults(today));
   const [sort, setSort] = usePersisted<StrategySort>('plan-sort', 'net');
   const [maxAccounts, setMaxAccounts] = usePersisted<number>('plan-max-accounts', 0);
-  const [mode, setMode] = usePersisted<Mode>('plan-mode', 'suggested');
-  const custom = mode === 'custom';
+  // Plan is a few screens: paycheck (/plan) → how (/plan/how) → suggested
+  // results, or pick deals (/plan/pick) → custom results. A strategy permalink
+  // opens over the results it belongs to.
+  const step = route.step;
+  const custom = step === 'pick' || step === 'custom' || !!route.strategyId?.startsWith('custom-');
+  const results: PlanStep | null = route.strategyId ? (custom ? 'custom' : 'suggested') : step;
+  // Only the results screens need the (slow-ish) strategy build.
+  const onResults = results === 'suggested' || results === 'custom';
   const set = (patch: Partial<StoredInputs>) => setStored({ ...stored, ...patch });
 
   // Inputs stored before the pay schedule setting get the 1st and 15th.
@@ -74,9 +81,9 @@ export function PlanView({
   };
   const key = JSON.stringify(inputs);
   const strategies = useMemo(
-    () => (custom && !inputs.picks.length ? [] : buildStrategies(deals, inputs, today, baselineApy, custom)),
+    () => (!onResults || (custom && !inputs.picks.length) ? [] : buildStrategies(deals, inputs, today, baselineApy, custom)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deals, key, today, baselineApy, custom],
+    [deals, key, today, baselineApy, custom, onResults],
   );
   // When none of your picks can be planned, say why for each.
   const noFit = useMemo(
@@ -99,33 +106,80 @@ export function PlanView({
   const linkInputs = link?.inputs ?? inputs;
   const formMatches = !link || linkFor(link.inputs) === linkFor(inputs);
 
+  const summary = (
+    <p className="muted plan-summary">
+      {usd(stored.paycheck)} paychecks {payWhen(payFreq)} · {startOn ? `starts ${shortDate(startOn, today)}` : 'starts today'} · {stored.months} months
+      {stored.cash > 0 && ` · ${usd(stored.cash)} to park`}
+      {' · '}
+      <button type="button" className="more" onClick={() => goStep(null)}>Edit</button>
+    </p>
+  );
+
+  const strategyList = (
+    <>
+      <div className="list-head">
+        <h2>{custom ? 'Your plan' : 'Strategies'}</h2>
+        {shown.length > 1 && (
+          <span className="list-head-controls">
+            <select className="input select-quiet" aria-label="Max accounts" value={maxAccounts} onChange={(e) => setMaxAccounts(Number(e.target.value))}>
+              <option value={0}>Any number of accounts</option>
+              {[4, 6, 8, 10, 12].map((n) => <option key={n} value={n}>Up to {n} accounts</option>)}
+            </select>
+            <select className="input select-quiet" aria-label="Sort plans" value={sort} onChange={(e) => setSort(e.target.value as StrategySort)}>
+              {Object.entries(STRATEGY_SORTS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </select>
+          </span>
+        )}
+      </div>
+      {custom && !inputs.picks.length ? (
+        <div className="empty">
+          You haven’t picked any deals yet. <button type="button" className="more" onClick={() => goStep('pick')}>Pick deals</button>
+        </div>
+      ) : shown.length === 0 && noFit.length ? (
+        <div className="empty">
+          None of your picks can be planned with these settings:
+          <ul className="missed">{noFit.map((m) => <li key={m.dealId}><b>{m.bank}</b> {m.reason}.</li>)}</ul>
+        </div>
+      ) : shown.length === 0 ? (
+        <div className="empty">No plan fits. Try a longer plan, a bigger paycheck, more cash to park, or fewer filters.</div>
+      ) : (
+        <div className="items">
+          {shown.map((s) => (
+            <div key={s.id} className="strategy">
+              <button type="button" className="item" onClick={() => openStrategy(s.id, linkFor(inputs))}>
+                <span className="item-main">
+                  <span className="item-name">{s.name}</span>
+                  <span className="item-sub">
+                    {custom ? `${s.totals.accounts} of ${inputs.picks.length} deals fit` : `${s.totals.accounts} accounts`}
+                    {s.totals.peakParked > 0 && ` · parks up to ${compactUsd(s.totals.peakParked)}`}
+                  </span>
+                </span>
+                <Sparkline points={payoutPoints(s)} start={start} />
+                <span className="item-side">
+                  <span className="pill">{usd(s.totals.net)}</span>
+                  <span className="item-net">net</span>
+                </span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="footnote">
+        Plans are a starting point built from parsed deal terms. Anything marked “assumed” wasn’t in the post; check the Doctor of Credit post for each bank before opening.
+      </p>
+    </>
+  );
+
   return (
     <>
-      <div className="page-head">
-        <h1>Plan</h1>
-        <p className="muted">
-          {shown.length
-            ? `${shown.length} ${shown.length === 1 ? 'way' : 'ways'} to earn with a ${usd(stored.paycheck)} paycheck${state ? '' : ' (all states; set yours in the menu up top)'}`
-            : 'Tell us about your paycheck and we’ll lay out which accounts to open when.'}
-        </p>
-      </div>
-      <div className="layout">
-        <aside className="layout-side">
+      {results === null && (
+        <div className="narrow plan-step">
+          <div className="page-head">
+            <div className="step-kicker">Step 1 of 3</div>
+            <h1>Your paycheck</h1>
+            <p className="muted">Tell us how you get paid and we’ll work out which accounts to open when.</p>
+          </div>
           <div className="card order-card">
-            <h3>Build your plan</h3>
-            <Segmented<Mode>
-              ariaLabel="Plan type"
-              value={mode}
-              onChange={setMode}
-              options={[{ value: 'suggested', label: 'Suggested' }, { value: 'custom', label: 'Custom' }]}
-            />
-            {custom && (
-              <div className="field" style={{ marginTop: 14 }}>
-                Deals you want
-                <DealPicker deals={deals} value={inputs.picks} onChange={(picks) => set({ picks })} today={today} />
-                <span className="hint">We’ll schedule these around your paychecks and tell you if any don’t fit.</span>
-              </div>
-            )}
             <div className="order-rows">
               <PaycheckRows paycheck={stored.paycheck} payFreq={payFreq} firstPayday={inputs.firstPayday} today={start} onChange={set} />
               <label className="order-row">
@@ -152,7 +206,6 @@ export function PlanView({
             <div style={{ marginTop: 14 }}>
               <Disclosure label="More options">
                 <div className="stack" style={{ marginTop: 12 }}>
-                  {!custom && <ExcludeBanks x={exclusion} />}
                   <label className="field">
                     Cash I can park
                     <MoneyInput ariaLabel="Cash to park" value={stored.cash} onChange={(v) => set({ cash: v ?? 0 })} />
@@ -170,84 +223,104 @@ export function PlanView({
                       options={[3, 7, 14].map((n) => ({ value: n, label: `${n} days` }))} />
                     <span className="hint">Time to switch your direct deposit.</span>
                   </label>
-                  {!custom && (
-                    <>
-                      <label className="field">
-                        Skip bonuses under
-                        <MoneyInput ariaLabel="Minimum bonus" value={stored.minBonus} onChange={(v) => set({ minBonus: v ?? 0 })} />
-                      </label>
-                      <Check checked={stored.noHardPull} onChange={(noHardPull) => set({ noHardPull })}>Avoid hard credit pulls</Check>
-                      <Check checked={stored.online} onChange={(online) => set({ online })}>Online only (no branch visits)</Check>
-                      <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
-                      <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
-                    </>
-                  )}
                   <Check checked={stored.includeDatePassed} onChange={(includeDatePassed) => set({ includeDatePassed })}>Include deals past their listed end date</Check>
                   <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored({ ...defaults(today), picks: stored.picks ?? [] })}>Reset</button>
                 </div>
               </Disclosure>
             </div>
           </div>
-        </aside>
-
-        <div className="layout-main">
-
-          <div className="list-head">
-            <h2>Strategies</h2>
-            <span className="list-head-controls">
-              <select className="input select-quiet" aria-label="Max accounts" value={maxAccounts} onChange={(e) => setMaxAccounts(Number(e.target.value))}>
-                <option value={0}>Any number of accounts</option>
-                {[4, 6, 8, 10, 12].map((n) => <option key={n} value={n}>Up to {n} accounts</option>)}
-              </select>
-              <select className="input select-quiet" aria-label="Sort plans" value={sort} onChange={(e) => setSort(e.target.value as StrategySort)}>
-                {Object.entries(STRATEGY_SORTS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-              </select>
-            </span>
+          <div className="step-actions">
+            <button type="button" className="btn primary" onClick={() => goStep('how')}>Next</button>
           </div>
-
-          {custom && !inputs.picks.length ? (
-            <div className="empty">Pick the deals you want and we’ll schedule them around your paychecks.</div>
-          ) : shown.length === 0 && noFit.length ? (
-            <div className="empty">
-              None of your picks can be planned with these settings:
-              <ul className="missed">{noFit.map((m) => <li key={m.dealId}><b>{m.bank}</b> {m.reason}.</li>)}</ul>
-            </div>
-          ) : shown.length === 0 ? (
-            <div className="empty">No plan fits. Try a longer plan, a bigger paycheck, more cash to park, or fewer restrictions.</div>
-          ) : (
-            <div className="items">
-              {shown.map((s) => {
-                return (
-                  <div key={s.id} className="strategy">
-                    <button type="button" className="item" onClick={() => openStrategy(s.id, linkFor(inputs))}>
-                      <span className="item-main">
-                        <span className="item-name">{s.name}</span>
-                        <span className="item-sub">
-                          {custom ? `${s.totals.accounts} of ${inputs.picks.length} deals fit` : `${s.totals.accounts} accounts`}
-                          {s.totals.peakParked > 0 && ` · parks up to ${compactUsd(s.totals.peakParked)}`}
-                        </span>
-                      </span>
-                      <Sparkline points={payoutPoints(s)} start={start} />
-                      <span className="item-side">
-                        <span className="pill">{usd(s.totals.net)}</span>
-                        <span className="item-net">net</span>
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <p className="footnote">
-            Plans are a starting point built from parsed deal terms. Anything marked “assumed” wasn’t in the post; check the Doctor of Credit post for each bank before opening.
-          </p>
         </div>
-      </div>
+      )}
+
+      {results === 'how' && (
+        <div className="narrow plan-step">
+          <button type="button" className="back" onClick={() => goStep(null)}>← Your paycheck</button>
+          <div className="page-head">
+            <div className="step-kicker">Step 2 of 3</div>
+            <h1>How do you want to plan?</h1>
+            {summary}
+          </div>
+          <div className="choice-tiles">
+            <button type="button" className="choice-tile" onClick={() => goStep('suggested')}>
+              <span className="choice-name">Suggest plans for me</span>
+              <span className="choice-sub">We pick the deals and lay out a few strategies to compare, from the most money to the least effort.</span>
+              <span className="choice-go" aria-hidden="true">→</span>
+            </button>
+            <button type="button" className="choice-tile" onClick={() => goStep('pick')}>
+              <span className="choice-name">Build my own</span>
+              <span className="choice-sub">Pick the banks you want and we’ll fit them around your paychecks, and tell you if any don’t fit.</span>
+              <span className="choice-go" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {results === 'pick' && (
+        <div className="narrow plan-step">
+          <button type="button" className="back" onClick={() => goStep('how')}>← How to plan</button>
+          <div className="page-head">
+            <div className="step-kicker">Step 3 of 3</div>
+            <h1>Pick your deals</h1>
+            {summary}
+          </div>
+          <div className="card order-card">
+            <DealPicker deals={deals} value={stored.picks ?? []} onChange={(picks) => set({ picks })} today={today} />
+          </div>
+          <div className="step-actions">
+            <button type="button" className="btn primary" disabled={!(stored.picks ?? []).length} onClick={() => goStep('custom')}>Build my plan</button>
+          </div>
+        </div>
+      )}
+
+      {results === 'suggested' && (
+        <div className="narrow plan-step">
+          <button type="button" className="back" onClick={() => goStep('how')}>← How to plan</button>
+          <div className="page-head">
+            <h1>Plans for you</h1>
+            {summary}
+            {!state && <p className="muted small">Showing deals in all states. Set yours in the menu up top.</p>}
+          </div>
+          <div className="filters-row">
+            <Disclosure label="Filters">
+              <div className="stack" style={{ marginTop: 12 }}>
+                <ExcludeBanks x={exclusion} />
+                <label className="field">
+                  Skip bonuses under
+                  <MoneyInput ariaLabel="Minimum bonus" value={stored.minBonus} onChange={(v) => set({ minBonus: v ?? 0 })} />
+                </label>
+                <Check checked={stored.noHardPull} onChange={(noHardPull) => set({ noHardPull })}>Avoid hard credit pulls</Check>
+                <Check checked={stored.online} onChange={(online) => set({ online })}>Online only (no branch visits)</Check>
+                <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
+                <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
+              </div>
+            </Disclosure>
+          </div>
+          {strategyList}
+        </div>
+      )}
+
+      {results === 'custom' && (
+        <div className="narrow plan-step">
+          <button type="button" className="back" onClick={() => goStep('pick')}>← Your deals</button>
+          <div className="page-head">
+            <h1>Your plan</h1>
+            {summary}
+            <p className="muted small">
+              {inputs.picks.length} {inputs.picks.length === 1 ? 'deal' : 'deals'} picked ·{' '}
+              <button type="button" className="more" onClick={() => goStep('pick')}>Change</button>
+            </p>
+          </div>
+          {strategyList}
+        </div>
+      )}
 
       {route.strategyId && (
         <Sheet
           label={linked?.name ?? 'Plan'}
-          onClose={closeStrategy}
+          onClose={() => closeStrategy(custom ? 'custom' : 'suggested')}
           bar={linked && <ShareButton title={`${linked.name}: ${usd(linked.totals.net)} in bank bonuses`} />}
           foot={linked && <SaveRow signedIn={signedIn} onSave={() => onSave(linked, linkInputs, link?.baselineApy ?? baselineApy)} />}
         >
@@ -270,9 +343,7 @@ export function PlanView({
                     style={{ marginTop: 8, marginLeft: -14 }}
                     onClick={() => {
                       const { state: _s, excludeBanks: _e, ...rest } = link.inputs;
-                      const linkCustom = linked.objective === 'custom';
-                      setStored({ ...rest, picks: linkCustom ? rest.picks : stored.picks ?? [] });
-                      setMode(linkCustom ? 'custom' : 'suggested');
+                      setStored({ ...rest, picks: linked.objective === 'custom' ? rest.picks : stored.picks ?? [] });
                     }}
                   >
                     Use these settings in my plan

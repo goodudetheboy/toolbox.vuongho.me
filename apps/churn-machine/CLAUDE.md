@@ -15,9 +15,11 @@ Bank account bonus churning, three tabs (Deals, Plan, My plans):
   fees, early-close fee, payout time, promo code…), with a "worth it" net
   value, deterministic filters/sorts, and a link back to the DoC post on
   every deal.
-- **Plan** (public) — biweekly paycheck + plan length (+ optional cash to
-  park and constraints) → several candidate strategies (objective × pace),
-  sortable/filterable, each with a by-account and by-paycheck schedule.
+- **Plan** (public) — a few screens, one at a time (ADR 0011): your
+  paycheck (amount, semi-monthly or every 2 weeks, start date, length) →
+  "suggest plans for me" or "build my own" → the strategies (objective ×
+  pace, or a custom plan of deals you picked, ADR 0010), each with a
+  by-account and by-paycheck schedule.
 - **My plans** (Google sign-in) — strategy-first: the active strategies
   you saved, each with a tracker page (`/accounts/<savedId>`): what day of
   the plan it is, money collected, today's tasks, the next two weeks, the
@@ -26,8 +28,9 @@ Bank account bonus churning, three tabs (Deals, Plan, My plans):
   below. See [ADR 0009](docs/adr/0009-strategy-first-tracking.md).
 
 Progressive disclosure is the design rule: a few chips and three inputs up
-front, everything else behind "More filters" / "Tune the plan" / a deal's
-modal. The look copies Robinhood: white, one purple accent, Inter, big
+front, everything else behind "More filters" / "More options" / a deal's
+modal, and Plan goes one screen at a time (ADR 0011). Things you've chosen
+(picked banks/deals) show as a list of tiles, not chips. The look copies Robinhood: white, one purple accent, Inter, big
 numbers, pill buttons, hairline lists, a right-hand panel on desktop and a
 bottom tab bar + bottom sheets on phones (see
 [ADR 0006](docs/adr/0006-robinhood-look.md)). A deal row opens a modal with a
@@ -71,7 +74,8 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   `src/components/UpdateToast.tsx`): shell precached, `deals.json`
   network-first, update on tap. See [ADR 0004](docs/adr/0004-installable-pwa.md).
   `public/icon.svg` is the source for every icon PNG.
-- `src/lib/router.ts` — real paths (`/`, `/plan`, `/plan/<strategyId>`,
+- `src/lib/router.ts` — real paths (`/`, `/plan`, `/plan/<step>` for
+  Plan's later screens (`how`, `suggested`, `pick`, `custom`), `/plan/<strategyId>`,
   `/accounts`, `/deal/<id>`) under `/churn-machine/`, served by the root `firebase.json`
   rewrite. `src/components/DealModal.tsx` has the shared `Sheet` (modal /
   bottom sheet, stackable), the deal modal and the full page. Strategies

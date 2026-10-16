@@ -45,18 +45,25 @@ Click a deal to open it. You'll see the bonus, the net value and grade, **Key st
 
 ### Build your plan
 
-Fill in the card on the right (top on a phone). At the top, choose **Suggested** (we pick the deals) or **Custom** (you pick them, see below).
+Plan walks you through it one screen at a time. **← back** links (and your browser's back button) go to the previous screen, and your answers are remembered.
+
+**Step 1, Your paycheck:**
 
 - **Paycheck**: the take-home pay from one paycheck that you can route.
 - **Paid**: **Semi-monthly** (the 1st and 15th, the default) or **Every 2 weeks**. Semi-monthly fills in your next payday for you. Every 2 weeks asks for your **Next payday**.
 - **Start**: the day the plan begins (today unless you pick a later date). Nothing is opened or deposited before it, and the plan length counts from it. On the 1st and 15th, the next payday shown is the first one on or after the start.
 - **Plan for**: 3, 6, 9 or 12 months.
+- **More options**: cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, and whether to include deals past their listed end date.
 
-**More options** has the rest: the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts, deals past their end date.
+Then **Next**.
+
+**Step 2, How do you want to plan?** Choose **Suggest plans for me** (we pick the deals and show strategies to compare) or **Build my own** (you pick the deals, see Custom plans below). A line at the top sums up your paycheck settings, with **Edit** to go back and change them.
+
+**Step 3, the plans.** Suggested plans are listed under **Plans for you**. Its **Filters** has the two bank exclusions (same as on Deals), the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts.
 
 ### Custom plans
 
-Pick **Custom** and add the deals you want under **Deals you want** (type a bank's name, or open the list; each deal shows its top bonus). The planner schedules only those, trying to fit all of them around your paychecks, and shows a Relaxed, Steady and Aggressive version. Each row says how many of your picks fit.
+Choose **Build my own**, then add the deals you want on **Pick your deals** (type a bank's name, or open the list). Each one you pick shows as a tile with its bonus and main requirements. **Build my plan** shows **Your plan**; **Change** goes back to your picks. The planner schedules only those, trying to fit all of them around your paychecks, and shows a Relaxed, Steady and Aggressive version. Each row says how many of your picks fit.
 
 Since you chose the deals, the filters (minimum bonus, hard pulls, online only, ChexSystems, business, bank exclusions) don't apply. Your state, cash to park, paycheck splits, lead days and "Include deals past their listed end date" still do. If a pick doesn't fit, the strategy says why: for example it isn't offered in your state, it needs more cash parked than you set, its end date is before the plan starts, or it doesn't fit around the others (try a longer plan, a faster pace or more paycheck splits).
 

@@ -191,7 +191,8 @@ export default function App() {
           dealsDate={data.fetchedAt.slice(0, 10)}
           route={route}
           openStrategy={(id, search) => go('plan', id, search)}
-          closeStrategy={() => (cameFromApp() ? window.history.back() : go('plan'))}
+          closeStrategy={(fallback) => (cameFromApp() ? window.history.back() : go('plan', fallback))}
+          goStep={(step) => go('plan', step)}
           today={today}
           state={prefs.state}
           baselineApy={prefs.baselineApy}
