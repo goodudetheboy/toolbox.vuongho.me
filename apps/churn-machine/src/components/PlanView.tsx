@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, snapSplits, SPLIT_OPTIONS, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
+  buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, snapSplits, SPLIT_OPTIONS, splitLabel, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
 import { shortDate } from '../lib/dates';
 import { compactUsd, requirementSummary, usd } from '../lib/value';
@@ -185,7 +185,7 @@ export function PlanView({
                 <label className="field">
                   Split a paycheck across up to
                   <Segmented ariaLabel="Max splits" value={inputs.maxSplits} onChange={(maxSplits) => set({ maxSplits })}
-                    options={SPLIT_OPTIONS.map((n) => ({ value: n, label: `${n}` }))} />
+                    options={SPLIT_OPTIONS.map((n) => ({ value: n, label: splitLabel(n) }))} />
                   <span className="hint">Accounts per paycheck your payroll allows.</span>
                 </label>
                 <label className="field">

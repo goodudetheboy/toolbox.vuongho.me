@@ -54,11 +54,14 @@ export const OBJECTIVES: Record<Objective, { label: string; hint: string }> = {
 export const SUGGESTED: Objective[] = ['money', 'big', 'easy', 'fast'];
 export const PACES = [1, 2, 3] as const;
 /** The choices for "Split a paycheck across up to". */
-export const SPLIT_OPTIONS = [1, 2, 3, 4, 5, 6];
+/** "∞": no limit on accounts per paycheck (a plain number so it saves and shares as JSON). */
+export const NO_SPLIT_LIMIT = 99;
+export const SPLIT_OPTIONS = [1, 2, 3, 4, 5, 6, NO_SPLIT_LIMIT];
+export const splitLabel = (n: number) => (n >= NO_SPLIT_LIMIT ? '∞' : `${n}`);
 export const DEFAULT_SPLITS = 5;
-/** A split count outside the choices (older inputs could be up to 20) becomes the nearest choice. */
+/** A split count outside the choices (older inputs could be 8, 10 or 20) becomes ∞. */
 export const snapSplits = (n: number) =>
-  Number.isFinite(n) ? Math.min(Math.max(Math.round(n), 1), SPLIT_OPTIONS[SPLIT_OPTIONS.length - 1]) : DEFAULT_SPLITS;
+  !Number.isFinite(n) ? DEFAULT_SPLITS : n > 6 ? NO_SPLIT_LIMIT : Math.max(Math.round(n), 1);
 export type Pace = (typeof PACES)[number];
 export const PACE_LABELS: Record<Pace, string> = { 1: 'Relaxed', 2: 'Steady', 3: 'Aggressive' };
 

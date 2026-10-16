@@ -9,7 +9,7 @@ import {
   completeTask, neglected, ongoingFor, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
 } from '../lib/tasks';
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
-import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, snapSplits, SPLIT_OPTIONS, SUGGESTED, type Objective, type Pace } from '../lib/planner';
+import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, snapSplits, SPLIT_OPTIONS, splitLabel, SUGGESTED, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
 import { BankPicker, Check, DealPicker, MoneyInput, PaycheckRows, Segmented } from './bits';
@@ -515,7 +515,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
         <label className="field">
           Split a paycheck across up to
           <Segmented ariaLabel="Max splits" value={i.maxSplits} onChange={(maxSplits) => setIn({ maxSplits })}
-            options={SPLIT_OPTIONS.map((n) => ({ value: n, label: `${n}` }))} />
+            options={SPLIT_OPTIONS.map((n) => ({ value: n, label: splitLabel(n) }))} />
         </label>
         <label className="field">
           Open accounts ahead of payday by
