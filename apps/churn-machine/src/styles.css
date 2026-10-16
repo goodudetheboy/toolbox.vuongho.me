@@ -79,6 +79,21 @@ h1, h2, h3, h4 { margin: 0; }
 .nav a.on { color: var(--accent); background: var(--accent-soft); }
 .top .spacer { flex: 1; }
 
+/* Gear menu next to a plan's name */
+.hero-title { display: flex; align-items: flex-start; gap: 12px; }
+.hero-title .hero-name { flex: 1; min-width: 0; }
+.plan-menu { position: relative; flex: none; margin-top: 2px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: #fff;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer;
+}
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn:hover, .icon-btn.on { background: var(--field); color: var(--ink); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plan-menu .user-pop { width: 200px; }
+.user-item:disabled { color: var(--faint); cursor: default; background: none; }
+.user-item.danger { color: var(--bad); }
+
 /* User pill + its menu */
 .user-menu { position: relative; }
 .user-pill {
@@ -646,7 +661,8 @@ button.task-mark:focus-visible { outline: 2px solid var(--accent); outline-offse
 
 /* edit plan settings */
 .edit-form { margin-top: 20px; }
-.edit-form .segmented { flex-wrap: wrap; border-radius: 18px; align-self: flex-start; }
+.edit-form .field > .segmented { flex-wrap: wrap; border-radius: 18px; align-self: stretch; }
+.edit-form .field > .segmented button { flex: 1 1 auto; min-width: 0; padding: 6px 12px; }
 .edit-form .order-rows { margin-top: 0; }
 
 /* ---------- guide ---------- */

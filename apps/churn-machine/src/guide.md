@@ -138,11 +138,11 @@ A bonus that's late shows under **Waiting on the bank** instead. Banks are often
 
 ### Changing a plan's settings
 
-**Edit settings** (under the plan's name, or in **Manage this plan**) lets you change the goal (or, for a custom plan, its deals), pace, paycheck, length, cash, splits, lead days, minimum bonus, options and banks to leave out. A live preview shows what changes. **Save and re-plan** applies it the same way as Revise: opened accounts stay, the rest is re-planned from today.
+**Edit settings** (in the gear menu next to the plan's name) lets you change the goal (or, for a custom plan, its deals), pace, paycheck, length, cash, splits, lead days, minimum bonus, options and banks to leave out. A live preview shows what changes. **Save and re-plan** applies it the same way as Revise: opened accounts stay, the rest is re-planned from today.
 
 ### Manage this plan
 
-At the bottom of a plan: **Revise from today** (any time, even if you're not behind), **Edit settings**, **Archive**, and **Delete plan** (accounts you never opened go with it; opened ones stay in your records).
+Tap the gear next to the plan's name: **Revise from today** (any time, even if you're not behind), **Edit settings**, **Archive**, and **Delete plan** (accounts you never opened go with it; opened ones stay in your records).
 
 ## Install it as an app
 

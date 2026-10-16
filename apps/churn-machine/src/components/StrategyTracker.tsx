@@ -1,6 +1,6 @@
 // One saved strategy, run day to day: where you are, what's due today, the
 // whole plan as a timeline, and a check-in that can re-plan the rest.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
   applyRevision, archiveStrategy, deleteStrategy, STATUS_LABELS, updateAccount, type Account, type SavedStrategy,
@@ -12,9 +12,10 @@ import { planSettings, planStart, previewRevision, type PlanSettings, type Revis
 import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, SPLIT_OPTIONS, SUGGESTED, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
-import { BankPicker, Check, DealPicker, Disclosure, MoneyInput, PaycheckRows, Segmented } from './bits';
+import { BankPicker, Check, DealPicker, MoneyInput, PaycheckRows, Segmented } from './bits';
 import { Sheet } from './DealModal';
 import { AccountDetail } from './AccountsView';
+import { GearIcon } from './icons';
 
 const longToday = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -79,11 +80,23 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
           Today is {longToday(today)}
           {p.start && p.start > today ? ` · starts ${shortDate(p.start, today)}` : p.days ? ` · day ${Math.min(p.day, p.days)} of ${p.days}` : ''}
         </div>
-        <h1 className="hero-name">{s.name}</h1>
+        <div className="hero-title">
+          <h1 className="hero-name">{s.name}</h1>
+          <PlanMenu
+            archived={!!s.archived}
+            ready={!!deals}
+            onRevise={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude))}
+            onEdit={() => setEditing(true)}
+            onArchive={() => archiveStrategy(uid, s.id, !s.archived)}
+            onDelete={async () => {
+              if (!confirm(`Delete “${s.name}”? Accounts you never opened go with it; opened ones stay in your records.`)) return;
+              await deleteStrategy(uid, s.id, accounts);
+              onBack();
+            }}
+          />
+        </div>
         <p className="muted small" style={{ margin: '6px 0 0' }}>
           {usd(set.inputs.paycheck)} paychecks {payWhen(set.inputs.payFreq)} · {set.inputs.months} months{s.archived && ' · archived'}
-          {' · '}
-          <button type="button" className="more" disabled={!deals} onClick={() => setEditing(true)}>Edit settings</button>
         </p>
       </div>
 
@@ -223,29 +236,6 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         </section>
       )}
 
-      <div className="toolbar" style={{ marginTop: 32 }}>
-        <Disclosure label="Manage this plan">
-          <div className="acct-actions" style={{ flexBasis: '100%' }}>
-            <button type="button" className="btn small" disabled={!deals} onClick={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude))}>
-              Revise from today
-            </button>
-            <button type="button" className="btn small" disabled={!deals} onClick={() => setEditing(true)}>Edit settings</button>
-            <button type="button" className="btn small" onClick={() => archiveStrategy(uid, s.id, !s.archived)}>{s.archived ? 'Unarchive' : 'Archive'}</button>
-            <button
-              type="button"
-              className="btn quiet small"
-              onClick={async () => {
-                if (!confirm(`Delete “${s.name}”? Accounts you never opened go with it; opened ones stay in your records.`)) return;
-                await deleteStrategy(uid, s.id, accounts);
-                onBack();
-              }}
-            >
-              Delete plan
-            </button>
-          </div>
-        </Disclosure>
-      </div>
-
       {editing && deals && (
         <EditPlanSheet
           uid={uid}
@@ -306,6 +296,56 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
             </ul>
           </section>
         </Sheet>
+      )}
+    </div>
+  );
+}
+
+/** The gear next to the plan's name: revise, edit settings, archive, delete. */
+function PlanMenu({ archived, ready, onRevise, onEdit, onArchive, onDelete }: {
+  archived: boolean;
+  ready: boolean;
+  onRevise: () => void;
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  const item = (label: string, run: () => void, disabled = false, danger = false) => (
+    <button type="button" role="menuitem" className={`user-item ${danger ? 'danger' : ''}`} disabled={disabled}
+      onClick={() => { setOpen(false); run(); }}>
+      {label}
+    </button>
+  );
+  return (
+    <div className="plan-menu" ref={ref}>
+      <button type="button" className={`icon-btn ${open ? 'on' : ''}`} aria-haspopup="menu" aria-expanded={open}
+        aria-label="Manage this plan" title="Manage this plan" onClick={() => setOpen(!open)}>
+        <GearIcon />
+      </button>
+      {open && (
+        <div className="user-pop" role="menu">
+          {item('Revise from today', onRevise, !ready)}
+          {item('Edit settings', onEdit, !ready)}
+          {item(archived ? 'Unarchive' : 'Archive', onArchive)}
+          {item('Delete plan', onDelete, false, true)}
+        </div>
       )}
     </div>
   );
