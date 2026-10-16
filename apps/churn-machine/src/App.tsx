@@ -20,7 +20,7 @@ import { AccountsIcon, DealsIcon, LogoMark, PlanIcon } from './components/icons'
 const TABS: { tab: Tab; label: string; Icon: () => JSX.Element }[] = [
   { tab: 'deals', label: 'Deals', Icon: DealsIcon },
   { tab: 'plan', label: 'Plan', Icon: PlanIcon },
-  { tab: 'accounts', label: 'My plans', Icon: AccountsIcon },
+  { tab: 'accounts', label: 'My Bag', Icon: AccountsIcon },
 ];
 
 function oldPicks(): string[] {

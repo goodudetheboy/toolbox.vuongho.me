@@ -30,7 +30,7 @@ export default defineConfig({
         ],
         shortcuts: [
           { name: 'Plan', url: `${BASE}plan` },
-          { name: 'My plans', url: `${BASE}accounts` },
+          { name: 'My Bag', url: `${BASE}accounts` },
         ],
       },
       workbox: {

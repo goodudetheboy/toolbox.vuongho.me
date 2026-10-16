@@ -431,7 +431,7 @@ function SaveRow({ signedIn, onSave }: { signedIn: boolean; onSave: () => Promis
   return (
     <div className="save-row">
       <span className="muted small grow">
-        {signedIn ? 'Saving puts it in My plans with a day-by-day checklist.' : 'Sign in to save this plan and track it.'}
+        {signedIn ? 'Saving puts it in My Bag with a day-by-day checklist.' : 'Sign in to save this plan and track it.'}
       </span>
       <button
         type="button"

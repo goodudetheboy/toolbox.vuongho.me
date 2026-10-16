@@ -6,7 +6,7 @@ whole (repo map, running things, shared infra rules), see the root
 
 ## What this tool does
 
-Bank account bonus churning, three tabs (Deals, Plan, My plans):
+Bank account bonus churning, three tabs (Deals, Plan, My Bag):
 
 - **Deals** (public, read-only) — every deal on Doctor of Credit's
   [Best Bank Account Bonuses](https://www.doctorofcredit.com/best-bank-account-bonuses/)
@@ -20,7 +20,7 @@ Bank account bonus churning, three tabs (Deals, Plan, My plans):
   "suggest plans for me" or "build my own" → the strategies (objective ×
   pace, or a custom plan of deals you picked, ADR 0010), each with a
   by-account and by-paycheck schedule.
-- **My plans** (Google sign-in) — strategy-first: the active strategies
+- **My Bag** (Google sign-in; was "My plans") — strategy-first: the active strategies
   you saved, each with a tracker page (`/accounts/<savedId>`): what day of
   the plan it is, money collected, today's tasks, the next two weeks, the
   whole plan as a timeline, and a check-in that offers **Revise plan** when

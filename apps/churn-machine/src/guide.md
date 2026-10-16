@@ -10,7 +10,7 @@ Churn Machine finds bank account bonuses, builds a plan for which accounts to op
 
 - **Deals**: every bonus, searchable and filterable.
 - **Plan**: tell it your paycheck and it suggests strategies (which accounts to open, when, and how to split each paycheck).
-- **My plans**: the plans you saved, with what to do today and how much you've collected. Needs Google sign-in.
+- **My Bag**: the plans you saved, with what to do today and how much you've collected. Needs Google sign-in.
 
 The round button at the top right (your photo and name once you sign in) opens a small menu with your state, this guide, and sign in or sign out. Your state hides deals you can't get where you live. It applies everywhere.
 
@@ -98,9 +98,9 @@ Click a strategy to open it:
 - **Schedule**: date by date, which accounts to open and how much of that paycheck goes to which bank. Paydays where everything stays in your main account are left out. Cash to park, promo codes and payout dates are on each deal's page, and in the plan's checklist once you save it.
 - **Share link** copies a link to this exact strategy (on a phone it opens the share menu). Anyone can open it, signed in or not. It includes the plan's settings and the banks it leaves out. It's rebuilt from that day's deals, so it can differ if the deals changed; a note says so.
 - If someone else's link has different settings from yours, **Use these settings in my plan** copies them into your form.
-- **Use this plan** saves it to My plans and takes you to its tracker.
+- **Use this plan** saves it to My Bag and takes you to its tracker.
 
-## My plans
+## My Bag
 
 ### Home
 

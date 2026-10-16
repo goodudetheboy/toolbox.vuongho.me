@@ -69,7 +69,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
 
   return (
     <div className="narrow tracker">
-      <button type="button" className="back" onClick={onBack}>← My plans</button>
+      <button type="button" className="back" onClick={onBack}>← My Bag</button>
       <div className="hero">
         <div className="hero-kicker">
           Today is {longToday(today)}
