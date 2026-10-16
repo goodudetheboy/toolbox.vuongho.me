@@ -39,7 +39,7 @@ The planner leaves out the same banks.
 Click a deal to open it. You'll see the bonus, the net value and grade, **Key statistics** (direct deposit, cash to park, transactions, how long to keep it open, credit pull, when the bonus posts), **Is it worth it?** (the math behind net), the offer's terms, every detail from the post, and Doctor of Credit's take.
 
 - **Open full page** gives the deal its own page and link, with the at-a-glance lines from the list and an "Open at" card.
-- **I opened this** starts tracking the account (under My plans, "Accounts outside a plan").
+- **Add to custom plan** puts the deal in your custom plan (no sign-in needed). Once it's in, **Build plan** takes you to it and **Remove** takes it out. You mark an account as opened later, from the plan's checklist when you run it.
 
 ## Plan
 
@@ -64,7 +64,7 @@ Then **Next**.
 
 ### Custom plans
 
-Choose **Build my own**, then add the deals you want on **Pick your deals** (type a bank's name, or open the list). Each one you pick shows as a tile with its bonus and main requirements. **Build my plan** shows **Your plan**, with the same **Your settings** panel (your deals are in it too, to add or remove; the filters aren't, since they don't apply). The planner schedules only those, trying to fit all of them around your paychecks, and shows a Relaxed, Steady and Aggressive version. Each row says how many of your picks fit.
+Choose **Build my own**, then add the deals you want on **Pick your deals** (type a bank's name, or open the list). Deals you added with **Add to custom plan** while browsing are already there. Each one you pick shows as a tile with its bonus and main requirements. **Build my plan** shows **Your plan**, with the same **Your settings** panel (your deals are in it too, to add or remove; the filters aren't, since they don't apply). The planner schedules only those, trying to fit all of them around your paychecks, and shows a Relaxed, Steady and Aggressive version. Each row says how many of your picks fit.
 
 Since you chose the deals, the filters (minimum bonus, hard pulls, online only, ChexSystems, business, bank exclusions) don't apply. Your state, cash to park, paycheck splits, lead days and "Include deals past their listed end date" still do. If a pick doesn't fit, the strategy says why: for example it isn't offered in your state, it needs more cash parked than you set, its end date is before the plan starts, or it doesn't fit around the others (try a longer plan, a faster pace or more paycheck splits).
 
@@ -99,7 +99,7 @@ Click a strategy to open it:
 - **Active plans**: each with a progress bar, the day of the plan (or "Starts Dec 1" if it starts later), tasks today and anything overdue.
 - **Finished and archived** plans, folded away.
 - **Banks I have**: the banks you have or had an account with. Pick from the list, or type any name and choose "Add". Accounts you've opened through the app count automatically. This list is saved to your Google account.
-- **Accounts outside a plan**: accounts you tracked from a deal or added by hand (**Add an account by hand**).
+- **Accounts outside a plan**: accounts you added by hand (**Add an account by hand**), and any you tracked from a deal before that button became Add to custom plan.
 
 ### Running a plan
 

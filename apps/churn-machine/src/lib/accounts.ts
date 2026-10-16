@@ -7,10 +7,9 @@ import {
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from './firebase';
-import type { Deal } from './types';
 import { planStartOn, type PlanInputs, type PlanItem, type Strategy } from './planner';
 import { addDays, todayIso } from './dates';
-import { ASSUMED, keepOpenDays } from './value';
+import { ASSUMED } from './value';
 import { bankKey } from './filters';
 
 export type AccountStatus = 'planned' | 'open' | 'met' | 'paid' | 'closed';
@@ -184,29 +183,6 @@ export async function saveStrategy(uid: string, s: Strategy, inputs: PlanInputs,
   }
   await batch.commit();
   return sRef.id;
-}
-
-/** "I opened this" from the deals list: an open account with estimated dates. */
-export async function trackDeal(uid: string, d: Deal, openedOn = todayIso()): Promise<void> {
-  const doneBy = addDays(openedOn, Math.max(d.dd.windowDays ?? ASSUMED.ddWindowDays, d.balance?.holdDays ?? 0));
-  const expectedPayout = addDays(doneBy, d.payoutDays ?? ASSUMED.payoutDays);
-  const closeAfter = [addDays(openedOn, keepOpenDays(d)), expectedPayout].sort().at(-1)!;
-  await addDoc(accountsCol(uid), {
-    ...blankAccount(),
-    bank: d.bank,
-    title: d.title,
-    dealId: d.id,
-    docUrl: d.url,
-    bonus: d.bonusMax ?? 0,
-    openOn: openedOn,
-    openedOn,
-    doneBy,
-    expectedPayout,
-    closeAfter,
-    transactions: d.transactions,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
 }
 
 export async function addManualAccount(uid: string, bank: string, bonus: number, openedOn: string): Promise<void> {

@@ -877,3 +877,5 @@ textarea.input { resize: vertical; }
   .plan-settings.open .plan-settings-body { display: block; }
   .plan-settings h3 { display: none; }
 }
+.picked-action { display: flex; flex-direction: column; gap: 8px; }
+.picked-action-buttons { display: flex; justify-content: center; gap: 8px; }

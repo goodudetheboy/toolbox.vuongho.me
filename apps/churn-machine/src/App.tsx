@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cameFromApp, hrefFor, useRoute, type Tab } from './lib/router';
 import { useDeals } from './lib/useDeals';
 import { signInWithGoogle, signOutUser, useAuth } from './lib/auth';
-import { allBanksIHave, saveStrategy, trackDeal, useAccounts } from './lib/accounts';
+import { allBanksIHave, saveStrategy, useAccounts } from './lib/accounts';
 import { usePersisted } from './lib/settings';
 import { todayIso } from './lib/dates';
 import type { Deal } from './lib/types';
@@ -23,6 +23,15 @@ const TABS: { tab: Tab; label: string; Icon: () => JSX.Element }[] = [
   { tab: 'accounts', label: 'My plans', Icon: AccountsIcon },
 ];
 
+function oldPicks(): string[] {
+  try {
+    const picks = JSON.parse(localStorage.getItem('churn-machine:plan-inputs') ?? '{}').picks;
+    return Array.isArray(picks) ? picks : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function App() {
   const [route, go] = useRoute();
   const tab = route.tab;
@@ -31,6 +40,9 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const acc = useAccounts(user?.uid ?? null);
   const [prefs, setPrefs] = usePersisted('prefs', { state: null as string | null, baselineApy: 0.04, excludedBanks: [] as string[], excludeHave: true });
+  // The custom plan's deals. Lives here so a deal's modal can add to it
+  // (it used to sit inside the Plan form's saved inputs, so start from those).
+  const [picks, setPicks] = usePersisted<string[]>('plan-picks', oldPicks());
   const [modalId, setModalId] = useState<string | null>(null);
   const closeModal = useCallback(() => setModalId(null), []);
   const banks = useMemo(() => (data ? bankNames(data.deals) : []), [data]);
@@ -38,7 +50,6 @@ export default function App() {
   const modalDeal = dealById(modalId);
   const openDeal = (d: Deal) => setModalId(d.id);
   useEffect(closeModal, [route.tab, route.dealId, route.strategyId, route.savedId, closeModal]);
-  const [busy, setBusy] = useState<string | null>(null);
   const today = todayIso();
 
   const signIn = () => signInWithGoogle().catch(() => {});
@@ -54,29 +65,19 @@ export default function App() {
     effective: [...prefs.excludedBanks, ...(prefs.excludeHave ? have : [])],
     goToAccounts: () => go('accounts'),
   };
-  const trackedDealIds = new Set(acc.accounts.map((a) => a.dealId).filter(Boolean));
 
-  const trackAction = (d: Deal) => {
-    if (!user) return <button type="button" className="btn primary block" onClick={signIn}>Sign in to track it</button>;
-    if (trackedDealIds.has(d.id)) return <div className="tracking">✓ You’re tracking this one</div>;
+  const pickAction = (d: Deal) => {
+    if (!picks.includes(d.id)) {
+      return <button type="button" className="btn primary block" onClick={() => setPicks([...picks, d.id])}>Add to custom plan</button>;
+    }
     return (
-      <button
-        type="button"
-        className="btn primary block"
-        disabled={busy === d.id}
-        onClick={async () => {
-          setBusy(d.id);
-          try {
-            await trackDeal(user.uid, d);
-          } catch (e) {
-            alert(`Couldn’t save: ${(e as Error).message}`);
-          } finally {
-            setBusy(null);
-          }
-        }}
-      >
-        I opened this
-      </button>
+      <div className="picked-action">
+        <span className="tracking">✓ In your custom plan</span>
+        <span className="picked-action-buttons">
+          <button type="button" className="btn ghost small" onClick={() => go('plan', 'custom')}>Build plan</button>
+          <button type="button" className="btn quiet small" onClick={() => setPicks(picks.filter((id) => id !== d.id))}>Remove</button>
+        </span>
+      </div>
     );
   };
 
@@ -172,7 +173,7 @@ export default function App() {
           deal={dealById(route.dealId)}
           today={today}
           baselineApy={prefs.baselineApy}
-          actions={dealById(route.dealId) && trackAction(dealById(route.dealId)!)}
+          actions={dealById(route.dealId) && pickAction(dealById(route.dealId)!)}
           onBack={() => go('deals')}
         />
       ) : tab === 'deals' ? (
@@ -193,6 +194,8 @@ export default function App() {
           openStrategy={(id, search) => go('plan', id, search)}
           closeStrategy={(fallback) => (cameFromApp() ? window.history.back() : go('plan', fallback))}
           goStep={(step) => go('plan', step)}
+          picks={picks}
+          setPicks={setPicks}
           today={today}
           state={prefs.state}
           baselineApy={prefs.baselineApy}
@@ -220,7 +223,7 @@ export default function App() {
           deal={modalDeal}
           today={today}
           baselineApy={prefs.baselineApy}
-          actions={trackAction(modalDeal)}
+          actions={pickAction(modalDeal)}
           onClose={closeModal}
           onFullPage={() => {
             setModalId(null);

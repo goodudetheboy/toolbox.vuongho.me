@@ -36,8 +36,11 @@ function defaults(today: string): StoredInputs {
 
 
 export function PlanView({
-  deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy, goStep,
+  deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy, goStep, picks, setPicks,
 }: {
+  /** The custom plan's deals (shared with the deal modal's "Add to custom plan"). */
+  picks: string[];
+  setPicks: (ids: string[]) => void;
   dealsDate: string;
   route: Route;
   openStrategy: (id: string, search: string) => void;
@@ -76,7 +79,7 @@ export function PlanView({
     ...stored,
     payFreq,
     startOn,
-    picks: custom ? stored.picks ?? [] : [],
+    picks: custom ? picks : [],
     firstPayday: rollPayday(stored.firstPayday, start, payFreq),
     state,
     excludeBanks: exclusion.effective,
@@ -147,7 +150,7 @@ export function PlanView({
           {custom && (
             <div className="field" style={{ marginTop: 10 }}>
               Deals you want
-              <DealPicker deals={deals} value={inputs.picks} onChange={(picks) => set({ picks })} today={today} />
+              <DealPicker deals={deals} value={inputs.picks} onChange={setPicks} today={today} />
             </div>
           )}
           <div className="order-rows">
@@ -196,7 +199,7 @@ export function PlanView({
                     <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
                   </>
                 )}
-                <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored({ ...defaults(today), picks: stored.picks ?? [] })}>Reset</button>
+                <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored(defaults(today))}>Reset</button>
               </div>
             </Disclosure>
           </div>
@@ -300,10 +303,10 @@ export function PlanView({
             <h1>Pick your deals</h1>
           </div>
           <div className="card order-card">
-            <DealPicker deals={deals} value={stored.picks ?? []} onChange={(picks) => set({ picks })} today={today} />
+            <DealPicker deals={deals} value={picks} onChange={setPicks} today={today} />
           </div>
           <div className="step-actions">
-            <button type="button" className="btn primary" disabled={!(stored.picks ?? []).length} onClick={() => goStep('custom')}>Build my plan</button>
+            <button type="button" className="btn primary" disabled={!picks.length} onClick={() => goStep('custom')}>Build my plan</button>
           </div>
         </div>
       )}
@@ -361,7 +364,8 @@ export function PlanView({
                     style={{ marginTop: 8, marginLeft: -14 }}
                     onClick={() => {
                       const { state: _s, excludeBanks: _e, ...rest } = link.inputs;
-                      setStored({ ...rest, picks: linked.objective === 'custom' ? rest.picks : stored.picks ?? [] });
+                      setStored(rest);
+                      if (linked.objective === 'custom') setPicks(rest.picks);
                     }}
                   >
                     Use these settings in my plan
