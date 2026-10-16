@@ -915,6 +915,10 @@ textarea.input { resize: vertical; }
 
 /* Strategy modal: accounts to open / schedule */
 .detail-tabs { margin: 26px 0 6px; }
+/* The tabs share the width so all three fit on a phone. */
+.detail-tabs .segmented { display: flex; width: 100%; }
+.detail-tabs .segmented button { flex: 1 1 auto; min-width: 0; padding: 6px 8px; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) { .detail-tabs .segmented button { font-size: 13px; padding: 6px 4px; } }
 .reqs-bank { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 14px 0; border-top: 1px solid var(--line); }
 .reqs-bank:first-child { border-top: 0; }
 .reqs-name { font-size: 16px; font-weight: 650; text-align: left; color: var(--ink); justify-self: start; }
