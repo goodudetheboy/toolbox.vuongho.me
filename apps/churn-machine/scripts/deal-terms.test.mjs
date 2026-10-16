@@ -63,3 +63,31 @@ test('data/deal-terms.json entries are well formed', () => {
     for (const l of e.later ?? []) assert.ok(l.amount > 0 && l.how, id);
   }
 });
+
+test('a Gemini read becomes an entry, or is refused when its numbers aren\'t in the post', async () => {
+  const { toEntry } = await import('./ai-terms.mjs');
+  const text = 'Title: Four Leaf $550\nReceive a $350 checking bonus with a direct deposit of $500+ within 90 days. An additional $100 after 12 months and $100 after 24 months.';
+  const ans = {
+    upfront: 350, how: 'A $500+ direct deposit within 90 days.',
+    dd: { required: true, total: 500, windowDays: 90, deposits: 1, months: null },
+    bal: { required: false }, tx: 0,
+    later: [{ amount: 100, how: '12 months' }, { amount: 100, how: '24 months' }],
+    extras: ['Enroll in eStatements — within 60 days'],
+  };
+  assert.deepEqual(toEntry(ans, text), {
+    upfront: 350, how: 'A $500+ direct deposit within 90 days',
+    dd: [500, 90, 1, null], bal: 0, tx: 0,
+    later: [{ amount: 100, how: '12 months' }, { amount: 100, how: '24 months' }],
+    extras: ['Enroll in eStatements, within 60 days'],
+  });
+  // $450 = $350 + $100 is allowed (two amounts in the post); $999 isn't.
+  assert.equal(toEntry({ ...ans, upfront: 450 }, text).upfront, 450);
+  assert.throws(() => toEntry({ ...ans, upfront: 999 }, text), /isn't in the post/);
+  assert.throws(() => toEntry({ ...ans, dd: { ...ans.dd, windowDays: 900 } }, text), /DD window/);
+});
+
+test('Gemini entries are applied and marked as read by AI', () => {
+  const d = applyTerms(fourLeaf, { hash: termsHash(fourLeaf), by: 'gemini', on: '2026-10-19', upfront: 350 });
+  assert.deepEqual(d.termsBy, { ai: true, on: '2026-10-19' });
+  assert.equal(applyTerms(fourLeaf, { hash: termsHash(fourLeaf), upfront: 350 }).termsBy, null);
+});

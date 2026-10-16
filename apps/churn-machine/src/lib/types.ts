@@ -34,6 +34,8 @@ export interface Deal {
   bonusText: string | null;
   /** True when the terms below were checked by hand (data/deal-terms.json); false for new or rewritten deals. */
   termsChecked?: boolean;
+  /** Set when the checked terms were read by Gemini (new or changed deals), not by hand. */
+  termsBy?: { ai: true; on: string | null } | null;
   /** Checked deals: the post's headline amount (bonusMax is then the upfront part only). */
   bonusListed?: number | null;
   /** Checked deals: what earns the upfront bonus, in a sentence. */

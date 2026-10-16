@@ -56,6 +56,12 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   back to the parser, marked unchecked. To check one, read the post and
   add/update its entry (hash from `termsHash`). See
   [ADR 0012](docs/adr/0012-hand-checked-deal-terms.md).
+- `scripts/ai-terms.mjs` — during the refresh, Gemini (Vertex AI in
+  `vuonghome`, no API key) reads deals whose terms are new or changed, with
+  sanity checks; entries are saved with `by: "gemini"` and CI commits
+  `deal-terms.json` back to main. Pages of those deals say "read by AI".
+  `CHURN_AI_TERMS=0` skips it. See
+  [ADR 0013](docs/adr/0013-gemini-checks-changed-deal-terms.md).
 - `scripts/parse-deals.mjs` — all parsing, regex-only and deterministic.
   Unknown → `null` → UI says "see post"; never guess. Tested with real DoC
   snippets in `parse-deals.test.mjs`; when you fix a misread deal, add its

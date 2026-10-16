@@ -149,7 +149,8 @@ export function DealSections({ deal: d, today, baselineApy, full = false }: {
                 <ul>{d.later!.map((l, i) => <li key={i}>{usd(l.amount)}: {l.how}</li>)}</ul>
               </div>
             )}
-            {d.termsChecked === false && <div className="raw">These terms changed since they were last checked by hand, so the numbers are the automatic read. Check the post.</div>}
+            {d.termsChecked === false && <div className="raw">These terms changed since they were last checked, so the numbers are the automatic read. Check the post.</div>}
+            {d.termsBy?.ai && <div className="raw">These terms are new or changed, so they were read by AI{d.termsBy.on ? ` on ${shortDate(d.termsBy.on, today)}` : ''}, not by hand. Check the post before you count on them.</div>}
             {d.bonusPostMax != null && (
               <div className="raw">The post’s terms are for {usd(d.bonusPostMax)}, so value and plans count that. The higher amount may be a newer or portal offer; check the post.</div>
             )}

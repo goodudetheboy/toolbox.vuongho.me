@@ -5,11 +5,21 @@
 // those apart, so these were read deal by deal, once, on 2026-10-16.
 // See docs/adr/0012-hand-checked-deal-terms.md.
 //
+// Entries for deals that are new or changed since then are read by Gemini during
+// the refresh (scripts/ai-terms.mjs) and marked `by: "gemini"` with the date.
+//
 // Each entry carries a hash of the deal's terms text. When DoC rewrites a
 // deal's terms the hash stops matching and the deal falls back to the parser
 // (marked unchecked), rather than showing stale numbers.
 
 import { createHash } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
+
+/** Saves deal-terms.json, one deal per line, sorted, so diffs stay small. */
+export function writeTerms(file, terms) {
+  const ids = Object.keys(terms).sort();
+  writeFileSync(file, `{\n${ids.map((id) => `  ${JSON.stringify(id)}: ${JSON.stringify(terms[id])}`).join(',\n')}\n}\n`);
+}
 
 /** Hash of the text the terms were read from. */
 export function termsHash(deal) {
@@ -37,6 +47,8 @@ export function applyTerms(deal, entry) {
   const out = {
     ...deal,
     termsChecked: true,
+    // Who read the terms: by hand, or Gemini (with the date) for new or changed deals.
+    termsBy: entry.by === 'gemini' ? { ai: true, on: entry.on ?? null } : null,
     // What the post headlines (may include later money or a different tier).
     bonusListed: deal.bonusPostMax ?? deal.bonusMax,
     bonusMax: entry.upfront,

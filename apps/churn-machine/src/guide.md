@@ -36,12 +36,12 @@ The planner leaves out the same banks.
 
 ### Upfront vs later money
 
-Some deals advertise more than you'll get for the sign-up requirements: part of the bonus only comes after you keep direct deposits going for 12 or 24 months, or it's paid a little each month for a year. Every deal on the list was checked by hand, and the app only counts the **upfront** part, the money you get once the sign-up requirements are done. Values, sorting, filters and plans all use it.
+Some deals advertise more than you'll get for the sign-up requirements: part of the bonus only comes after you keep direct deposits going for 12 or 24 months, or it's paid a little each month for a year. Every deal on the list was checked, and the app only counts the **upfront** part, the money you get once the sign-up requirements are done. Values, sorting, filters and plans all use it.
 
 - A deal's page shows "Listed as $X" when the headline differs, what earns the upfront bonus, and **Later, not counted** with any long-haul money.
 - In the list, a deal with long-haul money shows "+$X later, not counted".
 - A deal that only pays over a year or more counts as $0 and isn't planned.
-- New deals, and deals whose post was rewritten since the check, use the automatic read of the post; their page says so.
+- New deals, and deals whose post was rewritten since the check, are read by AI (Google's Gemini) when the deals refresh. Their page says "read by AI" with the date, so check the post before counting on them. If the AI's answer doesn't hold up (say, an amount that isn't in the post), the deal uses the automatic read instead, and its page says so.
 
 ### A deal's details
 

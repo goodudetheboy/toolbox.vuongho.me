@@ -6,6 +6,10 @@
 //
 //   node scripts/refresh-deals.mjs              # fetch live, write public/deals.json
 //   CHURN_CACHE_DIR=/tmp/doc node scripts/...   # reuse/save raw API responses (dev)
+//   CHURN_AI_TERMS=0 node scripts/...           # skip the Gemini check of changed terms
+//
+// Deals whose terms are new or changed since data/deal-terms.json was written are
+// read by Gemini (scripts/ai-terms.mjs) and their entries saved back there.
 //
 // If the fetch fails the existing deals.json is left alone and the script exits 0
 // with a warning, so a DoC outage never blocks a deploy (the app shows the data date).
@@ -13,8 +17,9 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseIndex, parseDeal } from './parse-deals.mjs';
-import { applyTerms } from './deal-terms.mjs';
+import { parseIndex, parseDeal, htmlToLines } from './parse-deals.mjs';
+import { applyTerms, termsHash, writeTerms } from './deal-terms.mjs';
+import { aiToken, askGemini, dealText, MODEL, toEntry } from './ai-terms.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(here, '..', 'public', 'deals.json');
@@ -67,17 +72,19 @@ async function main() {
 
   const terms = JSON.parse(readFileSync(TERMS, 'utf8'));
   const seen = new Set();
-  const deals = [];
+  const parsed = [];
   for (const entry of entries) {
     const post = posts.get(entry.slugs[0]) ?? null;
-    const parsed = parseDeal(entry, post);
-    const deal = applyTerms(parsed, terms[parsed.id]);
+    const deal = parseDeal(entry, post);
     // The same post is sometimes listed under two headings (e.g. state + business);
     // keep the first, which is the higher-ranked spot.
     if (seen.has(deal.id)) continue;
     seen.add(deal.id);
-    deals.push({ ...deal, rank: deals.length + 1 });
+    parsed.push({ entry, post, deal });
   }
+
+  const ai = await checkChangedTerms(parsed, terms);
+  const deals = parsed.map(({ deal }, i) => ({ ...applyTerms(deal, terms[deal.id]), rank: i + 1 }));
 
   const out = {
     source: `https://www.doctorofcredit.com/${INDEX_SLUG}/`,
@@ -88,7 +95,33 @@ async function main() {
   writeFileSync(OUT, `${JSON.stringify(out)}\n`);
   const missing = deals.filter((d) => !d.hasGlance).length;
   const unchecked = deals.filter((d) => !d.termsChecked).length;
-  console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block, ${unchecked} new or changed since their terms were checked)`);
+  console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block, ${ai}, ${unchecked} still unchecked)`);
+}
+
+const AI_MAX = 60;
+
+/** Has Gemini read the deals whose terms changed; saves the new entries to deal-terms.json. */
+async function checkChangedTerms(parsed, terms) {
+  // Without a post there are no terms to read, only the list's one-liner.
+  const changed = parsed.filter(({ post, deal }) => post && terms[deal.id]?.hash !== termsHash(deal));
+  if (!changed.length) return 'no changed terms to read';
+  if (process.env.CHURN_AI_TERMS === '0' || !aiToken()) return `${changed.length} changed terms not checked (no Gemini access)`;
+  const today = new Date().toISOString().slice(0, 10);
+  let ok = 0;
+  const failed = [];
+  for (const { entry, post, deal } of changed.slice(0, AI_MAX)) {
+    const text = dealText(entry, post ? htmlToLines(post.content.rendered) : []);
+    try {
+      const read = toEntry(await askGemini(text), text);
+      terms[deal.id] = { hash: termsHash(deal), by: 'gemini', on: today, ...read };
+      ok++;
+    } catch (err) {
+      failed.push(`${deal.id}: ${err.message}`);
+    }
+  }
+  if (ok) writeTerms(TERMS, terms);
+  for (const f of failed) console.warn(`::warning::Gemini couldn't check ${f}`);
+  return `${ok} of ${changed.length} changed terms checked by ${MODEL}`;
 }
 
 main().catch((err) => {

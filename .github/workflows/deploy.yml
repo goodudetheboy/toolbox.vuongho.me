@@ -9,6 +9,10 @@ on:
     - cron: '17 11 * * 1'
   workflow_dispatch:
 
+# Write: the churn-machine refresh commits Gemini's reads of changed deal terms.
+permissions:
+  contents: write
+
 concurrency:
   group: deploy
   cancel-in-progress: false
@@ -71,8 +75,27 @@ jobs:
 
       # Pulls the latest deals via Doctor of Credit's WordPress API (~8 requests).
       # Never fails the deploy: on error the committed deals.json is kept.
+      # Deals whose terms are new or changed are read by Gemini through Vertex AI
+      # (this service account has roles/aiplatform.user); see churn-machine ADR 0013.
       - name: Refresh churn-machine deals
-        run: npm run refresh -w apps/churn-machine
+        run: GEMINI_TOKEN=$(gcloud auth print-access-token) npm run refresh -w apps/churn-machine
+
+      # Keeps Gemini's reads so the next run doesn't read the same deals again.
+      # Pushes made with GITHUB_TOKEN don't start another deploy.
+      - name: Save churn-machine deal terms read by Gemini
+        run: |
+          FILE=apps/churn-machine/data/deal-terms.json
+          if git diff --quiet -- "$FILE"; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "Churn machine: Gemini read changed deal terms"
+          for i in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          echo "::warning::Couldn't push $FILE; the next deploy will read those deals again"
 
       - run: npm run build
       - run: npm run combine
