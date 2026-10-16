@@ -59,9 +59,6 @@ export const NO_SPLIT_LIMIT = 99;
 export const SPLIT_OPTIONS = [1, 2, 3, 4, 5, 6, NO_SPLIT_LIMIT];
 export const splitLabel = (n: number) => (n >= NO_SPLIT_LIMIT ? '∞' : `${n}`);
 export const DEFAULT_SPLITS = 3;
-/** A split count outside the choices (older inputs could be 8, 10 or 20) becomes ∞. */
-export const snapSplits = (n: number) =>
-  !Number.isFinite(n) ? DEFAULT_SPLITS : n > 6 ? NO_SPLIT_LIMIT : Math.max(Math.round(n), 1);
 export type Pace = (typeof PACES)[number];
 export const PACE_LABELS: Record<Pace, string> = { 1: 'Relaxed', 2: 'Steady', 3: 'Aggressive' };
 

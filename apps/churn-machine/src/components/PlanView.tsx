@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, snapSplits, SPLIT_OPTIONS, splitLabel, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
+  buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, SPLIT_OPTIONS, splitLabel, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
 import { shortDate } from '../lib/dates';
 import { compactUsd, requirementSummary, usd } from '../lib/value';
@@ -80,7 +80,6 @@ export function PlanView({
     payFreq,
     startOn,
     picks: custom ? picks : [],
-    maxSplits: snapSplits(stored.maxSplits),
     firstPayday: rollPayday(stored.firstPayday, start, payFreq),
     state,
     excludeBanks: exclusion.effective,
