@@ -285,17 +285,9 @@ export function PlanView({
             <div className="step-kicker">Step 2 of 3</div>
             <h1>How do you want to plan?</h1>
           </div>
-          <div className="choice-tiles">
-            <button type="button" className="choice-tile" onClick={() => goStep('suggested')}>
-              <span className="choice-name">Suggest plans for me</span>
-              <span className="choice-sub">We pick the deals and lay out a few strategies to compare, from the most money to the least effort.</span>
-              <span className="choice-go" aria-hidden="true">→</span>
-            </button>
-            <button type="button" className="choice-tile" onClick={() => goStep('pick')}>
-              <span className="choice-name">Build my own</span>
-              <span className="choice-sub">Pick the banks you want and we’ll fit them around your paychecks, and tell you if any don’t fit.</span>
-              <span className="choice-go" aria-hidden="true">→</span>
-            </button>
+          <div className="choice-buttons">
+            <button type="button" className="btn primary" onClick={() => goStep('suggested')}>Suggest strategies</button>
+            <button type="button" className="btn primary" onClick={() => goStep('pick')}>Build my own</button>
           </div>
         </div>
       )}

@@ -55,7 +55,7 @@ Plan walks you through it one screen at a time. **← back** links (and your bro
 
 Then **Next**.
 
-**Step 2, How do you want to plan?** Choose **Suggest plans for me** (we pick the deals and show strategies to compare) or **Build my own** (you pick the deals, see Custom plans below).
+**Step 2, How do you want to plan?** Choose **Suggest strategies** (we pick the deals and show strategies to compare) or **Build my own** (you pick the deals, see Custom plans below).
 
 **Step 3, the plans.** Suggested plans are listed under **Plans for you**. Every setting is right there in **Your settings** (the panel on the right; on a phone, tap it to open), so you never have to go back to change something:
 
