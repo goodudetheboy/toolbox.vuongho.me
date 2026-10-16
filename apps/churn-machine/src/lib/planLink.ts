@@ -60,7 +60,7 @@ export function decodePlanLink(search: string, today: string): PlanLink | null {
     firstPayday: rollPayday(from, today, payFreq),
     months: num(q.get('mo'), 6, 1, 24),
     cash: num(q.get('cash'), 0),
-    maxSplits: num(q.get('split'), 3, 1, 6),
+    maxSplits: num(q.get('split'), 5, 1, 20),
     leadDays: num(q.get('lead'), 7, 0, 60),
     minBonus: num(q.get('min'), 0),
     noHardPull: opt.has('hp'),

@@ -278,6 +278,8 @@ select.input { cursor: pointer; }
 }
 .segmented button:hover { color: var(--ink); }
 .segmented button.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(17, 17, 24, 0.12); }
+.field > .segmented { display: flex; }
+.field > .segmented button { flex: 1; min-width: 0; padding-left: 0; padding-right: 0; }
 
 .more { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-weight: 650; font-size: 14px; }
 .more:hover { text-decoration: underline; }

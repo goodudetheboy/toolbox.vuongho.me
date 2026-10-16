@@ -53,6 +53,11 @@ export const OBJECTIVES: Record<Objective, { label: string; hint: string }> = {
 /** The goals the planner suggests on its own (custom plans are built from your picks). */
 export const SUGGESTED: Objective[] = ['money', 'big', 'easy', 'fast'];
 export const PACES = [1, 2, 3] as const;
+/** The choices for "Split a paycheck across up to". */
+export const SPLIT_OPTIONS = [1, 2, 5, 8, 10, 20];
+export const DEFAULT_SPLITS = 5;
+/** A split count that isn't one of the choices (older saved inputs had 3 or 4, mostly the old default) becomes the default. */
+export const snapSplits = (n: number) => (SPLIT_OPTIONS.includes(n) ? n : DEFAULT_SPLITS);
 export type Pace = (typeof PACES)[number];
 export const PACE_LABELS: Record<Pace, string> = { 1: 'Relaxed', 2: 'Steady', 3: 'Aggressive' };
 

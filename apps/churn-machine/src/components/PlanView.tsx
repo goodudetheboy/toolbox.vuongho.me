@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  buildStrategies, buildStrategy, OBJECTIVES, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
+  buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, snapSplits, SPLIT_OPTIONS, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
 import { shortDate } from '../lib/dates';
 import { compactUsd, requirementSummary, usd } from '../lib/value';
@@ -21,7 +21,7 @@ function defaults(today: string): StoredInputs {
     firstPayday: rollPayday(today, today, 'semimonthly'),
     months: 6,
     cash: 0,
-    maxSplits: 3,
+    maxSplits: DEFAULT_SPLITS,
     leadDays: 7,
     minBonus: 100,
     noHardPull: true,
@@ -80,6 +80,7 @@ export function PlanView({
     payFreq,
     startOn,
     picks: custom ? picks : [],
+    maxSplits: snapSplits(stored.maxSplits),
     firstPayday: rollPayday(stored.firstPayday, start, payFreq),
     state,
     excludeBanks: exclusion.effective,
@@ -183,8 +184,8 @@ export function PlanView({
                 </label>
                 <label className="field">
                   Split a paycheck across up to
-                  <Segmented ariaLabel="Max splits" value={stored.maxSplits} onChange={(maxSplits) => set({ maxSplits })}
-                    options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}` }))} />
+                  <Segmented ariaLabel="Max splits" value={inputs.maxSplits} onChange={(maxSplits) => set({ maxSplits })}
+                    options={SPLIT_OPTIONS.map((n) => ({ value: n, label: `${n}` }))} />
                   <span className="hint">Accounts per paycheck your payroll allows.</span>
                 </label>
                 <label className="field">
