@@ -17,8 +17,12 @@ export const DealsIcon = () => (
 export const PlanIcon = () => (
   <svg {...base}><path d="M3 17l5-5 4 4 8-8" /><path d="M15 8h5v5" /></svg>
 );
+// My Bag: a carton of fries.
 export const AccountsIcon = () => (
-  <svg {...base}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><path d="M7 15h3" /></svg>
+  <svg {...base}>
+    <path d="M7.5 10.5 6.8 4.5M10.5 10.5V3M13.5 10.5V3.5M16.5 10.5l.8-5.5" />
+    <path d="M4.5 10c2.2 1.4 4.7 2 7.5 2s5.3-.6 7.5-2l-1.7 11H6.2Z" />
+  </svg>
 );
 /** The app icon itself (public/icon.svg), rounded like a home-screen icon. */
 export const LogoMark = () => (
