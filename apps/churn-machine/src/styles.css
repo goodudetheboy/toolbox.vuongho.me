@@ -833,3 +833,8 @@ textarea.input { resize: vertical; }
 @media (display-mode: standalone) {
   .top { padding-top: env(safe-area-inset-top); }
 }
+
+/* Custom plans: picks that didn't fit */
+.missed { margin: 8px 0 0; padding-left: 18px; text-align: left; }
+.missed li { margin: 3px 0; }
+.order-card > .segmented { margin-top: 10px; }

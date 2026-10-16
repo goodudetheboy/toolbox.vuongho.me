@@ -3,7 +3,7 @@
 import type { Deal } from './types';
 import { accountFromItem, type Account, type SavedStrategy } from './accounts';
 import {
-  isPayday, nextPayday, OBJECTIVES, PACE_LABELS, requirementOf, revisePlan, rollPayday, type Committed, type Objective, type Pace, type PlanInputs,
+  isPayday, nextPayday, OBJECTIVES, planStartOn, PACE_LABELS, requirementOf, revisePlan, rollPayday, type Committed, type Objective, type Pace, type PlanInputs,
 } from './planner';
 import { addDays, maxIso, shortDate } from './dates';
 import { ASSUMED } from './value';
@@ -22,10 +22,15 @@ export function planSettings(s: SavedStrategy): PlanSettings {
   const objective = (Object.keys(OBJECTIVES) as Objective[]).find((o) => o === obj || s.name.startsWith(OBJECTIVES[o].label)) ?? 'money';
   const p = Number(pace) || (Object.entries(PACE_LABELS).find(([, l]) => s.name.endsWith(l))?.[0] ?? 2);
   // Plans saved before the pay schedule setting were all every 2 weeks.
-  const inputs: PlanInputs = s.inputs ? { ...s.inputs, payFreq: s.inputs.payFreq ?? 'biweekly' } : {
+  const inputs: PlanInputs = s.inputs ? {
+    ...s.inputs,
+    payFreq: s.inputs.payFreq ?? 'biweekly',
+    startOn: s.inputs.startOn ?? null,
+    picks: s.inputs.picks ?? [],
+  } : {
     paycheck: s.paycheck, payFreq: 'biweekly', firstPayday: s.firstPayday, months: s.months, state: null, cash: 0, maxSplits: 3,
     leadDays: 7, minBonus: 100, noHardPull: true, noChexSensitive: false, online: true, business: false,
-    includeDatePassed: false, excludeBanks: [],
+    includeDatePassed: false, excludeBanks: [], startOn: null, picks: [],
   };
   return {
     inputs,
@@ -71,7 +76,9 @@ export function previewRevision(
   const set = edited ?? planSettings(saved);
   const name = strategyName(set.objective, set.pace);
   const freq = set.inputs.payFreq;
-  const payday = rollPayday(set.inputs.firstPayday, today, freq);
+  // A plan that hasn't started yet is re-planned from its start date.
+  const from = planStartOn(set.inputs, today);
+  const payday = rollPayday(set.inputs.firstPayday, from, freq);
   const dealOf = (a: Account) => deals.find((d) => d.id === a.dealId) ?? null;
   const keyOf = (a: Account) => a.dealId ?? a.id;
   const onPayday = (iso: string) => isPayday(iso, payday, freq);
@@ -98,7 +105,7 @@ export function previewRevision(
   });
 
   const inputs: PlanInputs = { ...set.inputs, firstPayday: payday, excludeBanks: [...set.inputs.excludeBanks, ...alsoExclude] };
-  const r = revisePlan(deals, inputs, set.objective, set.pace, today, set.baselineApy, set.endsOn, committed);
+  const r = revisePlan(deals, inputs, set.objective, set.pace, from, set.baselineApy, set.endsOn, committed);
 
   const lines: RevisionPreview['lines'] = [];
   const update: RevisionPreview['change']['update'] = [];

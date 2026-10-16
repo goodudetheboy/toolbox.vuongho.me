@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  buildStrategies, OBJECTIVES, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
+  buildStrategies, buildStrategy, OBJECTIVES, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
 import { monthLabel, shortDate } from '../lib/dates';
 import { compactUsd, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { Check, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, type Exclusion } from './bits';
+import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
 import { Sheet } from './DealModal';
 import { decodePlanLink, encodePlanLink } from '../lib/planLink';
@@ -29,8 +29,12 @@ function defaults(today: string): StoredInputs {
     online: true,
     business: false,
     includeDatePassed: false,
+    startOn: null,
+    picks: [],
   };
 }
+
+type Mode = 'suggested' | 'custom';
 
 export function PlanView({
   deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy,
@@ -51,22 +55,34 @@ export function PlanView({
   const [stored, setStored] = usePersisted<StoredInputs>('plan-inputs', defaults(today));
   const [sort, setSort] = usePersisted<StrategySort>('plan-sort', 'net');
   const [maxAccounts, setMaxAccounts] = usePersisted<number>('plan-max-accounts', 0);
+  const [mode, setMode] = usePersisted<Mode>('plan-mode', 'suggested');
+  const custom = mode === 'custom';
   const set = (patch: Partial<StoredInputs>) => setStored({ ...stored, ...patch });
 
   // Inputs stored before the pay schedule setting get the 1st and 15th.
   const payFreq = stored.payFreq ?? 'semimonthly';
+  const startOn = stored.startOn && stored.startOn > today ? stored.startOn : null;
+  const start = startOn ?? today;
   const inputs: PlanInputs = {
     ...stored,
     payFreq,
-    firstPayday: rollPayday(stored.firstPayday, today, payFreq),
+    startOn,
+    picks: custom ? stored.picks ?? [] : [],
+    firstPayday: rollPayday(stored.firstPayday, start, payFreq),
     state,
     excludeBanks: exclusion.effective,
   };
   const key = JSON.stringify(inputs);
   const strategies = useMemo(
-    () => buildStrategies(deals, inputs, today, baselineApy),
+    () => (custom && !inputs.picks.length ? [] : buildStrategies(deals, inputs, today, baselineApy, custom)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deals, key, today, baselineApy],
+    [deals, key, today, baselineApy, custom],
+  );
+  // When none of your picks can be planned, say why for each.
+  const noFit = useMemo(
+    () => (custom && inputs.picks.length && !strategies.length ? buildStrategy(deals, inputs, 'custom', 3, today, baselineApy).missed ?? [] : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [strategies],
   );
   const shown = sortStrategies(strategies, sort).filter((s) => !maxAccounts || s.totals.accounts <= maxAccounts);
   const linkFor = (i: PlanInputs) => encodePlanLink({ inputs: i, baselineApy, dealsDate });
@@ -76,7 +92,7 @@ export function PlanView({
   const linkKey = link ? JSON.stringify(link) : '';
   const linked = useMemo(() => {
     if (!route.strategyId) return null;
-    const list = link ? buildStrategies(deals, link.inputs, today, link.baselineApy) : strategies;
+    const list = link ? buildStrategies(deals, link.inputs, today, link.baselineApy, route.strategyId.startsWith('custom-')) : strategies;
     return list.find((x) => x.id === route.strategyId) ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deals, route.strategyId, linkKey, key, today]);
@@ -97,8 +113,32 @@ export function PlanView({
         <aside className="layout-side">
           <div className="card order-card">
             <h3>Build your plan</h3>
+            <Segmented<Mode>
+              ariaLabel="Plan type"
+              value={mode}
+              onChange={setMode}
+              options={[{ value: 'suggested', label: 'Suggested' }, { value: 'custom', label: 'Custom' }]}
+            />
+            {custom && (
+              <div className="field" style={{ marginTop: 14 }}>
+                Deals you want
+                <DealPicker deals={deals} value={inputs.picks} onChange={(picks) => set({ picks })} today={today} />
+                <span className="hint">We’ll schedule these around your paychecks and tell you if any don’t fit.</span>
+              </div>
+            )}
             <div className="order-rows">
-              <PaycheckRows paycheck={stored.paycheck} payFreq={payFreq} firstPayday={inputs.firstPayday} today={today} onChange={set} />
+              <PaycheckRows paycheck={stored.paycheck} payFreq={payFreq} firstPayday={inputs.firstPayday} today={start} onChange={set} />
+              <label className="order-row">
+                <span>Start</span>
+                <input
+                  className="input"
+                  type="date"
+                  aria-label="Plan start date"
+                  value={start}
+                  min={today}
+                  onChange={(e) => e.target.value && set({ startOn: e.target.value > today ? e.target.value : null })}
+                />
+              </label>
               <div className="order-row">
                 <span>Plan for</span>
                 <Segmented
@@ -112,7 +152,7 @@ export function PlanView({
             <div style={{ marginTop: 14 }}>
               <Disclosure label="More options">
                 <div className="stack" style={{ marginTop: 12 }}>
-                  <ExcludeBanks x={exclusion} />
+                  {!custom && <ExcludeBanks x={exclusion} />}
                   <label className="field">
                     Cash I can park
                     <MoneyInput ariaLabel="Cash to park" value={stored.cash} onChange={(v) => set({ cash: v ?? 0 })} />
@@ -130,16 +170,20 @@ export function PlanView({
                       options={[3, 7, 14].map((n) => ({ value: n, label: `${n} days` }))} />
                     <span className="hint">Time to switch your direct deposit.</span>
                   </label>
-                  <label className="field">
-                    Skip bonuses under
-                    <MoneyInput ariaLabel="Minimum bonus" value={stored.minBonus} onChange={(v) => set({ minBonus: v ?? 0 })} />
-                  </label>
-                  <Check checked={stored.noHardPull} onChange={(noHardPull) => set({ noHardPull })}>Avoid hard credit pulls</Check>
-                  <Check checked={stored.online} onChange={(online) => set({ online })}>Online only (no branch visits)</Check>
-                  <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
-                  <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
+                  {!custom && (
+                    <>
+                      <label className="field">
+                        Skip bonuses under
+                        <MoneyInput ariaLabel="Minimum bonus" value={stored.minBonus} onChange={(v) => set({ minBonus: v ?? 0 })} />
+                      </label>
+                      <Check checked={stored.noHardPull} onChange={(noHardPull) => set({ noHardPull })}>Avoid hard credit pulls</Check>
+                      <Check checked={stored.online} onChange={(online) => set({ online })}>Online only (no branch visits)</Check>
+                      <Check checked={stored.noChexSensitive} onChange={(noChexSensitive) => set({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
+                      <Check checked={stored.business} onChange={(business) => set({ business })}>Include business accounts</Check>
+                    </>
+                  )}
                   <Check checked={stored.includeDatePassed} onChange={(includeDatePassed) => set({ includeDatePassed })}>Include deals past their listed end date</Check>
-                  <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored(defaults(today))}>Reset</button>
+                  <button type="button" className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => setStored({ ...defaults(today), picks: stored.picks ?? [] })}>Reset</button>
                 </div>
               </Disclosure>
             </div>
@@ -161,7 +205,14 @@ export function PlanView({
             </span>
           </div>
 
-          {shown.length === 0 ? (
+          {custom && !inputs.picks.length ? (
+            <div className="empty">Pick the deals you want and we’ll schedule them around your paychecks.</div>
+          ) : shown.length === 0 && noFit.length ? (
+            <div className="empty">
+              None of your picks can be planned with these settings:
+              <ul className="missed">{noFit.map((m) => <li key={m.dealId}><b>{m.bank}</b> {m.reason}.</li>)}</ul>
+            </div>
+          ) : shown.length === 0 ? (
             <div className="empty">No plan fits. Try a longer plan, a bigger paycheck, more cash to park, or fewer restrictions.</div>
           ) : (
             <div className="items">
@@ -172,11 +223,11 @@ export function PlanView({
                       <span className="item-main">
                         <span className="item-name">{s.name}</span>
                         <span className="item-sub">
-                          {s.totals.accounts} accounts
+                          {custom ? `${s.totals.accounts} of ${inputs.picks.length} deals fit` : `${s.totals.accounts} accounts`}
                           {s.totals.peakParked > 0 && ` · parks up to ${compactUsd(s.totals.peakParked)}`}
                         </span>
                       </span>
-                      <Sparkline points={payoutPoints(s)} start={today} />
+                      <Sparkline points={payoutPoints(s)} start={start} />
                       <span className="item-side">
                         <span className="pill">{usd(s.totals.net)}</span>
                         <span className="item-net">net</span>
@@ -206,6 +257,7 @@ export function PlanView({
                 <div className="hero-kicker">{OBJECTIVES[linked.objective].hint}</div>
                 <h1 className="hero-name">{linked.name}</h1>
                 <p className="muted small" style={{ margin: '6px 0 0' }}>
+                  {linkInputs.startOn && `Starts ${shortDate(linkInputs.startOn, today)} · `}
                   {usd(linkInputs.paycheck)} paychecks {payWhen(linkInputs.payFreq)} from {shortDate(linkInputs.firstPayday, today)} · {linkInputs.months} months
                   {linkInputs.cash > 0 && ` · ${usd(linkInputs.cash)} to park`}
                   {linkInputs.state && ` · ${linkInputs.state}`}
@@ -218,7 +270,9 @@ export function PlanView({
                     style={{ marginTop: 8, marginLeft: -14 }}
                     onClick={() => {
                       const { state: _s, excludeBanks: _e, ...rest } = link.inputs;
-                      setStored(rest);
+                      const linkCustom = linked.objective === 'custom';
+                      setStored({ ...rest, picks: linkCustom ? rest.picks : stored.picks ?? [] });
+                      setMode(linkCustom ? 'custom' : 'suggested');
                     }}
                   >
                     Use these settings in my plan
@@ -228,6 +282,12 @@ export function PlanView({
               {link?.dealsDate && link.dealsDate !== dealsDate && (
                 <div className="notice">
                   This link was made with deals from {shortDate(link.dealsDate, today)}. It’s rebuilt from today’s deals, so it may differ from what was shared.
+                </div>
+              )}
+              {linked.missed && linked.missed.length > 0 && (
+                <div className="notice">
+                  {linked.missed.length === 1 ? 'One of your picks didn’t fit:' : `${linked.missed.length} of your picks didn’t fit:`}
+                  <ul className="missed">{linked.missed.map((m) => <li key={m.dealId}><b>{m.bank}</b> {m.reason}.</li>)}</ul>
                 </div>
               )}
               <StrategyDetail strategy={linked} today={today} onOpenDeal={onOpenDeal} />

@@ -8,7 +8,7 @@ import {
 import { useEffect, useState } from 'react';
 import { db } from './firebase';
 import type { Deal } from './types';
-import type { PlanInputs, PlanItem, Strategy } from './planner';
+import { planStartOn, type PlanInputs, type PlanItem, type Strategy } from './planner';
 import { addDays, todayIso } from './dates';
 import { ASSUMED, keepOpenDays } from './value';
 import { bankKey } from './filters';
@@ -175,7 +175,7 @@ export async function saveStrategy(uid: string, s: Strategy, inputs: PlanInputs,
     planId: s.id,
     inputs,
     baselineApy,
-    endsOn: addDays(todayIso(), Math.round(inputs.months * 30.4)),
+    endsOn: addDays(planStartOn(inputs, todayIso()), Math.round(inputs.months * 30.4)),
     revisions: [],
     createdAt: serverTimestamp(),
   });

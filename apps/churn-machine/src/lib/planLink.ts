@@ -25,6 +25,8 @@ export function encodePlanLink({ inputs, baselineApy, dealsDate }: PlanLink): st
   if (inputs.payFreq === 'semimonthly') q.set('pf', 'sm');
   q.set('from', inputs.firstPayday);
   q.set('mo', String(inputs.months));
+  if (inputs.startOn) q.set('start', inputs.startOn);
+  if (inputs.picks.length) q.set('only', inputs.picks.join('|'));
   if (inputs.cash) q.set('cash', String(inputs.cash));
   q.set('split', String(inputs.maxSplits));
   q.set('lead', String(inputs.leadDays));
@@ -68,6 +70,9 @@ export function decodePlanLink(search: string, today: string): PlanLink | null {
     includeDatePassed: opt.has('pd'),
     state: /^[A-Z]{2}$/.test(q.get('st') ?? '') ? q.get('st') : null,
     excludeBanks: (q.get('ex') ?? '').split('|').filter(Boolean),
+    // A start date that has passed just means "today".
+    startOn: /^\d{4}-\d{2}-\d{2}$/.test(q.get('start') ?? '') && q.get('start')! > today ? q.get('start') : null,
+    picks: (q.get('only') ?? '').split('|').filter(Boolean),
   };
   return { inputs, baselineApy: num(q.get('apy'), 4, 0, 50) / 100, dealsDate: q.get('d') };
 }

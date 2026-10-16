@@ -9,10 +9,10 @@ import {
   completeTask, neglected, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
 } from '../lib/tasks';
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
-import { OBJECTIVES, PACE_LABELS, payWhen, rollPayday, type Objective, type Pace } from '../lib/planner';
+import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, SUGGESTED, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
-import { BankPicker, Check, Disclosure, MoneyInput, PaycheckRows, Segmented } from './bits';
+import { BankPicker, Check, DealPicker, Disclosure, MoneyInput, PaycheckRows, Segmented } from './bits';
 import { Sheet } from './DealModal';
 import { AccountDetail } from './AccountsView';
 
@@ -72,7 +72,8 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
       <button type="button" className="back" onClick={onBack}>← My plans</button>
       <div className="hero">
         <div className="hero-kicker">
-          Today is {longToday(today)}{p.days ? ` · day ${Math.min(p.day, p.days)} of ${p.days}` : ''}
+          Today is {longToday(today)}
+          {p.start && p.start > today ? ` · starts ${shortDate(p.start, today)}` : p.days ? ` · day ${Math.min(p.day, p.days)} of ${p.days}` : ''}
         </div>
         <h1 className="hero-name">{s.name}</h1>
         <p className="muted small" style={{ margin: '6px 0 0' }}>
@@ -339,7 +340,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
   const original = planSettings(s);
   const start = planStart(original);
   const [draft, setDraft] = useState<PlanSettings>(() => (
-    { ...original, inputs: { ...original.inputs, firstPayday: rollPayday(original.inputs.firstPayday, today, original.inputs.payFreq) } }
+    { ...original, inputs: { ...original.inputs, firstPayday: rollPayday(original.inputs.firstPayday, planStartOn(original.inputs, today), original.inputs.payFreq) } }
   ));
   const [saving, setSaving] = useState(false);
   const setIn = (patch: Partial<PlanSettings['inputs']>) => {
@@ -353,6 +354,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
     [key, deals, accounts, today],
   );
   const i = draft.inputs;
+  const custom = draft.objective === 'custom';
 
   return (
     <Sheet
@@ -394,12 +396,20 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
       </p>
 
       <div className="stack edit-form">
-        <div className="field">
-          Goal
-          <Segmented<Objective> ariaLabel="Goal" value={draft.objective} onChange={(objective) => setDraft({ ...draft, objective })}
-            options={(Object.keys(OBJECTIVES) as Objective[]).map((o) => ({ value: o, label: OBJECTIVES[o].label }))} />
-          <span className="hint">{OBJECTIVES[draft.objective].hint}</span>
-        </div>
+        {custom ? (
+          <div className="field">
+            Deals in this plan
+            <DealPicker deals={deals} value={i.picks} onChange={(picks) => setIn({ picks })} today={today} />
+            <span className="hint">Accounts you’ve opened stay either way. Removing a deal you haven’t opened drops it.</span>
+          </div>
+        ) : (
+          <div className="field">
+            Goal
+            <Segmented<Objective> ariaLabel="Goal" value={draft.objective} onChange={(objective) => setDraft({ ...draft, objective })}
+              options={SUGGESTED.map((o) => ({ value: o, label: OBJECTIVES[o].label }))} />
+            <span className="hint">{OBJECTIVES[draft.objective].hint}</span>
+          </div>
+        )}
         <div className="field">
           Pace
           <Segmented<Pace> ariaLabel="Pace" value={draft.pace} onChange={(pace) => setDraft({ ...draft, pace })}
@@ -407,7 +417,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
           <span className="hint">Up to {draft.pace} new {draft.pace === 1 ? 'account' : 'accounts'} a month.</span>
         </div>
         <div className="order-rows">
-          <PaycheckRows paycheck={i.paycheck} payFreq={i.payFreq} firstPayday={i.firstPayday} today={today} onChange={setIn} />
+          <PaycheckRows paycheck={i.paycheck} payFreq={i.payFreq} firstPayday={i.firstPayday} today={planStartOn(i, today)} onChange={setIn} />
           <div className="order-row">
             <span>Plan length <span className="faint">ends ~{shortDate(draft.endsOn, today)}</span></span>
             <Segmented ariaLabel="Plan length" value={i.months} onChange={(months) => setIn({ months })}
@@ -417,10 +427,12 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
             <span>Cash I can park</span>
             <MoneyInput ariaLabel="Cash to park" value={i.cash} onChange={(v) => setIn({ cash: v ?? 0 })} />
           </label>
-          <label className="order-row">
-            <span>Skip bonuses under</span>
-            <MoneyInput ariaLabel="Minimum bonus" value={i.minBonus} onChange={(v) => setIn({ minBonus: v ?? 0 })} />
-          </label>
+          {!custom && (
+            <label className="order-row">
+              <span>Skip bonuses under</span>
+              <MoneyInput ariaLabel="Minimum bonus" value={i.minBonus} onChange={(v) => setIn({ minBonus: v ?? 0 })} />
+            </label>
+          )}
         </div>
         <label className="field">
           Split a paycheck across up to
@@ -432,16 +444,22 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
           <Segmented ariaLabel="Lead days" value={i.leadDays} onChange={(leadDays) => setIn({ leadDays })}
             options={[3, 7, 14].map((n) => ({ value: n, label: `${n} days` }))} />
         </label>
-        <Check checked={i.noHardPull} onChange={(noHardPull) => setIn({ noHardPull })}>Avoid hard credit pulls</Check>
-        <Check checked={i.online} onChange={(online) => setIn({ online })}>Online only (no branch visits)</Check>
-        <Check checked={i.noChexSensitive} onChange={(noChexSensitive) => setIn({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
-        <Check checked={i.business} onChange={(business) => setIn({ business })}>Include business accounts</Check>
+        {!custom && (
+          <>
+            <Check checked={i.noHardPull} onChange={(noHardPull) => setIn({ noHardPull })}>Avoid hard credit pulls</Check>
+            <Check checked={i.online} onChange={(online) => setIn({ online })}>Online only (no branch visits)</Check>
+            <Check checked={i.noChexSensitive} onChange={(noChexSensitive) => setIn({ noChexSensitive })}>Skip ChexSystems-sensitive banks</Check>
+            <Check checked={i.business} onChange={(business) => setIn({ business })}>Include business accounts</Check>
+          </>
+        )}
         <Check checked={i.includeDatePassed} onChange={(includeDatePassed) => setIn({ includeDatePassed })}>Include deals past their listed end date</Check>
-        <div className="field">
-          Leave out these banks
-          <BankPicker banks={banks} value={i.excludeBanks} onChange={(excludeBanks) => setIn({ excludeBanks })} placeholder="Pick banks to leave out" ariaLabel="Banks to leave out" />
-          <span className="hint">Banks in “Banks I have” are always left out.</span>
-        </div>
+        {!custom && (
+          <div className="field">
+            Leave out these banks
+            <BankPicker banks={banks} value={i.excludeBanks} onChange={(excludeBanks) => setIn({ excludeBanks })} placeholder="Pick banks to leave out" ariaLabel="Banks to leave out" />
+            <span className="hint">Banks in “Banks I have” are always left out.</span>
+          </div>
+        )}
       </div>
 
       <section className="section">

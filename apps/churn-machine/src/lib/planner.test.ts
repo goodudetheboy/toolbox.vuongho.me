@@ -26,7 +26,7 @@ function deal(id: string, over: Partial<Deal> = {}): Deal {
 const INPUTS: PlanInputs = {
   paycheck: 2000, payFreq: 'biweekly', firstPayday: '2026-10-23', months: 6, state: 'NY', cash: 0, maxSplits: 3, leadDays: 7,
   minBonus: 0, noHardPull: false, noChexSensitive: false, online: false, business: false,
-  includeDatePassed: false, excludeBanks: [],
+  includeDatePassed: false, excludeBanks: [], startOn: null, picks: [],
 };
 
 test('every planned deal gets its full direct deposit inside its window', () => {
@@ -186,4 +186,34 @@ test('a 1st-and-15th plan deposits only on the 1st and 15th, inside each window'
     const inWindow = item.deposits.filter((d) => d.date <= addDays(item.openOn, req.windowDays));
     assert.ok(inWindow.reduce((t, d) => t + d.amount, 0) >= req.need, `${item.deal.id} short of its DD`);
   }
+});
+
+test('a custom plan schedules only your picks, ignores filters, and says why a pick is left out', () => {
+  const deals = [
+    deal('a', { pull: 'hard', bonusMax: 50 }),
+    deal('b', { rank: 2 }),
+    deal('tx', { nationwide: false, states: ['TX'] }),
+    deal('other', { rank: 3, bonusMax: 900 }),
+  ];
+  const inputs: PlanInputs = { ...INPUTS, noHardPull: true, minBonus: 200, picks: ['a', 'b', 'tx'] };
+  const s = buildStrategy(deals, inputs, 'custom', 3, TODAY, 0.04);
+  assert.deepEqual(s.items.map((i) => i.deal.id).sort(), ['a', 'b']);
+  assert.equal(s.missed?.length, 1);
+  assert.equal(s.missed?.[0].dealId, 'tx');
+  assert.match(s.missed![0].reason, /state/);
+  // Suggested plans never come back as custom, and custom lists only custom.
+  assert.ok(buildStrategies(deals, inputs, TODAY, 0.04).every((x) => x.objective !== 'custom'));
+  assert.ok(buildStrategies(deals, inputs, TODAY, 0.04, true).every((x) => x.objective === 'custom'));
+});
+
+test('a later start date: nothing opens or gets paid before it', () => {
+  const deals = Array.from({ length: 6 }, (_, i) => deal(`d${i}`, { rank: i + 1 }));
+  const inputs: PlanInputs = { ...INPUTS, payFreq: 'semimonthly', firstPayday: '2026-11-01', startOn: '2027-01-10' };
+  const s = buildStrategy(deals, inputs, 'money', 3, TODAY, 0.04);
+  assert.ok(s.items.length > 0);
+  for (const i of s.items) assert.ok(i.openOn >= '2027-01-10', `${i.deal.id} opens ${i.openOn}`);
+  assert.equal(s.paychecks[0].date, '2027-01-15');
+  // A start date in the past is just today.
+  const past = buildStrategy(deals, { ...inputs, startOn: '2026-01-01' }, 'money', 3, TODAY, 0.04);
+  assert.equal(past.paychecks[0].date, '2026-11-01');
 });

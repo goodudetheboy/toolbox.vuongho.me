@@ -8,8 +8,8 @@
 // paycheck first, at most `maxSplits` accounts per paycheck, parked cash never
 // exceeds what you have). See docs/adr/0002-planner-greedy-with-full-resimulation.md.
 import type { Deal } from './types';
-import { addDays, daysBetween, maxIso } from './dates';
-import { ASSUMED, dealStatus, keepOpenDays, valueOf, type Value } from './value';
+import { addDays, daysBetween, maxIso, shortDate } from './dates';
+import { ASSUMED, dealStatus, keepOpenDays, usd, valueOf, type Value } from './value';
 import { availableIn, bankKey, isBusiness } from './filters';
 
 export interface PlanInputs {
@@ -36,15 +36,22 @@ export interface PlanInputs {
   includeDatePassed: boolean;
   /** Banks to skip (already have / had an account). Compared case-insensitively. */
   excludeBanks: string[];
+  /** First day of the plan; null (or a past date) means today. */
+  startOn: string | null;
+  /** A custom plan's deals (ids). Only used by the 'custom' objective. */
+  picks: string[];
 }
 
-export type Objective = 'money' | 'big' | 'easy' | 'fast';
+export type Objective = 'money' | 'big' | 'easy' | 'fast' | 'custom';
 export const OBJECTIVES: Record<Objective, { label: string; hint: string }> = {
+  custom: { label: 'Custom', hint: 'Only the deals you picked' },
   money: { label: 'Most money', hint: 'Highest net value first' },
   big: { label: 'Big ones only', hint: 'Only deals worth $300+ net, fewer accounts' },
   easy: { label: 'Least effort', hint: 'Simple requirements first, no branch visits or hard pulls' },
   fast: { label: 'Money soonest', hint: 'Shortest time from opening to payout first' },
 };
+/** The goals the planner suggests on its own (custom plans are built from your picks). */
+export const SUGGESTED: Objective[] = ['money', 'big', 'easy', 'fast'];
 export const PACES = [1, 2, 3] as const;
 export type Pace = (typeof PACES)[number];
 export const PACE_LABELS: Record<Pace, string> = { 1: 'Relaxed', 2: 'Steady', 3: 'Aggressive' };
@@ -141,6 +148,8 @@ export interface Strategy {
     firstPayout: string | null;
     lastPayout: string | null;
   };
+  /** Custom plans: picked deals that didn't make it in, and why. */
+  missed?: { dealId: string; bank: string; reason: string }[];
 }
 
 interface SimResult {
@@ -290,7 +299,28 @@ function parkedOk(sel: Selection[], cash: number): boolean {
   return true;
 }
 
-export function candidates(deals: Deal[], inputs: PlanInputs, today: string, baselineApy: number) {
+/** Why a picked deal can't go in a custom plan at all, or null if it can be tried. */
+function pickBlocker(d: Deal, inputs: PlanInputs, start: string): string | null {
+  if (dealStatus(d, start) === 'ended') return 'has ended';
+  if (d.expires && d.expires < start && !inputs.includeDatePassed) {
+    return `has a listed end date (${shortDate(d.expires)}) before the plan starts (turn on “Include deals past their listed end date” to try it anyway)`;
+  }
+  if (!d.hasGlance || d.dd.required == null) return 'its terms couldn’t be read, see the post';
+  if (!availableIn(d, inputs.state)) return 'isn’t offered in your state';
+  const req = requirementOf(d);
+  if (req.balance > inputs.cash) return `needs ${usd(req.balance)} parked (you set ${usd(inputs.cash)} under More options)`;
+  if (req.need > 0 && inputs.paycheck <= 0) return 'needs a direct deposit';
+  return null;
+}
+
+export function candidates(deals: Deal[], inputs: PlanInputs, today: string, baselineApy: number, custom = false) {
+  if (custom) {
+    // You picked these, so none of the filters apply; only hard blockers do.
+    const picks = new Set(inputs.picks);
+    return deals
+      .filter((d) => picks.has(d.id) && !pickBlocker(d, inputs, today))
+      .map((deal) => ({ deal, req: requirementOf(deal), value: valueOf(deal, baselineApy) }));
+  }
   const excluded = new Set(inputs.excludeBanks.map(bankKey));
   return deals
     .filter((d) => {
@@ -330,13 +360,35 @@ function rankFor(objective: Objective, cands: Candidate[], paycheck: number, fre
       .filter((c) => !c.deal.inBranch && c.deal.pull !== 'hard' && c.value.effort <= 3)
       .sort((a, b) => a.value.effort - b.value.effort || tie(a, b));
     case 'fast': return [...cands].sort((a, b) => timeToPay(a) - timeToPay(b) || tie(a, b));
+    // Fit everything: the ones that end soonest go first, then the biggest deposits.
+    case 'custom': return [...cands].sort((a, b) =>
+      (a.deal.expires ?? '9999').localeCompare(b.deal.expires ?? '9999') || b.req.need - a.req.need || tie(a, b));
   }
 }
+
+/** The plan's first day: its start date, or today if that's passed. */
+export const planStartOn = (inputs: PlanInputs, today: string) => maxIso(today, inputs.startOn ?? today);
 
 export function buildStrategy(
   deals: Deal[], inputs: PlanInputs, objective: Objective, pace: Pace, today: string, baselineApy: number,
 ): Strategy {
-  return planCore(deals, inputs, objective, pace, today, baselineApy, addDays(today, Math.round(inputs.months * 30.4)), []).strategy;
+  const start = planStartOn(inputs, today);
+  const from = { ...inputs, firstPayday: rollPayday(inputs.firstPayday, start, inputs.payFreq) };
+  const { strategy } = planCore(deals, from, objective, pace, start, baselineApy, addDays(start, Math.round(inputs.months * 30.4)), []);
+  if (objective === 'custom') {
+    const planned = new Set(strategy.items.map((i) => i.deal.id));
+    strategy.missed = inputs.picks.filter((id) => !planned.has(id)).map((id) => {
+      const d = deals.find((x) => x.id === id);
+      if (!d) return { dealId: id, bank: id, reason: 'is no longer listed' };
+      return {
+        dealId: id,
+        bank: d.bank,
+        reason: pickBlocker(d, from, start)
+          ?? 'doesn’t fit around the others: try a longer plan, a faster pace, more paycheck splits or a later start',
+      };
+    });
+  }
+  return strategy;
 }
 
 /**
@@ -405,8 +457,9 @@ function planCore(
   deals: Deal[], inputs: PlanInputs, objective: Objective, pace: Pace, today: string, baselineApy: number,
   end: string, fixed: Selection[],
 ): { strategy: Strategy; sim: SimResult; atRisk: Set<string> } {
+  const custom = objective === 'custom';
   const pays = paydays(inputs.firstPayday, end, inputs.payFreq);
-  const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy), inputs.paycheck, inputs.payFreq);
+  const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy, custom), inputs.paycheck, inputs.payFreq);
   // Already-opened accounts stay in every simulation. Any that can't be met
   // even on their own are "at risk": scheduled best-effort, never blocking picks.
   const atRisk = fixed.length ? simulate(fixed, pays, inputs).failed : new Set<string>();
@@ -422,7 +475,8 @@ function planCore(
     for (const c of ranked) {
       const month = open.slice(0, 7);
       if ((openedPerMonth.get(month) ?? 0) >= pace) break;
-      if (usedBanks.has(bankKey(c.deal.bank)) || sel.some((s) => s.deal.id === c.deal.id)) continue;
+      // One deal per bank, unless you picked two from the same bank yourself.
+      if ((!custom && usedBanks.has(bankKey(c.deal.bank))) || sel.some((s) => s.deal.id === c.deal.id)) continue;
       if (c.deal.expires && dealStatus(c.deal, today) !== 'date-passed' && open > c.deal.expires) continue;
       const finish = addDays(open, Math.max(c.req.need > 0 || c.deal.transactions ? c.req.windowDays : 0, c.req.holdDays));
       if (finish > end) continue;
@@ -488,11 +542,11 @@ function peakParked(sel: Selection[]): number {
   return peak;
 }
 
-/** Every objective × pace, with identical plans collapsed into one. */
-export function buildStrategies(deals: Deal[], inputs: PlanInputs, today: string, baselineApy: number): Strategy[] {
+/** Every suggested objective × pace (or, for a custom plan, every pace), with identical plans collapsed into one. */
+export function buildStrategies(deals: Deal[], inputs: PlanInputs, today: string, baselineApy: number, custom = false): Strategy[] {
   const out: Strategy[] = [];
   const seen = new Set<string>();
-  for (const objective of Object.keys(OBJECTIVES) as Objective[]) {
+  for (const objective of custom ? ['custom' as const] : SUGGESTED) {
     for (const pace of PACES) {
       const s = buildStrategy(deals, inputs, objective, pace, today, baselineApy);
       const sig = s.items.map((i) => `${i.deal.id}@${i.openOn}`).join('|');

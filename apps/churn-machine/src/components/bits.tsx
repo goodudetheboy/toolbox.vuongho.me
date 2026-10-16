@@ -1,7 +1,7 @@
 // Small shared pieces.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Deal } from '../lib/types';
-import { dealStatus, type Verdict } from '../lib/value';
+import { dealStatus, usd, type Verdict } from '../lib/value';
 import { daysBetween, shortDate } from '../lib/dates';
 import { STATE_NAMES } from '../lib/states';
 import { PAY_FREQ_LABELS, rollPayday, type PayFreq } from '../lib/planner';
@@ -148,8 +148,9 @@ export function Disclosure({ label, children, defaultOpen = false }: { label: Re
  * Pick banks from a dropdown (type to narrow it, or just scroll and click).
  * Chosen banks show as removable chips.
  */
-export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks', ariaLabel = 'Banks', allowCustom = false }: {
+export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks', ariaLabel = 'Banks', allowCustom = false, removeTitle = (b) => `Show ${b} again` }: {
   banks: string[];
+  removeTitle?: (b: string) => string;
   ariaLabel?: string;
   /** Offer "Add “typed name”" for banks that aren't in the deal data. */
   allowCustom?: boolean;
@@ -257,7 +258,7 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks',
       {value.length > 0 && (
         <div className="chips" style={{ marginTop: 8 }}>
           {value.map((b) => (
-            <button key={b} type="button" className="chip on" title={`Show ${b} again`} onClick={() => onChange(value.filter((x) => x !== b))}>
+            <button key={b} type="button" className="chip on" title={removeTitle(b)} onClick={() => onChange(value.filter((x) => x !== b))}>
               {b} ✕
             </button>
           ))}
@@ -265,6 +266,46 @@ export function BankPicker({ banks, value, onChange, placeholder = 'Pick banks',
         </div>
       )}
     </div>
+  );
+}
+
+/** "Bank · $bonus" for each deal, made unique (custom plan picker). */
+function dealLabels(deals: Deal[]): Map<string, string> {
+  const out = new Map<string, string>();
+  const used = new Set<string>();
+  for (const d of [...deals].sort((a, b) => a.bank.localeCompare(b.bank) || (b.bonusMax ?? 0) - (a.bonusMax ?? 0))) {
+    let label = `${d.bank} · ${usd(d.bonusMax ?? 0)}`;
+    if (used.has(bankKey(label))) label += ` ${d.category}`;
+    for (let n = 2; used.has(bankKey(label)); n++) label = `${d.bank} · ${usd(d.bonusMax ?? 0)} (${n})`;
+    used.add(bankKey(label));
+    out.set(d.id, label);
+  }
+  return out;
+}
+
+/** Pick the deals for a custom plan (by bank, showing each deal's bonus). */
+export function DealPicker({ deals, value, onChange, today }: {
+  deals: Deal[];
+  value: string[];
+  onChange: (ids: string[]) => void;
+  today: string;
+}) {
+  const labels = useMemo(
+    () => dealLabels(deals.filter((d) => dealStatus(d, today) !== 'ended' || value.includes(d.id))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deals, today],
+  );
+  const idOf = new Map([...labels].map(([id, l]) => [l, id]));
+  const options = [...labels].filter(([id]) => !value.includes(id)).map(([, l]) => l);
+  return (
+    <BankPicker
+      banks={options}
+      value={value.map((id) => labels.get(id) ?? id)}
+      onChange={(ls) => onChange(ls.map((l) => idOf.get(l) ?? l))}
+      placeholder="Search banks to add"
+      ariaLabel="Deals for your plan"
+      removeTitle={(b) => `Remove ${b}`}
+    />
   );
 }
 

@@ -202,7 +202,7 @@ function PlanCard({ s, accts, today, onOpen }: { s: SavedStrategy; accts: Accoun
   const dueToday = tasks.filter((t) => stateOf(t, today) === 'today' && !t.optional).length;
   const missed = neglected(tasks, today).length;
   const parts = [
-    p.days ? `Day ${Math.min(p.day, p.days)} of ${p.days}` : null,
+    p.start && p.start > today ? `Starts ${shortDate(p.start, today)}` : p.days ? `Day ${Math.min(p.day, p.days)} of ${p.days}` : null,
     dueToday ? `${dueToday} to do today` : null,
   ].filter(Boolean).join(' · ');
   return (
