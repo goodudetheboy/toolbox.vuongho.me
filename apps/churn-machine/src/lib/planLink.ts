@@ -2,7 +2,7 @@
 // so the inputs are enough to rebuild the same strategy anywhere (no database).
 // It's rebuilt from that day's deals, so a link opened after the data refreshes
 // can differ; `d` records which data the link was made from.
-import { rollPayday, snapSplits, type PlanInputs } from './planner';
+import { DEFAULT_SPLITS, rollPayday, snapSplits, type PlanInputs } from './planner';
 
 export interface PlanLink {
   inputs: PlanInputs;
@@ -60,7 +60,7 @@ export function decodePlanLink(search: string, today: string): PlanLink | null {
     firstPayday: rollPayday(from, today, payFreq),
     months: num(q.get('mo'), 6, 1, 24),
     cash: num(q.get('cash'), 0),
-    maxSplits: snapSplits(num(q.get('split'), 5, 1, 100)),
+    maxSplits: snapSplits(num(q.get('split'), DEFAULT_SPLITS, 1, 100)),
     leadDays: num(q.get('lead'), 7, 0, 60),
     minBonus: num(q.get('min'), 0),
     noHardPull: opt.has('hp'),
