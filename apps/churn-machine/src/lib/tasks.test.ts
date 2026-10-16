@@ -50,3 +50,18 @@ test('progress counts received money as collected and open accounts as on the wa
   assert.equal(p.planned, 950);
   assert.equal(p.day, 6);
 });
+
+test('ongoing requirements show only while an account is open, from the checked terms', async () => {
+  const { ongoingFor } = await import('./tasks');
+  const deal = { transactions: 10, termsChecked: true, extras: ['10 debit card purchases within 90 days', 'Enroll in eStatements'] } as never;
+  const base = { status: 'planned', done: {}, transactions: 10 } as never as Parameters<typeof ongoingFor>[0];
+  assert.equal(ongoingFor(base, deal).length, 0);
+  const open = { ...base, status: 'open' } as typeof base;
+  const items = ongoingFor(open, deal);
+  assert.deepEqual(items.map((x) => x.text), ['10 debit card purchases within 90 days', 'Enroll in eStatements']);
+  const ticked = { ...open, done: { [items[1].key]: '2026-10-16' } } as typeof base;
+  assert.deepEqual(ongoingFor(ticked, deal).map((x) => x.done), [false, true]);
+  assert.equal(ongoingFor({ ...open, status: 'met' } as typeof base, deal).length, 0);
+  // Unchecked terms: just the transaction count.
+  assert.match(ongoingFor(open, { transactions: 10, termsChecked: false } as never)[0].text, /^10 qualifying transactions/);
+});

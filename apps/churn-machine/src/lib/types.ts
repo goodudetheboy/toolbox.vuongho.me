@@ -40,6 +40,8 @@ export interface Deal {
   bonusHow?: string | null;
   /** Money that needs a year or more of keeping deposits or balances going. Never counted. */
   later?: { amount: number; how: string }[];
+  /** Checked deals: requirements besides direct deposit and parked cash, e.g. "10 debit card purchases within 90 days". */
+  extras?: string[];
   availability: string | null;
   states: string[];
   nationwide: boolean;

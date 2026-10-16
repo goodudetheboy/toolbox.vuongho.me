@@ -47,3 +47,14 @@ per-run cost, nothing that changes without a commit.
 - On 2026-10-16, 2 of the 247 posts had already changed between the read
   and the next refresh (both lost their terms block), so they're
   unchecked.
+
+## Addendum (2026-10-16): extras
+
+Entries also hold `extras`: requirements besides direct deposit and parked
+cash (debit purchases with their window, eStatements, online banking, bill
+pay, small minimum balances, monthly logins), read in the same pass for the
+139 deals that have any. They're not dated tasks: the plan page pins them in
+a "Don't forget" card for accounts marked opened (status `open`), each
+tickable (`account.done["x:<hash of the text>"]`). The old dated
+"Make N transactions" task is gone. Unchecked deals fall back to their
+parsed transaction count.

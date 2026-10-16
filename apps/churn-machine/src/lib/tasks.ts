@@ -2,9 +2,10 @@
 // account's planned dates; only "done" marks are stored (account.done[key]).
 // Pure functions, so a future email job can reuse them as-is.
 import type { Account, AccountStatus, SavedStrategy } from './accounts';
+import type { Deal } from './types';
 import { daysBetween, shortDate } from './dates';
 
-export type TaskKind = 'open' | 'dd' | 'park' | 'unpark' | 'tx' | 'met' | 'bonus' | 'close';
+export type TaskKind = 'open' | 'dd' | 'park' | 'unpark' | 'met' | 'bonus' | 'close';
 
 export interface Task {
   /** Unique within its account; also the key in account.done. */
@@ -67,14 +68,8 @@ export function tasksForAccount(a: Account, today: string): Task[] {
       action: false, optional: true,
     }, !!done.unpark || stage >= 4);
   }
-  if (a.transactions) {
-    add({
-      key: 'tx', kind: 'tx', date: a.transactionsBy ?? a.doneBy ?? opened ?? '',
-      title: `Make ${a.transactions} transactions with ${a.bank}`,
-      detail: 'Debit card purchases or whatever the post counts.',
-      action: true,
-    }, stage >= 2 || !!done.tx);
-  }
+  // Transactions and other ongoing requirements aren't dated tasks: they're
+  // pinned on the plan page while the account is open (see ongoingFor).
   if (a.doneBy) {
     add({
       key: 'met', kind: 'met', date: a.doneBy,
@@ -108,7 +103,7 @@ export function stateOf(t: Task, today: string): TaskState {
   return t.date === today ? 'today' : 'upcoming';
 }
 
-const ORDER: Record<TaskKind, number> = { open: 0, park: 1, dd: 2, tx: 3, met: 4, bonus: 5, unpark: 6, close: 7 };
+const ORDER: Record<TaskKind, number> = { open: 0, park: 1, dd: 2, met: 4, bonus: 5, unpark: 6, close: 7 };
 export const byDate = (a: Task, b: Task) => a.date.localeCompare(b.date) || ORDER[a.kind] - ORDER[b.kind] || a.account.bank.localeCompare(b.account.bank);
 
 export function tasksForStrategy(accounts: Account[], today: string): Task[] {
@@ -186,3 +181,32 @@ export function progressOf(accounts: Account[], today: string): Progress {
 export const isFinished = (accounts: Account[]) => accounts.length > 0 && accounts.every((a) => a.status === 'paid' || a.status === 'closed');
 
 export const strategyAccounts = (s: SavedStrategy, accounts: Account[]) => accounts.filter((a) => a.strategyId === s.id);
+
+/** A short stable key for an ongoing requirement's "done" mark (keyed by its text, so reordering doesn't move ticks). */
+const ongoingKey = (text: string) => {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return `x:${h.toString(36)}`;
+};
+
+export interface Ongoing {
+  key: string;
+  text: string;
+  done: boolean;
+}
+
+/**
+ * The requirements besides deposits and parked cash (debit purchases,
+ * eStatements, ...) to keep in mind while an account is open: from the
+ * deal's checked terms, or just its transaction count when the terms
+ * weren't checked. Only for accounts you've opened and not finished.
+ */
+export function ongoingFor(a: Account, deal: Deal | null): Ongoing[] {
+  if (a.status !== 'open') return [];
+  const n = deal?.transactions ?? a.transactions;
+  const texts = deal?.termsChecked ? deal.extras ?? [] : n ? [`${n} qualifying transactions (check the post for what counts)`] : [];
+  return texts.map((text) => {
+    const key = ongoingKey(text);
+    return { key, text, done: !!a.done?.[key] };
+  });
+}

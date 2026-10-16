@@ -29,10 +29,11 @@ const NO_DD = { required: false, amount: 0, windowDays: null, monthly: false, mo
  * A parsed deal with its checked terms applied (or marked unchecked).
  * `entry` fields: upfront, how, dd ([total, windowDays, deposits, months],
  * 0 = none, null = keep the parser's), bal ([amount, holdDays], 0 = none,
- * null = keep), tx (count, 0 = none, null = keep), later [{amount, how}].
+ * null = keep), tx (count, 0 = none, null = keep), later [{amount, how}],
+ * extras (other requirements, e.g. "10 debit card purchases within 90 days").
  */
 export function applyTerms(deal, entry) {
-  if (!entry || entry.hash !== termsHash(deal)) return { ...deal, termsChecked: false, later: [] };
+  if (!entry || entry.hash !== termsHash(deal)) return { ...deal, termsChecked: false, later: [], extras: [] };
   const out = {
     ...deal,
     termsChecked: true,
@@ -43,6 +44,8 @@ export function applyTerms(deal, entry) {
     bonusPostMax: null,
     bonusHow: entry.how ?? null,
     later: entry.later ?? [],
+    // Requirements besides direct deposit and parked cash (debit purchases, eStatements...).
+    extras: entry.extras ?? [],
   };
   if (entry.dd === 0) out.dd = NO_DD;
   else if (Array.isArray(entry.dd)) {

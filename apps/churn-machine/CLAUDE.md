@@ -50,7 +50,8 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
 - `data/deal-terms.json` + `scripts/deal-terms.mjs` — hand-checked terms
   for every deal as of 2026-10-16: the upfront bonus (what you get for the
   sign-up requirements), its requirement, and "later" money (a year+ of
-  keeping deposits going, never counted). Applied during refresh while a
+  keeping deposits going, never counted), and "extras" (debit purchases,
+  eStatements...) pinned on the plan page once an account is opened. Applied during refresh while a
   hash of the deal's terms text still matches; new or rewritten deals fall
   back to the parser, marked unchecked. To check one, read the post and
   add/update its entry (hash from `termsHash`). See

@@ -902,3 +902,10 @@ textarea.input { resize: vertical; }
 .schedule > li:first-child { border-top: 0; }
 .schedule .when { color: var(--muted); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .schedule-what { display: flex; flex-direction: column; gap: 3px; font-size: 15px; }
+
+/* Plan page: ongoing requirements for opened accounts */
+.dont-forget { margin-top: 20px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.dont-forget h3 { margin: 0 0 8px; font-size: 16px; }
+.df-bank + .df-bank { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.df-name { font-weight: 650; font-size: 15px; }
+.dont-forget ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }

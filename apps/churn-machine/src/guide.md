@@ -117,13 +117,14 @@ Open a plan to see:
 
 - Today's date and **day X of Y**.
 - **Collected** out of the planned total, and what's on the way.
+- **Don't forget**: for accounts you've marked opened, the requirements besides deposits and parked cash (debit card purchases, eStatements, online banking, small minimum balances), so you don't miss them. Tick each off when it's done. It goes away once the account's requirements are done.
 - **Today**: the tasks due today. Press **Done** when you've done one. For a bonus, enter the amount you actually received and press **Received**.
 - **Next two weeks**.
 - **The whole plan**: every task month by month, with a "Today" line. **Undo** reverses a task you marked by mistake.
 - **Accounts in this plan**: click one to edit its dates, status, the bonus amount and notes.
 - **Revisions**: a log of every revise or settings change.
 
-Tasks you'll see: open the account, a paycheck deposit landing, moving cash in to park (and when you can move it out), making transactions, requirements done, the bonus posting, and when it's safe to close (optional).
+Tasks you'll see: open the account, a paycheck deposit landing, moving cash in to park (and when you can move it out), requirements done, the bonus posting, and when it's safe to close (optional).
 
 ### Falling behind: check-in and Revise
 

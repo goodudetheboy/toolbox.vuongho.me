@@ -6,7 +6,7 @@ import {
   applyRevision, archiveStrategy, deleteStrategy, STATUS_LABELS, updateAccount, type Account, type SavedStrategy,
 } from '../lib/accounts';
 import {
-  completeTask, neglected, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
+  completeTask, neglected, ongoingFor, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
 } from '../lib/tasks';
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
 import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, SPLIT_OPTIONS, SUGGESTED, type Objective, type Pace } from '../lib/planner';
@@ -58,6 +58,10 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
   const set = planSettings(s);
   const dealFor = (a: Account) => deals?.find((d) => d.id === a.dealId) ?? null;
 
+  // Ongoing requirements (debit purchases, eStatements...) for accounts you've opened.
+  const ongoing = accounts
+    .map((a) => ({ account: a, items: ongoingFor(a, dealFor(a)) }))
+    .filter((x) => x.items.length > 0);
   const save = (a: Account, patch: Partial<Account>) =>
     updateAccount(uid, a.id, patch).catch((e: Error) => alert(`Couldn’t save: ${e.message}`));
   const row = (t: Task, compact = false) => (
@@ -91,6 +95,35 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         </div>
       </div>
       <ProgressBar collected={p.collected} onTheWay={p.onTheWay} planned={p.planned} />
+
+      {ongoing.length > 0 && (
+        <div className="dont-forget">
+          <h3>Don’t forget</h3>
+          {ongoing.map(({ account: a, items }) => (
+            <div key={a.id} className="df-bank">
+              {dealFor(a)
+                ? <button type="button" className="bank-link df-name" onClick={() => onOpenDeal(dealFor(a)!)}>{a.bank}</button>
+                : <span className="df-name">{a.bank}</span>}
+              <ul>
+                {items.map((x) => (
+                  <li key={x.key}>
+                    <Check
+                      checked={x.done}
+                      onChange={(on) => {
+                        const done = { ...(a.done ?? {}) };
+                        if (on) done[x.key] = today; else delete done[x.key];
+                        save(a, { done });
+                      }}
+                    >
+                      {x.text}
+                    </Check>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
       {missed.length > 0 && (
         <div className="checkin">
