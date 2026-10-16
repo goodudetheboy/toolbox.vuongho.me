@@ -106,17 +106,21 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
                 : <span className="df-name">{a.bank}</span>}
               <ul>
                 {items.map((x) => (
-                  <li key={x.key}>
-                    <Check
-                      checked={x.done}
-                      onChange={(on) => {
+                  <li key={x.key} className={x.done ? 'done' : ''}>
+                    <button
+                      type="button"
+                      className="task-mark"
+                      aria-pressed={x.done}
+                      aria-label={x.done ? `Undo: ${x.text}` : `Mark done: ${x.text}`}
+                      onClick={() => {
                         const done = { ...(a.done ?? {}) };
-                        if (on) done[x.key] = today; else delete done[x.key];
+                        if (x.done) delete done[x.key]; else done[x.key] = today;
                         save(a, { done });
                       }}
                     >
-                      {x.text}
-                    </Check>
+                      {x.done ? '✓' : ''}
+                    </button>
+                    <span>{x.text}</span>
                   </li>
                 ))}
               </ul>
@@ -326,7 +330,16 @@ function TaskRow({ task: t, today, compact, onDone, onUndo, onBank }: {
     : t.title;
   return (
     <div className={`task ${st} ${t.optional ? 'optional' : ''} ${compact ? 'compact' : ''}`}>
-      <span className="task-mark" aria-hidden="true">{st === 'done' ? '✓' : ''}</span>
+      <button
+        type="button"
+        className="task-mark"
+        aria-pressed={st === 'done'}
+        aria-label={st === 'done' ? `Undo: ${t.title}` : `Mark done: ${t.title}`}
+        title={st === 'done' ? 'Undo' : t.kind === 'bonus' ? 'Mark received' : 'Mark done'}
+        onClick={() => (st === 'done' ? onUndo() : onDone(t.kind === 'bonus' ? Number(amount) || t.account.bonus : undefined))}
+      >
+        {st === 'done' ? '✓' : ''}
+      </button>
       <div className="task-main">
         <div className="task-title">{title}</div>
         {!compact && t.detail && st !== 'done' && <div className="task-detail">{t.detail}</div>}
@@ -338,23 +351,14 @@ function TaskRow({ task: t, today, compact, onDone, onUndo, onBank }: {
           {t.optional && st !== 'done' && <span className="faint"> · optional</span>}
         </div>
       </div>
-      <div className="task-actions">
-        {st === 'done' ? (
-          !compact ? null : <button type="button" className="btn quiet small" onClick={onUndo}>Undo</button>
-        ) : t.kind === 'bonus' && !compact ? (
-          <span className="bonus-in">
-            <span className="money-input">
-              <span>$</span>
-              <input className="input" inputMode="numeric" aria-label="Bonus received" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))} />
-            </span>
-            <button type="button" className="btn primary small" onClick={() => onDone(Number(amount) || t.account.bonus)}>Received</button>
+      {t.kind === 'bonus' && st !== 'done' && !compact && (
+        <div className="task-actions">
+          <span className="money-input">
+            <span>$</span>
+            <input className="input" inputMode="numeric" aria-label="Bonus received" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))} />
           </span>
-        ) : compact && st === 'upcoming' ? null : (
-          <button type="button" className={`btn small ${st === 'upcoming' || compact ? 'ghost' : 'primary'}`} onClick={() => onDone()}>
-            {t.kind === 'bonus' ? 'Received' : t.kind === 'close' ? 'Closed it' : 'Done'}
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

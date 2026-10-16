@@ -4,7 +4,7 @@ import {
   addManualAccount, advance, allBanksIHave, saveBanksIHave, deleteAccount, nextStep, STATUS_LABELS, updateAccount,
   type Account, type AccountStatus, type SavedStrategy,
 } from '../lib/accounts';
-import { isFinished, neglected, progressOf, stateOf, strategyAccounts, tasksForStrategy } from '../lib/tasks';
+import { completeTask, isFinished, neglected, progressOf, stateOf, strategyAccounts, tasksForStrategy } from '../lib/tasks';
 import type { Deal } from '../lib/types';
 import { ProgressBar, StrategyTracker } from './StrategyTracker';
 import { shortDate } from '../lib/dates';
@@ -105,8 +105,18 @@ export function AccountsView({
           <h2>To do today</h2>
           <div className="tasks">
             {todayAll.map(({ t, st }) => (
-              <button key={`${t.account.id}:${t.key}`} type="button" className={`task link ${stateOf(t, today)}`} onClick={() => openPlan(st.id)}>
-                <span className="task-mark" aria-hidden="true" />
+              <div key={`${t.account.id}:${t.key}`} className={`task link ${stateOf(t, today)}`} role="link" tabIndex={0}
+                onClick={() => openPlan(st.id)} onKeyDown={(e) => e.key === 'Enter' && openPlan(st.id)}>
+                <button
+                  type="button"
+                  className="task-mark"
+                  aria-label={`Mark done: ${t.title}`}
+                  title={t.kind === 'bonus' ? 'Mark received' : 'Mark done'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateAccount(uid, t.account.id, completeTask(t, today)).catch((err: Error) => alert(`Couldn’t save: ${err.message}`));
+                  }}
+                />
                 <span className="task-main">
                   <span className="task-title">{t.title}</span>
                   <span className="task-when">
@@ -115,7 +125,7 @@ export function AccountsView({
                   </span>
                 </span>
                 <span className="task-go" aria-hidden="true">›</span>
-              </button>
+              </div>
             ))}
           </div>
         </section>

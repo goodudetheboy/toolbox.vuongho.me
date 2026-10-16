@@ -105,7 +105,7 @@ Click a strategy to open it:
 ### Home
 
 - **Collected so far** across all plans, and how much is on the way.
-- **To do today**: today's and overdue tasks from every active plan. Tap one to open its plan.
+- **To do today**: today's and overdue tasks from every active plan. Tap the circle to mark one done, or the rest of the row to open its plan.
 - **Active plans**: each with a progress bar, the day of the plan (or "Starts Dec 1" if it starts later), tasks today and anything overdue.
 - **Finished and archived** plans, folded away.
 - **Banks I have**: the banks you have or had an account with. Pick from the list, or type any name and choose "Add". Accounts you've opened through the app count automatically. This list is saved to your Google account.
@@ -117,10 +117,10 @@ Open a plan to see:
 
 - Today's date and **day X of Y**.
 - **Collected** out of the planned total, and what's on the way.
-- **Don't forget**: for accounts you've marked opened, the requirements besides deposits and parked cash (debit card purchases, eStatements, online banking, small minimum balances), so you don't miss them. Tick each off when it's done. It goes away once the account's requirements are done.
-- **Today**: the tasks due today. Press **Done** when you've done one. For a bonus, enter the amount you actually received and press **Received**.
+- **Don't forget**: for accounts you've marked opened, the requirements besides deposits and parked cash (debit card purchases, eStatements, online banking, small minimum balances), so you don't miss them. Tap the circle when one's done. It goes away once the account's requirements are done.
+- **Today**: the tasks due today. Tap the circle next to one when it's done (tap it again to undo). For a bonus, put the amount you actually received in the box first, then tap the circle.
 - **Next two weeks**.
-- **The whole plan**: every task month by month, with a "Today" line. **Undo** reverses a task you marked by mistake.
+- **The whole plan**: every task month by month, with a "Today" line. Tap a filled circle to undo a task you marked by mistake.
 - **Accounts in this plan**: click one to edit its dates, status, the bonus amount and notes.
 - **Revisions**: a log of every revise or settings change.
 
