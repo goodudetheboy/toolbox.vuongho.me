@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Deal } from '../lib/types';
+import type { FeePlan } from '../lib/value';
 import { cameFromApp } from '../lib/router';
 import { ActionCard, DealHero, DealSections, KeyStats } from './DealDetail';
 
@@ -114,10 +115,12 @@ export function Sheet({ label, bar, foot, onClose, children }: {
   );
 }
 
-export function DealModal({ deal, today, baselineApy, actions, onClose, onFullPage }: {
+export function DealModal({ deal, today, baselineApy, fee, actions, onClose, onFullPage }: {
   deal: Deal;
   today: string;
   baselineApy: number;
+  /** Opened from a strategy: how that plan handles the fee. */
+  fee?: FeePlan;
   actions?: React.ReactNode;
   onClose: () => void;
   onFullPage: () => void;
@@ -129,9 +132,9 @@ export function DealModal({ deal, today, baselineApy, actions, onClose, onFullPa
       bar={<button type="button" className="btn ghost small" onClick={onFullPage}>Open full page</button>}
       foot={actions}
     >
-      <DealHero deal={deal} today={today} baselineApy={baselineApy} />
+      <DealHero deal={deal} today={today} baselineApy={baselineApy} fee={fee} />
       <KeyStats deal={deal} baselineApy={baselineApy} />
-      <DealSections deal={deal} today={today} baselineApy={baselineApy} />
+      <DealSections deal={deal} today={today} baselineApy={baselineApy} fee={fee} />
       <div className="sheet-links">
         {deal.url && <a href={deal.url} target="_blank" rel="noreferrer">Read the post on Doctor of Credit ↗</a>}
         {deal.offerLink && <a href={deal.offerLink} target="_blank" rel="noreferrer">Bank’s offer page ↗</a>}

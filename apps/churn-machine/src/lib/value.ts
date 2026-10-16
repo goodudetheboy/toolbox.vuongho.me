@@ -112,8 +112,9 @@ export function feeLine(p: FeePlan): string | null {
       case 'pay': return `${fee} for ${p.months} ${p.months === 1 ? 'month' : 'months'}: cheaper to pay (${usd(p.monthly * p.months)}, counted)`;
     }
   })();
+  const missed = p.missed ? `the paychecks can’t cover it for ${p.missed} ${p.missed === 1 ? 'month' : 'months'}, so ${usd(p.missed * p.monthly)} is paid (counted)` : null;
   const once = p.once ? `${usd(p.once)} one-time fee (counted)` : null;
-  return [line, once].filter(Boolean).join('; ') || null;
+  return [line, missed, once].filter(Boolean).join('; ') || null;
 }
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 

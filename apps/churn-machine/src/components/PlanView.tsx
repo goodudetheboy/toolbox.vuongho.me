@@ -4,7 +4,7 @@ import {
   buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, SPLIT_OPTIONS, splitLabel, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
 import { shortDate } from '../lib/dates';
-import { compactUsd, requirementLines, requirementSummary, usd } from '../lib/value';
+import { compactUsd, requirementLines, requirementSummary, usd, type FeePlan } from '../lib/value';
 import { usePersisted } from '../lib/settings';
 import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, VerdictTag, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
@@ -52,7 +52,7 @@ export function PlanView({
   state: string | null;
   baselineApy: number;
   exclusion: Exclusion;
-  onOpenDeal: (d: Deal) => void;
+  onOpenDeal: (d: Deal, fee?: FeePlan) => void;
   signedIn: boolean;
   onSave: (s: Strategy, inputs: PlanInputs, baselineApy: number) => Promise<void>;
 }) {
@@ -457,7 +457,7 @@ const payoutPoints = (s: Strategy): PayoutPoint[] =>
 function StrategyDetail({ strategy: s, today, onOpenDeal }: {
   strategy: Strategy;
   today: string;
-  onOpenDeal: (d: Deal) => void;
+  onOpenDeal: (d: Deal, fee?: FeePlan) => void;
 }) {
   const [view, setView] = useState<'accounts' | 'reqs' | 'schedule'>('accounts');
   const [active, setActive] = useState<number | null>(null);
@@ -498,7 +498,7 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
       {view === 'accounts' ? (
         <div className="items open-items">
           {s.items.map((i) => (
-            <button key={i.deal.id} type="button" className="item" onClick={() => onOpenDeal(i.deal)}>
+            <button key={i.deal.id} type="button" className="item" onClick={() => onOpenDeal(i.deal, i.value.fee)}>
               <span className="item-main">
                 <span className="item-name">{i.deal.bank}</span>
                 <span className="item-sub">{requirementSummary(i.deal)}</span>
@@ -517,7 +517,7 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
         <div className="reqs">
           {s.items.map((i) => (
             <div key={i.deal.id} className="reqs-bank">
-              <button type="button" className="bank-link reqs-name" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button>
+              <button type="button" className="bank-link reqs-name" onClick={() => onOpenDeal(i.deal, i.value.fee)}>{i.deal.bank}</button>
               <span className="reqs-bonus">{usd(i.value.bonus)}</span>
               <ul className="bullets">{requirementLines(i.deal, i.value.fee).map((t) => <li key={t}>{t}</li>)}</ul>
             </div>

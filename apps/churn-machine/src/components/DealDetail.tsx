@@ -36,8 +36,8 @@ function bonusRange(d: Deal): string {
   return d.bonusMax != null ? usd(d.bonusMax) : 'See post';
 }
 
-export function DealHero({ deal: d, today, baselineApy }: { deal: Deal; today: string; baselineApy: number }) {
-  const v = valueOf(d, baselineApy);
+export function DealHero({ deal: d, today, baselineApy, fee }: { deal: Deal; today: string; baselineApy: number; fee?: FeePlan }) {
+  const v = valueOf(d, baselineApy, fee);
   return (
     <div className="hero">
       <div className="hero-kicker">{d.title}</div>
@@ -51,7 +51,7 @@ export function DealHero({ deal: d, today, baselineApy }: { deal: Deal; today: s
         </div>
       )}
       <div className={`hero-delta ${v.net > 0 ? 'up' : 'down'}`}>
-        {usd(v.net)} net after costs <span className="hero-dot">·</span> <VerdictTag verdict={v.verdict} />
+        {usd(v.net)} net after costs{fee && ' in this plan'} <span className="hero-dot">·</span> <VerdictTag verdict={v.verdict} />
       </div>
       <div className="hero-status"><StatusTag deal={d} today={today} /></div>
     </div>
@@ -87,14 +87,16 @@ export function KeyStats({ deal: d, baselineApy }: { deal: Deal; baselineApy: nu
 }
 
 /** Everything below the key statistics. */
-export function DealSections({ deal: d, today, baselineApy, full = false }: {
+export function DealSections({ deal: d, today, baselineApy, fee, full = false }: {
   deal: Deal;
   today: string;
   baselineApy: number;
+  /** Opened from a strategy: how that plan handles the fee (default: the cheapest way). */
+  fee?: FeePlan;
   /** Full page: also show the index's at-a-glance lines. */
   full?: boolean;
 }) {
-  const v = valueOf(d, baselineApy);
+  const v = valueOf(d, baselineApy, fee);
   const status = dealStatus(d, today);
   return (
     <>
@@ -106,7 +108,7 @@ export function DealSections({ deal: d, today, baselineApy, full = false }: {
       {d.latestNote && <div className="callout">{d.latestNote}</div>}
 
       <section className="section">
-        <h2>Is it worth it?</h2>
+        <h2>Is it worth it?{fee && <span className="faint"> (in this plan)</span>}</h2>
         <div className="summary-rows">
           <div><span>Bonus</span><span>{usd(v.bonus)}</span></div>
           {v.capitalCost > 0 && (
@@ -193,7 +195,7 @@ export function DealSections({ deal: d, today, baselineApy, full = false }: {
           <dt>Card funding</dt>
           <dd>{d.ccFunding ? `Up to ${usd(d.ccFunding)}` : d.ccFunding === 0 ? 'No' : 'Unknown'}<Raw text={d.ccText && d.ccFunding ? d.ccText : null} /></dd>
           <dt>Monthly fee</dt>
-          <dd><FeeFacts deal={d} plan={v.fee} /></dd>
+          <dd><FeeFacts deal={d} plan={v.fee} inPlan={!!fee} /></dd>
           <dt>Keep open</dt>
           <dd>
             {d.eatf.days ? `${d.eatf.days} days` : `${keepOpenDays(d)} days (assumed)`}
@@ -250,7 +252,7 @@ export function ActionCard({ deal: d, today, baselineApy, actions, extra }: {
 }
 
 /** The deal's fees: the monthly fee, every way to waive it, and what the plans do about it. */
-function FeeFacts({ deal: d, plan }: { deal: Deal; plan: FeePlan }) {
+function FeeFacts({ deal: d, plan, inPlan }: { deal: Deal; plan: FeePlan; inPlan: boolean }) {
   const f = d.fee;
   if (!f) return <>{d.monthlyFeeText ?? 'Unknown'}</>;
   if (!f.monthly && !f.once && !f.waivers.length) return <>None</>;
@@ -268,7 +270,7 @@ function FeeFacts({ deal: d, plan }: { deal: Deal; plan: FeePlan }) {
       {!f.monthly && ways.length > 0 && ` as long as you ${ways.join(', or ')}`}
       {f.once && `. Plus a ${usd(f.once.amount)} ${f.once.how}`}.
       {f.note && <div className="raw">{f.note}</div>}
-      {line && <div className="raw">In plans: {line}.</div>}
+      {line && <div className="raw">{inPlan ? 'In this plan' : 'In plans'}: {line}.</div>}
     </>
   );
 }

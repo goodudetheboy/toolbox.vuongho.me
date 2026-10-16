@@ -6,6 +6,7 @@ import { allBanksIHave, saveStrategy, useAccounts } from './lib/accounts';
 import { usePersisted } from './lib/settings';
 import { todayIso } from './lib/dates';
 import type { Deal } from './lib/types';
+import type { FeePlan } from './lib/value';
 import { bankNames } from './lib/filters';
 import { DealsView } from './components/DealsView';
 import { PlanView } from './components/PlanView';
@@ -44,11 +45,17 @@ export default function App() {
   // (it used to sit inside the Plan form's saved inputs, so start from those).
   const [picks, setPicks] = usePersisted<string[]>('plan-picks', oldPicks());
   const [modalId, setModalId] = useState<string | null>(null);
+  // Opened from a strategy: how that plan handles the deal's fee, so the
+  // sheet's net matches the strategy's (missed waiver months are paid there).
+  const [modalFee, setModalFee] = useState<FeePlan | undefined>(undefined);
   const closeModal = useCallback(() => setModalId(null), []);
   const banks = useMemo(() => (data ? bankNames(data.deals) : []), [data]);
   const dealById = (id: string | null) => (id && data?.deals.find((d) => d.id === id)) || null;
   const modalDeal = dealById(modalId);
-  const openDeal = (d: Deal) => setModalId(d.id);
+  const openDeal = (d: Deal, fee?: FeePlan) => {
+    setModalId(d.id);
+    setModalFee(fee);
+  };
   useEffect(closeModal, [route.tab, route.dealId, route.strategyId, route.savedId, closeModal]);
   const today = todayIso();
 
@@ -223,6 +230,7 @@ export default function App() {
           deal={modalDeal}
           today={today}
           baselineApy={prefs.baselineApy}
+          fee={modalFee}
           actions={pickAction(modalDeal)}
           onClose={closeModal}
           onFullPage={() => {
