@@ -12,8 +12,9 @@ Vertex AI with no API key.
 
 ## Decision
 
-- On the weekly scheduled deploy (and manual runs) only, never on a push
-  (the user's call: no Gemini on every push), `refresh-deals.mjs` sends every deal whose hash doesn't match its entry
+- Once a month, on the first Monday's scheduled deploy, and on manual runs
+  of the Deploy workflow; never on a push or the other weekly runs (the
+  user's call), `refresh-deals.mjs` sends every deal whose hash doesn't match its entry
   in `data/deal-terms.json`, and that has a post, is sent to Gemini
   (`scripts/ai-terms.mjs`, `gemini-3.8-flash` on Vertex AI in `vuonghome`,
   temperature 0, a fixed JSON schema). At most 60 per run.
@@ -44,6 +45,6 @@ Vertex AI with no API key.
   which is why the page flags them.
 - Deals with no post (only the list's one-liner) aren't sent; there's
   nothing to read.
-- Cost is a handful of small requests a week.
-- A deal rewritten mid-week shows the automatic read until Monday's run
-  (or a manual run of the Deploy workflow).
+- Cost is a handful of small requests a month.
+- A deal rewritten mid-week shows the automatic read until the next
+  first-Monday run (or a manual run of the Deploy workflow).

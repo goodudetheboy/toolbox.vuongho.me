@@ -56,7 +56,7 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   back to the parser, marked unchecked. To check one, read the post and
   add/update its entry (hash from `termsHash`). See
   [ADR 0012](docs/adr/0012-hand-checked-deal-terms.md).
-- `scripts/ai-terms.mjs` — during the weekly (Monday) and manual refreshes, never on a push, Gemini (Vertex AI in
+- `scripts/ai-terms.mjs` — once a month (first Monday's scheduled refresh) and on manual runs, never on a push, Gemini (Vertex AI in
   `vuonghome`, no API key) reads deals whose terms are new or changed, with
   sanity checks; entries are saved with `by: "gemini"` and CI commits
   `deal-terms.json` back to main. Pages of those deals say "read by AI".

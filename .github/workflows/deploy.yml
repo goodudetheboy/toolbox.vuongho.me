@@ -75,17 +75,18 @@ jobs:
 
       # Pulls the latest deals via Doctor of Credit's WordPress API (~8 requests).
       # Never fails the deploy: on error the committed deals.json is kept.
-      # On the weekly (and manual) runs only, deals whose terms are new or changed
-      # are read by Gemini through Vertex AI (this service account has
-      # roles/aiplatform.user); pushes skip it. See churn-machine ADR 0013.
+      # Once a month (the first Monday's scheduled run) and on manual runs, deals
+      # whose terms are new or changed are read by Gemini through Vertex AI (this
+      # service account has roles/aiplatform.user); every other run skips it.
+      # See churn-machine ADR 0013.
       - name: Refresh churn-machine deals
         env:
           EVENT: ${{ github.event_name }}
         run: |
-          if [ "$EVENT" = push ]; then
-            CHURN_AI_TERMS=0 npm run refresh -w apps/churn-machine
-          else
+          if [ "$EVENT" = workflow_dispatch ] || { [ "$EVENT" = schedule ] && [ "$(date -u +%-d)" -le 7 ]; }; then
             GEMINI_TOKEN=$(gcloud auth print-access-token) npm run refresh -w apps/churn-machine
+          else
+            CHURN_AI_TERMS=0 npm run refresh -w apps/churn-machine
           fi
 
       # Keeps Gemini's reads so the next run doesn't read the same deals again.
