@@ -1,4 +1,4 @@
-// Turns a biweekly paycheck + a time window into concrete churning schedules:
+// Turns a paycheck (1st and 15th, or every 2 weeks) + a time window into concrete churning schedules:
 // which account to open when, how to split each paycheck, when the bonus should
 // land and when it's safe to close. Fully deterministic — same inputs, same plan.
 //
@@ -13,8 +13,10 @@ import { ASSUMED, dealStatus, keepOpenDays, valueOf, type Value } from './value'
 import { availableIn, bankKey, isBusiness } from './filters';
 
 export interface PlanInputs {
-  /** Take-home pay per biweekly paycheck. */
+  /** Take-home pay per paycheck. */
   paycheck: number;
+  /** When you're paid: the 1st and 15th, or every 14 days from `firstPayday`. */
+  payFreq: PayFreq;
   firstPayday: string;
   /** Plan length; requirements must be finished inside it (payouts may land after). */
   months: number;
@@ -150,9 +152,43 @@ interface SimResult {
   paychecks: Paycheck[];
 }
 
-export function paydays(first: string, end: string): string[] {
+export type PayFreq = 'semimonthly' | 'biweekly';
+export const PAY_FREQ_LABELS: Record<PayFreq, string> = { semimonthly: '1st and 15th', biweekly: 'Every 2 weeks' };
+/** "on the 1st and 15th" / "every 2 weeks", for sentences. */
+export const payWhen = (f: PayFreq) => (f === 'biweekly' ? 'every 2 weeks' : 'on the 1st and 15th');
+
+/** The first 1st or 15th on or after `iso`. */
+function semimonthlyOnOrAfter(iso: string): string {
+  const day = Number(iso.slice(8, 10));
+  if (day === 1 || day === 15) return iso;
+  if (day < 15) return `${iso.slice(0, 8)}15`;
+  const y = Number(iso.slice(0, 4));
+  const m = Number(iso.slice(5, 7));
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+}
+
+/** The payday after payday `iso`. */
+export function nextPayday(iso: string, freq: PayFreq): string {
+  return freq === 'biweekly' ? addDays(iso, 14) : semimonthlyOnOrAfter(addDays(iso, 1));
+}
+
+/** A payday in the past moves forward to the first payday on or after `today`. */
+export function rollPayday(payday: string, today: string, freq: PayFreq): string {
+  if (freq === 'semimonthly') return semimonthlyOnOrAfter(maxIso(payday, today));
+  let d = payday;
+  while (d < today) d = addDays(d, 14);
+  return d;
+}
+
+/** Whether `iso` is one of your paydays (`anchor` is any known payday). */
+export function isPayday(iso: string, anchor: string, freq: PayFreq): boolean {
+  if (freq === 'semimonthly') return iso.endsWith('-01') || iso.endsWith('-15');
+  return ((daysBetween(anchor, iso) % 14) + 14) % 14 === 0;
+}
+
+export function paydays(first: string, end: string, freq: PayFreq): string[] {
   const out: string[] = [];
-  for (let d = first; d <= end; d = addDays(d, 14)) out.push(d);
+  for (let d = first; d <= end; d = nextPayday(d, freq)) out.push(d);
   return out;
 }
 
@@ -224,10 +260,10 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
         ? x.bucketGot.every((g) => g >= Math.ceil(r.need / (r.months ?? 1)))
         : x.remaining <= 0 && x.deposits.length >= r.minDeposits;
       if (met) x.done = p;
-      else if (addDays(p, 14) > addDays(x.s.open, r.windowDays)) x.failed = true; // no payday left in the window
+      else if (nextPayday(p, inputs.payFreq) > addDays(x.s.open, r.windowDays)) x.failed = true; // no payday left in the window
       else if (x.bucketGot) {
         // A month that's over without its deposit can't be made up.
-        const nextBucket = Math.floor(daysBetween(x.s.open, addDays(p, 14)) / 30);
+        const nextBucket = Math.floor(daysBetween(x.s.open, nextPayday(p, inputs.payFreq)) / 30);
         const perMonth = Math.ceil(r.need / (r.months ?? 1));
         for (let b = 0; b < Math.min(nextBucket, x.bucketGot.length); b++) if (x.bucketGot[b] < perMonth) x.failed = true;
       }
@@ -280,9 +316,10 @@ export function candidates(deals: Deal[], inputs: PlanInputs, today: string, bas
 
 type Candidate = ReturnType<typeof candidates>[number];
 
-function rankFor(objective: Objective, cands: Candidate[], paycheck: number): Candidate[] {
+function rankFor(objective: Objective, cands: Candidate[], paycheck: number, freq: PayFreq): Candidate[] {
+  const gap = freq === 'biweekly' ? 14 : 15; // days between paychecks, roughly
   const timeToPay = (c: Candidate) => {
-    const ddDays = c.req.need > 0 ? Math.min(c.req.windowDays, Math.ceil(c.req.need / Math.max(paycheck, 1)) * 14 + 14) : 0;
+    const ddDays = c.req.need > 0 ? Math.min(c.req.windowDays, Math.ceil(c.req.need / Math.max(paycheck, 1)) * gap + gap) : 0;
     return Math.max(ddDays, c.req.holdDays) + (c.deal.payoutDays ?? ASSUMED.payoutDays);
   };
   const tie = (a: Candidate, b: Candidate) => b.value.net - a.value.net || a.deal.rank - b.deal.rank;
@@ -368,8 +405,8 @@ function planCore(
   deals: Deal[], inputs: PlanInputs, objective: Objective, pace: Pace, today: string, baselineApy: number,
   end: string, fixed: Selection[],
 ): { strategy: Strategy; sim: SimResult; atRisk: Set<string> } {
-  const pays = paydays(inputs.firstPayday, end);
-  const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy), inputs.paycheck);
+  const pays = paydays(inputs.firstPayday, end, inputs.payFreq);
+  const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy), inputs.paycheck, inputs.payFreq);
   // Already-opened accounts stay in every simulation. Any that can't be met
   // even on their own are "at risk": scheduled best-effort, never blocking picks.
   const atRisk = fixed.length ? simulate(fixed, pays, inputs).failed : new Set<string>();

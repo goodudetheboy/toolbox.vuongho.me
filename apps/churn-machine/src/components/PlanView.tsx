@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  buildStrategies, OBJECTIVES, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
+  buildStrategies, OBJECTIVES, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
-import { addDays, monthLabel, nextWeekday, shortDate } from '../lib/dates';
+import { monthLabel, shortDate } from '../lib/dates';
 import { compactUsd, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { Check, Disclosure, ExcludeBanks, MoneyInput, Segmented, type Exclusion } from './bits';
+import { Check, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
 import { Sheet } from './DealModal';
 import { decodePlanLink, encodePlanLink } from '../lib/planLink';
@@ -17,7 +17,8 @@ type StoredInputs = Omit<PlanInputs, 'state' | 'excludeBanks'>;
 function defaults(today: string): StoredInputs {
   return {
     paycheck: 2500,
-    firstPayday: nextWeekday(today, 5),
+    payFreq: 'semimonthly',
+    firstPayday: rollPayday(today, today, 'semimonthly'),
     months: 6,
     cash: 0,
     maxSplits: 3,
@@ -29,13 +30,6 @@ function defaults(today: string): StoredInputs {
     business: false,
     includeDatePassed: false,
   };
-}
-
-/** A saved payday in the past rolls forward in 2-week steps. */
-function rollForward(payday: string, today: string): string {
-  let d = payday;
-  while (d < today) d = addDays(d, 14);
-  return d;
 }
 
 export function PlanView({
@@ -59,9 +53,12 @@ export function PlanView({
   const [maxAccounts, setMaxAccounts] = usePersisted<number>('plan-max-accounts', 0);
   const set = (patch: Partial<StoredInputs>) => setStored({ ...stored, ...patch });
 
+  // Inputs stored before the pay schedule setting get the 1st and 15th.
+  const payFreq = stored.payFreq ?? 'semimonthly';
   const inputs: PlanInputs = {
     ...stored,
-    firstPayday: rollForward(stored.firstPayday, today),
+    payFreq,
+    firstPayday: rollPayday(stored.firstPayday, today, payFreq),
     state,
     excludeBanks: exclusion.effective,
   };
@@ -92,7 +89,7 @@ export function PlanView({
         <h1>Plan</h1>
         <p className="muted">
           {shown.length
-            ? `${shown.length} ${shown.length === 1 ? 'way' : 'ways'} to earn with a ${usd(stored.paycheck)} paycheck${state ? '' : ' (all states; pick yours up top)'}`
+            ? `${shown.length} ${shown.length === 1 ? 'way' : 'ways'} to earn with a ${usd(stored.paycheck)} paycheck${state ? '' : ' (all states; set yours in the menu up top)'}`
             : 'Tell us about your paycheck and we’ll lay out which accounts to open when.'}
         </p>
       </div>
@@ -101,14 +98,7 @@ export function PlanView({
           <div className="card order-card">
             <h3>Build your plan</h3>
             <div className="order-rows">
-              <label className="order-row">
-                <span>Paycheck <span className="faint">every 2 weeks</span></span>
-                <MoneyInput ariaLabel="Paycheck amount" value={stored.paycheck} onChange={(v) => set({ paycheck: v ?? 0 })} />
-              </label>
-              <label className="order-row">
-                <span>Next payday</span>
-                <input className="input" type="date" value={inputs.firstPayday} min={today} onChange={(e) => e.target.value && set({ firstPayday: e.target.value })} />
-              </label>
+              <PaycheckRows paycheck={stored.paycheck} payFreq={payFreq} firstPayday={inputs.firstPayday} today={today} onChange={set} />
               <div className="order-row">
                 <span>Plan for</span>
                 <Segmented
@@ -120,7 +110,7 @@ export function PlanView({
               </div>
             </div>
             <div style={{ marginTop: 14 }}>
-              <Disclosure label={`More options${exclusion.effective.length ? ` · ${exclusion.effective.length} ${exclusion.effective.length === 1 ? 'bank' : 'banks'} excluded` : ''}`}>
+              <Disclosure label="More options">
                 <div className="stack" style={{ marginTop: 12 }}>
                   <ExcludeBanks x={exclusion} />
                   <label className="field">
@@ -182,10 +172,9 @@ export function PlanView({
                       <span className="item-main">
                         <span className="item-name">{s.name}</span>
                         <span className="item-sub">
-                          {s.totals.accounts} accounts · first bonus ~{s.totals.firstPayout ? shortDate(s.totals.firstPayout, today) : '–'}
+                          {s.totals.accounts} accounts
                           {s.totals.peakParked > 0 && ` · parks up to ${compactUsd(s.totals.peakParked)}`}
                         </span>
-                        <span className="item-meta">{OBJECTIVES[s.objective].hint}</span>
                       </span>
                       <Sparkline points={payoutPoints(s)} start={today} />
                       <span className="item-side">
@@ -217,7 +206,7 @@ export function PlanView({
                 <div className="hero-kicker">{OBJECTIVES[linked.objective].hint}</div>
                 <h1 className="hero-name">{linked.name}</h1>
                 <p className="muted small" style={{ margin: '6px 0 0' }}>
-                  {usd(linkInputs.paycheck)} paychecks every 2 weeks from {shortDate(linkInputs.firstPayday, today)} · {linkInputs.months} months
+                  {usd(linkInputs.paycheck)} paychecks {payWhen(linkInputs.payFreq)} from {shortDate(linkInputs.firstPayday, today)} · {linkInputs.months} months
                   {linkInputs.cash > 0 && ` · ${usd(linkInputs.cash)} to park`}
                   {linkInputs.state && ` · ${linkInputs.state}`}
                   {linkInputs.excludeBanks.length > 0 && ` · ${linkInputs.excludeBanks.length} ${linkInputs.excludeBanks.length === 1 ? 'bank' : 'banks'} excluded`}

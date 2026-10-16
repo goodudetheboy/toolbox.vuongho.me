@@ -1,6 +1,6 @@
 # How to use Churn Machine
 
-_Last updated: October 15, 2026_
+_Last updated: October 16, 2026_
 
 Churn Machine finds bank account bonuses, builds a plan for which accounts to open with your paycheck, and walks you through running that plan day by day. The deals come from Doctor of Credit's [Best Bank Account Bonuses](https://www.doctorofcredit.com/best-bank-account-bonuses/) list. They're refreshed every Monday morning and whenever the app is updated; the footer shows when they were last checked.
 
@@ -12,7 +12,7 @@ Churn Machine finds bank account bonuses, builds a plan for which accounts to op
 - **Plan**: tell it your paycheck and it suggests strategies (which accounts to open, when, and how to split each paycheck).
 - **My plans**: the plans you saved, with what to do today and how much you've collected. Needs Google sign-in.
 
-The state picker in the top bar hides deals you can't get where you live. It applies everywhere.
+The round button at the top right (your photo and name once you sign in) opens a small menu with your state, this guide, and sign in or sign out. Your state hides deals you can't get where you live. It applies everywhere.
 
 ## Deals
 
@@ -47,11 +47,11 @@ Click a deal to open it. You'll see the bonus, the net value and grade, **Key st
 
 Fill in the card on the right (top on a phone):
 
-- **Paycheck**: your take-home pay every 2 weeks that you can route.
-- **Next payday**.
+- **Paycheck**: the take-home pay from one paycheck that you can route.
+- **Paid**: **1st and 15th** (twice a month, the default) or **Every 2 weeks**. On the 1st and 15th your next payday is filled in for you. Every 2 weeks asks for your **Next payday**.
 - **Plan for**: 3, 6, 9 or 12 months.
 
-**More options** has the rest: the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts, deals past their end date. The label shows how many banks are excluded.
+**More options** has the rest: the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts, deals past their end date.
 
 ### Strategies
 
@@ -60,7 +60,7 @@ Each strategy is a **goal** × **pace**:
 - Goals: **Most money** (highest net first), **Big ones only** ($300+ net), **Least effort** (simple requirements, no branch visits or hard pulls), **Money soonest** (fastest payout first).
 - Paces: **Relaxed**, **Steady**, **Aggressive** (up to 1, 2 or 3 new accounts a month).
 
-Rows show the accounts, the first bonus date, a small chart, and the total net in the pill. Sort and limit them with the menus above the list.
+Rows show the number of accounts, cash parked (if any), a small chart, and the total net in the pill. Sort and limit them with the menus above the list.
 
 ### A strategy's details
 
@@ -109,7 +109,7 @@ A bonus that's late shows under **Waiting on the bank** instead. Banks are often
 
 ### Changing a plan's settings
 
-**Edit settings** (under the plan's name, or in **Manage this plan**) lets you change the goal, pace, paycheck, next payday, length, cash, splits, lead days, minimum bonus, options and banks to leave out. A live preview shows what changes. **Save and re-plan** applies it the same way as Revise: opened accounts stay, the rest is re-planned from today.
+**Edit settings** (under the plan's name, or in **Manage this plan**) lets you change the goal, pace, paycheck, pay schedule, next payday, length, cash, splits, lead days, minimum bonus, options and banks to leave out. A live preview shows what changes. **Save and re-plan** applies it the same way as Revise: opened accounts stay, the rest is re-planned from today.
 
 ### Manage this plan
 

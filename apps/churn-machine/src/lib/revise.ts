@@ -3,9 +3,9 @@
 import type { Deal } from './types';
 import { accountFromItem, type Account, type SavedStrategy } from './accounts';
 import {
-  OBJECTIVES, PACE_LABELS, requirementOf, revisePlan, type Committed, type Objective, type Pace, type PlanInputs,
+  isPayday, nextPayday, OBJECTIVES, PACE_LABELS, requirementOf, revisePlan, rollPayday, type Committed, type Objective, type Pace, type PlanInputs,
 } from './planner';
-import { addDays, daysBetween, maxIso, shortDate } from './dates';
+import { addDays, maxIso, shortDate } from './dates';
 import { ASSUMED } from './value';
 
 export interface PlanSettings {
@@ -21,8 +21,9 @@ export function planSettings(s: SavedStrategy): PlanSettings {
   const [obj, pace] = (s.planId ?? '').split('-');
   const objective = (Object.keys(OBJECTIVES) as Objective[]).find((o) => o === obj || s.name.startsWith(OBJECTIVES[o].label)) ?? 'money';
   const p = Number(pace) || (Object.entries(PACE_LABELS).find(([, l]) => s.name.endsWith(l))?.[0] ?? 2);
-  const inputs: PlanInputs = s.inputs ?? {
-    paycheck: s.paycheck, firstPayday: s.firstPayday, months: s.months, state: null, cash: 0, maxSplits: 3,
+  // Plans saved before the pay schedule setting were all every 2 weeks.
+  const inputs: PlanInputs = s.inputs ? { ...s.inputs, payFreq: s.inputs.payFreq ?? 'biweekly' } : {
+    paycheck: s.paycheck, payFreq: 'biweekly', firstPayday: s.firstPayday, months: s.months, state: null, cash: 0, maxSplits: 3,
     leadDays: 7, minBonus: 100, noHardPull: true, noChexSensitive: false, online: true, business: false,
     includeDatePassed: false, excludeBanks: [],
   };
@@ -69,11 +70,11 @@ export function previewRevision(
 ): RevisionPreview {
   const set = edited ?? planSettings(saved);
   const name = strategyName(set.objective, set.pace);
-  let payday = set.inputs.firstPayday;
-  while (payday < today) payday = addDays(payday, 14);
+  const freq = set.inputs.payFreq;
+  const payday = rollPayday(set.inputs.firstPayday, today, freq);
   const dealOf = (a: Account) => deals.find((d) => d.id === a.dealId) ?? null;
   const keyOf = (a: Account) => a.dealId ?? a.id;
-  const onPayday = (iso: string) => ((daysBetween(payday, iso) % 14) + 14) % 14 === 0;
+  const onPayday = (iso: string) => isPayday(iso, payday, freq);
 
   const opened = accounts.filter((a) => a.status !== 'planned');
   const committed: Committed[] = opened.map((a) => {
@@ -86,7 +87,7 @@ export function previewRevision(
       dealId: keyOf(a),
       bank: a.bank,
       openedOn,
-      ddDeadline: window != null ? addDays(openedOn, window) : maxIso(a.doneBy ?? today, lastPlanned ? addDays(lastPlanned, 14) : today),
+      ddDeadline: window != null ? addDays(openedOn, window) : maxIso(a.doneBy ?? today, lastPlanned ? nextPayday(lastPlanned, freq) : today),
       remainingNeed: undone.reduce((t, d) => t + d.amount, 0),
       remainingDeposits: undone.length,
       // Nothing missed: keep its schedule exactly; only missed deposits get re-planned.

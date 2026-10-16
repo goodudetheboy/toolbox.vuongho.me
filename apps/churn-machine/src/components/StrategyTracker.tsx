@@ -9,10 +9,10 @@ import {
   completeTask, neglected, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
 } from '../lib/tasks';
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
-import { OBJECTIVES, PACE_LABELS, type Objective, type Pace } from '../lib/planner';
+import { OBJECTIVES, PACE_LABELS, payWhen, rollPayday, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
 import { usd } from '../lib/value';
-import { BankPicker, Check, Disclosure, MoneyInput, Segmented } from './bits';
+import { BankPicker, Check, Disclosure, MoneyInput, PaycheckRows, Segmented } from './bits';
 import { Sheet } from './DealModal';
 import { AccountDetail } from './AccountsView';
 
@@ -76,7 +76,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         </div>
         <h1 className="hero-name">{s.name}</h1>
         <p className="muted small" style={{ margin: '6px 0 0' }}>
-          {usd(set.inputs.paycheck)} paychecks every 2 weeks · {set.inputs.months} months{s.archived && ' · archived'}
+          {usd(set.inputs.paycheck)} paychecks {payWhen(set.inputs.payFreq)} · {set.inputs.months} months{s.archived && ' · archived'}
           {' · '}
           <button type="button" className="more" disabled={!deals} onClick={() => setEditing(true)}>Edit settings</button>
         </p>
@@ -338,11 +338,9 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
 }) {
   const original = planSettings(s);
   const start = planStart(original);
-  const [draft, setDraft] = useState<PlanSettings>(() => {
-    let payday = original.inputs.firstPayday;
-    while (payday < today) payday = addDays(payday, 14);
-    return { ...original, inputs: { ...original.inputs, firstPayday: payday } };
-  });
+  const [draft, setDraft] = useState<PlanSettings>(() => (
+    { ...original, inputs: { ...original.inputs, firstPayday: rollPayday(original.inputs.firstPayday, today, original.inputs.payFreq) } }
+  ));
   const [saving, setSaving] = useState(false);
   const setIn = (patch: Partial<PlanSettings['inputs']>) => {
     const inputs = { ...draft.inputs, ...patch };
@@ -409,14 +407,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
           <span className="hint">Up to {draft.pace} new {draft.pace === 1 ? 'account' : 'accounts'} a month.</span>
         </div>
         <div className="order-rows">
-          <label className="order-row">
-            <span>Paycheck <span className="faint">every 2 weeks</span></span>
-            <MoneyInput ariaLabel="Paycheck amount" value={i.paycheck} onChange={(v) => setIn({ paycheck: v ?? 0 })} />
-          </label>
-          <label className="order-row">
-            <span>Next payday</span>
-            <input className="input" type="date" value={i.firstPayday} min={today} onChange={(e) => e.target.value && setIn({ firstPayday: e.target.value })} />
-          </label>
+          <PaycheckRows paycheck={i.paycheck} payFreq={i.payFreq} firstPayday={i.firstPayday} today={today} onChange={setIn} />
           <div className="order-row">
             <span>Plan length <span className="faint">ends ~{shortDate(draft.endsOn, today)}</span></span>
             <Segmented ariaLabel="Plan length" value={i.months} onChange={(months) => setIn({ months })}

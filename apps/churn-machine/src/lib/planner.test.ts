@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Deal } from './types';
-import { buildStrategy, buildStrategies, requirementOf, revisePlan, type Committed, type PlanInputs } from './planner';
+import {
+  buildStrategy, buildStrategies, isPayday, nextPayday, paydays, requirementOf, revisePlan, rollPayday, type Committed, type PlanInputs,
+} from './planner';
 import { addDays } from './dates';
 
 const TODAY = '2026-10-15';
@@ -22,7 +24,7 @@ function deal(id: string, over: Partial<Deal> = {}): Deal {
 }
 
 const INPUTS: PlanInputs = {
-  paycheck: 2000, firstPayday: '2026-10-23', months: 6, state: 'NY', cash: 0, maxSplits: 3, leadDays: 7,
+  paycheck: 2000, payFreq: 'biweekly', firstPayday: '2026-10-23', months: 6, state: 'NY', cash: 0, maxSplits: 3, leadDays: 7,
   minBonus: 0, noHardPull: false, noChexSensitive: false, online: false, business: false,
   includeDatePassed: false, excludeBanks: [],
 };
@@ -158,4 +160,30 @@ test('an on-track opened account keeps its exact deposits through a revision', (
   }
   const oct23 = r.strategy.paychecks.find((p) => p.date === '2026-10-23')!;
   assert.equal(oct23.splits.find((x) => x.dealId === 'kept')?.amount, 1500);
+});
+
+test('1st-and-15th paydays: rolling forward, stepping, and month/year ends', () => {
+  assert.equal(rollPayday('2026-10-15', '2026-10-16', 'semimonthly'), '2026-11-01');
+  assert.equal(rollPayday('2026-10-01', '2026-10-15', 'semimonthly'), '2026-10-15');
+  assert.equal(rollPayday('2026-12-20', '2026-10-01', 'semimonthly'), '2027-01-01');
+  assert.equal(nextPayday('2026-12-15', 'semimonthly'), '2027-01-01');
+  assert.equal(nextPayday('2026-02-01', 'semimonthly'), '2026-02-15');
+  assert.deepEqual(paydays('2026-11-01', '2026-12-31', 'semimonthly'), ['2026-11-01', '2026-11-15', '2026-12-01', '2026-12-15']);
+  assert.ok(isPayday('2027-03-15', '2026-11-01', 'semimonthly'));
+  assert.ok(!isPayday('2027-03-14', '2026-11-01', 'semimonthly'));
+  assert.equal(nextPayday('2026-10-23', 'biweekly'), '2026-11-06');
+});
+
+test('a 1st-and-15th plan deposits only on the 1st and 15th, inside each window', () => {
+  const deals = Array.from({ length: 8 }, (_, i) => deal(`d${i}`, { rank: i + 1, bonusMax: 200 + i * 50,
+    dd: { required: true, amount: 1000 + i * 500, windowDays: 60 + (i % 3) * 30, monthly: false, months: null, minDeposits: null } }));
+  const inputs: PlanInputs = { ...INPUTS, payFreq: 'semimonthly', firstPayday: '2026-11-01' };
+  const s = buildStrategy(deals, inputs, 'money', 3, TODAY, 0.04);
+  assert.ok(s.items.length > 0);
+  for (const p of s.paychecks) assert.match(p.date, /-(01|15)$/);
+  for (const item of s.items) {
+    const req = requirementOf(item.deal);
+    const inWindow = item.deposits.filter((d) => d.date <= addDays(item.openOn, req.windowDays));
+    assert.ok(inWindow.reduce((t, d) => t + d.amount, 0) >= req.need, `${item.deal.id} short of its DD`);
+  }
 });

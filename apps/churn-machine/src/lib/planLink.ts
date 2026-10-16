@@ -2,8 +2,7 @@
 // so the inputs are enough to rebuild the same strategy anywhere (no database).
 // It's rebuilt from that day's deals, so a link opened after the data refreshes
 // can differ; `d` records which data the link was made from.
-import type { PlanInputs } from './planner';
-import { addDays } from './dates';
+import { rollPayday, type PlanInputs } from './planner';
 
 export interface PlanLink {
   inputs: PlanInputs;
@@ -23,6 +22,7 @@ const FLAGS: [keyof PlanInputs, string][] = [
 export function encodePlanLink({ inputs, baselineApy, dealsDate }: PlanLink): string {
   const q = new URLSearchParams();
   q.set('pay', String(inputs.paycheck));
+  if (inputs.payFreq === 'semimonthly') q.set('pf', 'sm');
   q.set('from', inputs.firstPayday);
   q.set('mo', String(inputs.months));
   if (inputs.cash) q.set('cash', String(inputs.cash));
@@ -48,12 +48,14 @@ export function decodePlanLink(search: string, today: string): PlanLink | null {
   const q = new URLSearchParams(search);
   if (!q.has('pay')) return null;
   const opt = new Set((q.get('opt') ?? '').split('.'));
-  let from = /^\d{4}-\d{2}-\d{2}$/.test(q.get('from') ?? '') ? q.get('from')! : today;
-  // A link opened after its first payday rolls forward in 2-week steps, like saved inputs.
-  while (from < today) from = addDays(from, 14);
+  // Links made before the 1st-and-15th option are every 2 weeks.
+  const payFreq = q.get('pf') === 'sm' ? 'semimonthly' : 'biweekly';
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(q.get('from') ?? '') ? q.get('from')! : today;
   const inputs: PlanInputs = {
     paycheck: num(q.get('pay'), 2500),
-    firstPayday: from,
+    payFreq,
+    // A link opened after its first payday rolls forward, like saved inputs.
+    firstPayday: rollPayday(from, today, payFreq),
     months: num(q.get('mo'), 6, 1, 24),
     cash: num(q.get('cash'), 0),
     maxSplits: num(q.get('split'), 3, 1, 6),

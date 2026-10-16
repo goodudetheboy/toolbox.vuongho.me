@@ -78,7 +78,43 @@ h1, h2, h3, h4 { margin: 0; }
 .nav a:hover { color: var(--ink); background: var(--field); text-decoration: none; }
 .nav a.on { color: var(--accent); background: var(--accent-soft); }
 .top .spacer { flex: 1; }
-.top select.input { width: auto; max-width: 180px; padding-top: 8px; padding-bottom: 8px; }
+
+/* User pill + its menu */
+.user-menu { position: relative; }
+.user-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 12px 0 4px;
+  border: 1px solid var(--line); border-radius: 999px; background: #fff;
+  font: inherit; font-weight: 600; color: var(--ink); cursor: pointer;
+}
+.user-pill:hover, .user-pill.on { background: var(--field); }
+.user-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.user-pill .avatar {
+  width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700;
+}
+.user-pill .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.user-pill .user-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-pill .user-name:empty { display: none; }
+.user-pill .caret { color: var(--muted); font-size: 11px; }
+.user-pop {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 40;
+  width: 260px; padding: 8px; background: #fff;
+  border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.user-head { display: flex; flex-direction: column; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.user-head span { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+.user-signin { margin: 4px 4px 8px; }
+.user-row { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.user-row select.input { width: 100%; max-width: none; color: var(--ink); }
+.user-item {
+  display: block; width: 100%; text-align: left; padding: 10px; border-radius: 10px;
+  background: none; border: 0; font: inherit; font-weight: 500; color: var(--ink); cursor: pointer;
+}
+.user-item:hover { background: var(--field); text-decoration: none; }
 
 /* Phone tab bar */
 .tabbar { display: none; }
@@ -483,6 +519,7 @@ select.input { cursor: pointer; }
 .order-row .money-input, .order-row > .input { width: 150px; }
 .order-row .segmented button { padding: 6px 8px; font-size: 13.5px; }
 .order-row .input { text-align: right; }
+.order-row .order-value { font-weight: 600; padding-right: 2px; }
 
 .strategy-detail { margin-top: 20px; }
 
@@ -602,8 +639,6 @@ select.input { cursor: pointer; }
 .edit-form .order-rows { margin-top: 0; }
 
 /* ---------- guide ---------- */
-.icon-btn.help { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); text-decoration: none; }
-.icon-btn.help:hover, .icon-btn.help.on { color: var(--accent); background: var(--accent-soft); }
 .guide-toc nav { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
 .guide-toc nav a { color: var(--ink); font-weight: 500; padding: 5px 8px; margin: 0 -8px; border-radius: 8px; font-size: 14.5px; }
 .guide-toc nav a:hover { background: var(--hover); color: var(--accent); text-decoration: none; }
@@ -730,7 +765,8 @@ textarea.input { resize: vertical; }
   .main { padding: 0 16px 24px; }
   .top-inner { padding: 0 12px 0 16px; gap: 10px; height: 56px; }
   .nav { display: none; }
-  .top select.input { max-width: 120px; font-size: 14px; padding: 7px 10px; }
+  .user-pill { padding-right: 4px; }
+  .user-pill .user-name, .user-pill .caret { display: none; }
   .brand span { display: none; }
   .app { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
   .tabbar {

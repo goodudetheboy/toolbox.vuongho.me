@@ -10,7 +10,8 @@ import { bankNames } from './lib/filters';
 import { DealsView } from './components/DealsView';
 import { PlanView } from './components/PlanView';
 import { AccountsView } from './components/AccountsView';
-import { StateSelect, type Exclusion } from './components/bits';
+import { type Exclusion } from './components/bits';
+import { UserMenu } from './components/UserMenu';
 import { UpdateToast } from './components/UpdateToast';
 import { DealModal, DealPage } from './components/DealModal';
 import { GuidePage } from './components/GuidePage';
@@ -110,24 +111,16 @@ export default function App() {
             ))}
           </nav>
           <span className="spacer" />
-          <a
-            className={`icon-btn help ${tab === 'guide' ? 'on' : ''}`}
-            href={hrefFor('guide')}
-            aria-label="Guide: how to use Churn Machine"
-            title="Guide"
-            onClick={(e) => {
-              e.preventDefault();
-              go('guide');
-            }}
-          >
-            ?
-          </a>
-          <StateSelect value={prefs.state} onChange={(state) => setPrefs({ ...prefs, state })} />
-          {user ? (
-            <button type="button" className="btn ghost small" title={user.email ?? ''} onClick={() => signOutUser()}>Sign out</button>
-          ) : (
-            !authLoading && <button type="button" className="btn primary small" onClick={signIn}>Sign in</button>
-          )}
+          <UserMenu
+            user={user}
+            authLoading={authLoading}
+            state={prefs.state}
+            onState={(state) => setPrefs({ ...prefs, state })}
+            guideHref={hrefFor('guide')}
+            onGuide={() => go('guide')}
+            onSignIn={signIn}
+            onSignOut={() => signOutUser()}
+          />
         </div>
       </header>
 
