@@ -1,6 +1,6 @@
 # 0012. Hand-checked deal terms: upfront vs later money
 
-Status: Accepted (amends ADR 0001's "regex only, never guess"); amended by ADR 0013 (Gemini reads new or changed terms)
+Status: Accepted (amends ADR 0001's "regex only, never guess"); amended by ADR 0013 (Gemini reads new or changed terms); ADR 0014 adds monthly fees
 
 ## Context
 

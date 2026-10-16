@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { db } from './firebase';
 import { planStartOn, type PlanInputs, type PlanItem, type Strategy } from './planner';
 import { addDays, todayIso } from './dates';
-import { ASSUMED } from './value';
+import { ASSUMED, type FeeHow } from './value';
 import { bankKey } from './filters';
 
 export type AccountStatus = 'planned' | 'open' | 'met' | 'paid' | 'closed';
@@ -49,6 +49,12 @@ export interface Account {
   notes: string;
   /** When each task was checked off (tasks.ts), by task key. */
   done?: Record<string, string>;
+  /** How its monthly fee is handled (planned accounts; see feePlans). */
+  fee?: { how: FeeHow; monthly: number; amount: number | null; text: string | null } | null;
+  /** Monthly deposits that keep the fee waived. */
+  upkeep?: { date: string; amount: number }[];
+  /** Cash kept there to waive the fee. */
+  feePark?: { amount: number; from: string; until: string } | null;
   transactionsBy?: string | null;
 }
 
@@ -156,6 +162,11 @@ export function accountFromItem(item: PlanItem, strategyId: string, strategyName
     transactions: item.deal.transactions,
     transactionsBy: item.transactionsBy,
     done: {},
+    fee: item.value.fee.how === 'none' ? null : {
+      how: item.value.fee.how, monthly: item.value.fee.monthly, amount: item.value.fee.amount, text: item.value.fee.text,
+    },
+    upkeep: item.upkeep,
+    feePark: item.feePark,
   };
 }
 

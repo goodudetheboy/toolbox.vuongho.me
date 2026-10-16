@@ -519,7 +519,7 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
             <div key={i.deal.id} className="reqs-bank">
               <button type="button" className="bank-link reqs-name" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button>
               <span className="reqs-bonus">{usd(i.value.bonus)}</span>
-              <ul className="bullets">{requirementLines(i.deal).map((t) => <li key={t}>{t}</li>)}</ul>
+              <ul className="bullets">{requirementLines(i.deal, i.value.fee).map((t) => <li key={t}>{t}</li>)}</ul>
             </div>
           ))}
         </div>
@@ -531,7 +531,7 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
               <div className="schedule-what">
                 {day.opens.length > 0 && <div>Open {day.opens.join(', ')}</div>}
                 {day.routes.length > 0 && (
-                  <div>Paycheck: {day.routes.map((r) => `${usd(r.amount)} to ${r.bank}`).join(', ')}</div>
+                  <div>Paycheck: {day.routes.map((r) => `${usd(r.amount)} to ${r.bank}${r.upkeep ? ' (keeps its fee waived)' : ''}`).join(', ')}</div>
                 )}
               </div>
             </li>
@@ -543,10 +543,11 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
 }
 
 /** What to do on each date: accounts to open and paychecks to route (all-to-main paydays left out). */
-function scheduleDays(s: Strategy): { date: string; opens: string[]; routes: { amount: number; bank: string }[] }[] {
-  const days = new Map<string, { opens: string[]; routes: { amount: number; bank: string }[] }>();
+type PayRoute = { amount: number; bank: string; upkeep?: boolean };
+function scheduleDays(s: Strategy): { date: string; opens: string[]; routes: PayRoute[] }[] {
+  const days = new Map<string, { opens: string[]; routes: PayRoute[] }>();
   const day = (date: string) => days.get(date) ?? days.set(date, { opens: [], routes: [] }).get(date)!;
   for (const i of s.items) day(i.openOn).opens.push(i.deal.bank);
-  for (const p of s.paychecks) for (const x of p.splits) day(p.date).routes.push({ amount: x.amount, bank: x.bank });
+  for (const p of s.paychecks) for (const x of p.splits) day(p.date).routes.push({ amount: x.amount, bank: x.bank, upkeep: x.upkeep });
   return [...days].sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({ date, ...d }));
 }

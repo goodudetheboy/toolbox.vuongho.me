@@ -9,7 +9,7 @@
 // exceeds what you have). See docs/adr/0002-planner-greedy-with-full-resimulation.md.
 import type { Deal } from './types';
 import { addDays, daysBetween, maxIso, shortDate } from './dates';
-import { ASSUMED, dealStatus, keepOpenDays, usd, valueOf, type Value } from './value';
+import { ASSUMED, dealStatus, feePlans, keepOpenDays, usd, valueOf, type FeePlan, type Value } from './value';
 import { availableIn, bankKey, isBusiness } from './filters';
 
 export interface PlanInputs {
@@ -109,8 +109,23 @@ interface Selection {
   deal: Deal;
   req: Requirement;
   open: string;
+  /** How the monthly fee is handled (see feePlans). */
+  fee: FeePlan;
   /** An on-track opened account: these exact deposits, nothing re-planned. */
   fixed?: PlannedDeposit[];
+  /** An opened account's fee-waiver deposits: taken off the paycheck first, never re-planned. */
+  reserved?: PlannedDeposit[];
+}
+
+const NO_FEE: FeePlan = { how: 'none', monthly: 0, months: 0, fromMonth: 0, amount: null, text: null, once: 0, cost: 0 };
+
+/** The fee months (0-based, from opening) a plan has to cover. */
+const feeMonths = (f: FeePlan) => Array.from({ length: f.months }, (_, i) => f.fromMonth + i);
+
+/** Cash kept in the account to waive its fee: from the first fee month until it can close. */
+function feeParkOf(s: { open: string; fee: FeePlan }): { amount: number; from: string; until: string } | null {
+  if (s.fee.how !== 'bal' || !s.fee.amount || !s.fee.months) return null;
+  return { amount: s.fee.amount, from: addDays(s.open, s.fee.fromMonth * 30), until: addDays(s.open, (s.fee.fromMonth + s.fee.months) * 30) };
 }
 
 export interface PlannedDeposit {
@@ -130,11 +145,16 @@ export interface PlanItem {
   expectedPayout: string;
   closeAfter: string;
   assumed: string[];
+  /** Monthly deposits that keep the fee waived (fee.how 'dd'), after or alongside the bonus deposits. */
+  upkeep: PlannedDeposit[];
+  /** Cash kept there to waive the fee (fee.how 'bal'). */
+  feePark: { amount: number; from: string; until: string } | null;
 }
 
 export interface Paycheck {
   date: string;
-  splits: { dealId: string; bank: string; amount: number }[];
+  /** `upkeep`: keeps the account's monthly fee waived (not a bonus requirement). */
+  splits: { dealId: string; bank: string; amount: number; upkeep?: boolean }[];
   toMain: number;
 }
 
@@ -165,6 +185,9 @@ interface SimResult {
   deposits: Map<string, PlannedDeposit[]>;
   doneBy: Map<string, string>;
   paychecks: Paycheck[];
+  /** Fee-waiver deposits, and how many fee months they couldn't cover. */
+  upkeep: Map<string, PlannedDeposit[]>;
+  feeMissed: Map<string, number>;
 }
 
 // Paychecks are on the 1st and 15th. 'biweekly' is only for plans and links
@@ -221,7 +244,15 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
     bucketGot: s.req.months ? new Array(s.req.months).fill(0) : null,
     done: s.fixed ? s.fixed.at(-1)?.date ?? s.open : s.req.need === 0 ? s.open : null as string | null,
     failed: false,
+    // Everything routed here per month since opening (bonus and fee deposits), for the fee waiver.
+    monthGot: new Map<number, number>(),
+    upkeep: [] as PlannedDeposit[],
   }));
+  const month = (x: (typeof state)[number], p: string) => Math.floor(daysBetween(x.s.open, p) / 30);
+  const got = (x: (typeof state)[number], p: string, amount: number) => {
+    const k = month(x, p);
+    x.monthGot.set(k, (x.monthGot.get(k) ?? 0) + amount);
+  };
   const paychecks: Paycheck[] = [];
 
   for (const p of pays) {
@@ -234,7 +265,14 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
         const give = Math.min(d.amount, avail);
         avail -= give;
         x.deposits.push({ date: p, amount: give });
+        got(x, p, give);
         splits.push({ dealId: x.s.deal.id, bank: x.s.deal.bank, amount: give });
+      }
+      for (const d of x.s.reserved ?? []) {
+        if (d.date !== p) continue;
+        const give = Math.min(d.amount, avail);
+        avail -= give;
+        splits.push({ dealId: x.s.deal.id, bank: x.s.deal.bank, amount: give, upkeep: true });
       }
     }
     const wants = state
@@ -264,9 +302,32 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
       if (give <= 0) break;
       avail -= give;
       w.x.deposits.push({ date: p, amount: give });
+      got(w.x, p, give);
       w.x.remaining -= give;
       if (w.x.bucketGot && w.bucket >= 0) w.x.bucketGot[w.bucket] += give;
       splits.push({ dealId: w.x.s.deal.id, bank: w.x.s.deal.bank, amount: give });
+    }
+
+    // Then the deposits that keep monthly fees waived, soonest month end first,
+    // with whatever paycheck and splits are left. A month that misses its
+    // deposit just pays the fee (counted after the run).
+    const upkeepWants = state
+      .filter((x) => x.s.fee.how === 'dd' && x.s.fee.amount && p >= x.s.open && !splits.some((sp) => sp.dealId === x.s.deal.id))
+      .map((x) => {
+        const k = month(x, p);
+        const inFeeMonth = k >= x.s.fee.fromMonth && k < x.s.fee.fromMonth + x.s.fee.months;
+        return { x, want: inFeeMonth ? Math.max(0, x.s.fee.amount! - (x.monthGot.get(k) ?? 0)) : 0, deadline: addDays(x.s.open, (k + 1) * 30) };
+      })
+      .filter((w) => w.want > 0)
+      .sort((a, b) => a.deadline.localeCompare(b.deadline) || a.x.s.deal.rank - b.x.s.deal.rank)
+      .slice(0, Math.max(0, inputs.maxSplits - splits.length));
+    for (const w of upkeepWants) {
+      const give = Math.min(w.want, avail);
+      if (give < w.want) continue; // a partial deposit doesn't waive anything
+      avail -= give;
+      w.x.upkeep.push({ date: p, amount: give });
+      got(w.x, p, give);
+      splits.push({ dealId: w.x.s.deal.id, bank: w.x.s.deal.bank, amount: give, upkeep: true });
     }
 
     for (const x of state) {
@@ -294,11 +355,24 @@ function simulate(sel: Selection[], pays: string[], inputs: PlanInputs, tolerate
     deposits: new Map(state.map((x) => [x.s.deal.id, x.deposits])),
     doneBy: new Map(state.map((x) => [x.s.deal.id, x.done ?? x.s.open])),
     paychecks,
+    upkeep: new Map(state.map((x) => [x.s.deal.id, x.upkeep])),
+    feeMissed: new Map(state.map((x) => [
+      x.s.deal.id,
+      x.s.fee.how === 'dd' ? feeMonths(x.s.fee).filter((k) => (x.monthGot.get(k) ?? 0) < x.s.fee.amount!).length : 0,
+    ])),
   };
 }
 
+/** Every stretch of cash parked: bonus balances, and balances kept to waive a fee. */
+function parkSpans(sel: Selection[]): (readonly [string, string, number])[] {
+  return [
+    ...sel.filter((s) => s.req.balance > 0).map((s) => [s.open, addDays(s.open, s.req.holdDays), s.req.balance] as const),
+    ...sel.map(feeParkOf).filter((f) => f != null).map((f) => [f.from, f.until, f.amount] as const),
+  ];
+}
+
 function parkedOk(sel: Selection[], cash: number): boolean {
-  const spans = sel.filter((s) => s.req.balance > 0).map((s) => [s.open, addDays(s.open, s.req.holdDays), s.req.balance] as const);
+  const spans = parkSpans(sel);
   for (const [start] of spans) {
     const total = spans.filter(([a, b]) => a <= start && start < b).reduce((t, [, , amt]) => t + amt, 0);
     if (total > cash) return false;
@@ -326,7 +400,7 @@ export function candidates(deals: Deal[], inputs: PlanInputs, today: string, bas
     const picks = new Set(inputs.picks);
     return deals
       .filter((d) => picks.has(d.id) && !pickBlocker(d, inputs, today))
-      .map((deal) => ({ deal, req: requirementOf(deal), value: valueOf(deal, baselineApy) }));
+      .map((deal) => candidate(deal, baselineApy));
   }
   const excluded = new Set(inputs.excludeBanks.map(bankKey));
   return deals
@@ -347,8 +421,13 @@ export function candidates(deals: Deal[], inputs: PlanInputs, today: string, bas
       if (req.need > 0 && inputs.paycheck <= 0) return false;
       return true;
     })
-    .map((deal) => ({ deal, req: requirementOf(deal), value: valueOf(deal, baselineApy) }))
+    .map((deal) => candidate(deal, baselineApy))
     .filter((c) => c.value.net > 0);
+}
+
+function candidate(deal: Deal, baselineApy: number) {
+  const fees = feePlans(deal, baselineApy);
+  return { deal, req: requirementOf(deal), value: valueOf(deal, baselineApy, fees[0]), fees };
 }
 
 type Candidate = ReturnType<typeof candidates>[number];
@@ -414,6 +493,8 @@ export interface Committed {
   remainingNeed: number;
   remainingDeposits: number;
   park: { amount: number; until: string } | null;
+  /** Fee-waiver deposits already planned for it: they keep their slots. */
+  reserved?: PlannedDeposit[];
 }
 
 export interface Revision {
@@ -438,7 +519,9 @@ export function revisePlan(
   const fixed: Selection[] = committed.map((c) => ({
     deal: { id: c.dealId, bank: c.bank, rank: -1 } as Deal,
     open: c.openedOn,
+    fee: NO_FEE,
     fixed: c.fixedDeposits,
+    reserved: c.reserved,
     req: {
       need: c.fixedDeposits ? 0 : c.remainingNeed,
       months: null,
@@ -466,10 +549,12 @@ function planCore(
 ): { strategy: Strategy; sim: SimResult; atRisk: Set<string> } {
   const custom = objective === 'custom';
   const pays = paydays(inputs.firstPayday, end, inputs.payFreq);
+  // Fee-waiver deposits run until accounts can close, which can be after the plan ends.
+  const simPays = paydays(inputs.firstPayday, addDays(end, 400), inputs.payFreq);
   const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy, custom), inputs.paycheck, inputs.payFreq);
   // Already-opened accounts stay in every simulation. Any that can't be met
   // even on their own are "at risk": scheduled best-effort, never blocking picks.
-  const atRisk = fixed.length ? simulate(fixed, pays, inputs).failed : new Set<string>();
+  const atRisk = fixed.length ? simulate(fixed, simPays, inputs).failed : new Set<string>();
   const sel: Selection[] = [...fixed];
   const usedBanks = new Set<string>(fixed.map((f) => bankKey(f.deal.bank)));
   const openedPerMonth = new Map<string, number>();
@@ -487,19 +572,29 @@ function planCore(
       if (c.deal.expires && dealStatus(c.deal, today) !== 'date-passed' && open > c.deal.expires) continue;
       const finish = addDays(open, Math.max(c.req.need > 0 || c.deal.transactions ? c.req.windowDays : 0, c.req.holdDays));
       if (finish > end) continue;
-      const trial = [...sel, { deal: c.deal, req: c.req, open }];
+      // The cheapest way to handle the fee, unless it's keeping a balance that
+      // doesn't fit the cash you have: then the next cheapest that isn't.
+      let trial = [...sel, { deal: c.deal, req: c.req, open, fee: c.value.fee }];
+      if (!parkedOk(trial, inputs.cash) && c.value.fee.how === 'bal') {
+        const other = c.fees.find((f) => f.how !== 'bal');
+        if (other) trial = [...sel, { deal: c.deal, req: c.req, open, fee: other }];
+      }
       if (!parkedOk(trial, inputs.cash)) continue;
-      if (c.req.need > 0 && !simulate(trial, pays, inputs, atRisk).ok) continue;
+      const needsSim = c.req.need > 0 || trial.at(-1)!.fee.how === 'dd';
+      if (needsSim && !simulate(trial, simPays, inputs, atRisk).ok) continue;
       sel.push(trial[trial.length - 1]);
       usedBanks.add(bankKey(c.deal.bank));
       openedPerMonth.set(month, (openedPerMonth.get(month) ?? 0) + 1);
     }
   }
 
-  const sim = simulate(sel, pays, inputs, atRisk);
+  const sim = simulate(sel, simPays, inputs, atRisk);
   const fixedIds = new Set(fixed.map((f) => f.deal.id));
   const items: PlanItem[] = sel.filter((s) => !fixedIds.has(s.deal.id)).map((s) => {
-    const value = valueOf(s.deal, baselineApy);
+    // Fee months the paychecks couldn't cover with a waiver deposit are paid.
+    const missed = sim.feeMissed.get(s.deal.id) ?? 0;
+    const fee = missed ? { ...s.fee, missed, cost: s.fee.cost + Math.round(missed * s.fee.monthly) } : s.fee;
+    const value = valueOf(s.deal, baselineApy, fee);
     const ddDone = s.req.need > 0 ? sim.doneBy.get(s.deal.id)! : s.open;
     const txBy = s.deal.transactions ? addDays(s.open, s.req.windowDays) : null;
     const parkUntil = s.req.balance > 0 ? addDays(s.open, s.req.holdDays) : null;
@@ -516,6 +611,8 @@ function planCore(
       expectedPayout,
       closeAfter: maxIso(addDays(s.open, keepOpenDays(s.deal)), expectedPayout),
       assumed: s.req.assumed,
+      upkeep: sim.upkeep.get(s.deal.id) ?? [],
+      feePark: feeParkOf(s),
     };
   }).sort((a, b) => a.openOn.localeCompare(b.openOn) || a.deal.rank - b.deal.rank);
 
@@ -526,7 +623,8 @@ function planCore(
     pace,
     name: `${OBJECTIVES[objective].label} · ${PACE_LABELS[pace]}`,
     items,
-    paychecks: sim.paychecks,
+    // The plan's paydays, plus later ones still routing fee-waiver deposits.
+    paychecks: sim.paychecks.filter((p) => p.date <= end || p.splits.length > 0),
     totals: {
       bonus: items.reduce((t, i) => t + i.value.bonus, 0),
       net: items.reduce((t, i) => t + i.value.net, 0),
@@ -541,7 +639,7 @@ function planCore(
 }
 
 function peakParked(sel: Selection[]): number {
-  const spans = sel.filter((s) => s.req.balance > 0).map((s) => [s.open, addDays(s.open, s.req.holdDays), s.req.balance] as const);
+  const spans = parkSpans(sel);
   let peak = 0;
   for (const [start] of spans) {
     peak = Math.max(peak, spans.filter(([a, b]) => a <= start && start < b).reduce((t, [, , amt]) => t + amt, 0));

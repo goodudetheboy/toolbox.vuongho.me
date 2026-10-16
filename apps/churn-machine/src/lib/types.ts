@@ -44,6 +44,8 @@ export interface Deal {
   later?: { amount: number; how: string }[];
   /** Checked deals: requirements besides direct deposit and parked cash, e.g. "10 debit card purchases within 90 days". */
   extras?: string[];
+  /** Checked deals: the monthly fee and the ways to waive it (null when unchecked: see monthlyFee). */
+  fee?: Fee | null;
   availability: string | null;
   states: string[];
   nationwide: boolean;
@@ -81,4 +83,21 @@ export interface DealsFile {
   sourceUpdated: string;
   fetchedAt: string;
   deals: Deal[];
+}
+
+/** One way to keep a monthly fee waived. */
+export type FeeWaiver =
+  | { kind: 'dd'; amount: number }
+  | { kind: 'bal'; amount: number }
+  | { kind: 'tx'; count: number; how: string }
+  | { kind: 'free'; how: string };
+
+export interface Fee {
+  /** Monthly fee once anything free (eStatements...) is done; 0 = none. */
+  monthly: number;
+  /** Months at the start with no fee. */
+  freeMonths: number;
+  waivers: FeeWaiver[];
+  once: { amount: number; how: string } | null;
+  note: string | null;
 }

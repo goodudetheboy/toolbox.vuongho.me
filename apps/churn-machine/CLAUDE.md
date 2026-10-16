@@ -56,6 +56,11 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   back to the parser, marked unchecked. To check one, read the post and
   add/update its entry (hash from `termsHash`). See
   [ADR 0012](docs/adr/0012-hand-checked-deal-terms.md).
+- Monthly fees: `fee` in `data/deal-terms.json` (checked against posts and
+  banks' sites, 2026-10-16), `feePlans` in `value.ts` (cheapest way to
+  handle a fee: free / purchases / monthly direct deposit / kept balance /
+  pay), and the planner routes waiver deposits and counts waiver balances.
+  See [ADR 0014](docs/adr/0014-monthly-fees-in-the-planner.md).
 - `scripts/ai-terms.mjs` — once a month (first Monday's scheduled refresh) and on manual runs, never on a push, Gemini (Vertex AI in
   `vuonghome`, no API key) reads deals whose terms are new or changed, with
   sanity checks; entries are saved with `by: "gemini"` and CI commits

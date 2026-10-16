@@ -217,3 +217,47 @@ test('a later start date: nothing opens or gets paid before it', () => {
   const past = buildStrategy(deals, { ...inputs, startOn: '2026-01-01' }, 'money', 3, TODAY, 0.04);
   assert.equal(past.paychecks[0].date, '2026-11-01');
 });
+
+const FEE = (over: Partial<NonNullable<Deal['fee']>>): Deal['fee'] => ({ monthly: 15, freeMonths: 0, waivers: [], once: null, note: null, ...over });
+
+test('a fee waived by direct deposit gets a monthly deposit until the account can close, at no cost', () => {
+  const d = deal('dd-fee', { fee: FEE({ waivers: [{ kind: 'dd', amount: 500 }, { kind: 'bal', amount: 1500 }] }) });
+  const s = buildStrategy([d], INPUTS, 'money', 1, TODAY, 0.04);
+  const item = s.items[0];
+  assert.equal(item.value.fee.how, 'dd');
+  assert.equal(item.value.feeCost, 0);
+  // Every 30-day fee month from opening until ~close has $500+ routed, bonus deposits included.
+  for (let k = 0; k < item.value.fee.months; k++) {
+    const from = addDays(item.openOn, k * 30);
+    const to = addDays(item.openOn, (k + 1) * 30);
+    const inMonth = [...item.deposits, ...item.upkeep].filter((x) => x.date >= from && x.date < to).reduce((t, x) => t + x.amount, 0);
+    assert.ok(inMonth >= 500, `month ${k}: ${inMonth}`);
+  }
+  assert.ok(item.upkeep.length > 0);
+  assert.ok(s.paychecks.some((p) => p.splits.some((x) => x.upkeep)));
+});
+
+test('a fee only waived by a balance: kept if cash allows and cheaper, else paid', () => {
+  const d = deal('bal-fee', { fee: FEE({ monthly: 25, waivers: [{ kind: 'bal', amount: 1000 }] }) });
+  const withCash = buildStrategy([d], { ...INPUTS, cash: 5000 }, 'money', 1, TODAY, 0.04).items[0];
+  assert.equal(withCash.value.fee.how, 'bal');
+  assert.ok(withCash.feePark && withCash.feePark.amount === 1000);
+  assert.ok(withCash.value.feeCost < 25);
+  const noCash = buildStrategy([d], INPUTS, 'money', 1, TODAY, 0.04).items[0];
+  assert.equal(noCash.value.fee.how, 'pay');
+  assert.equal(noCash.value.feeCost, 25 * noCash.value.fee.months);
+  assert.equal(noCash.feePark, null);
+});
+
+test('free fee months and months the bonus balance covers are not charged', () => {
+  const d = deal('covered', {
+    dd: { required: false, amount: 0, windowDays: null, monthly: false, months: null, minDeposits: null },
+    balance: { amount: 10000, holdDays: 90 },
+    eatf: { fee: 0, days: 120, forfeit: false }, payoutDays: 30,
+    fee: FEE({ monthly: 10, freeMonths: 1, waivers: [{ kind: 'bal', amount: 5000 }] }),
+  });
+  const v = buildStrategy([d], { ...INPUTS, cash: 10000 }, 'money', 1, TODAY, 0.04).items[0].value;
+  // Open ~120 days = 4 months; 3 covered by the $10,000 hold, so 1 fee month.
+  assert.equal(v.fee.months, 1);
+  assert.equal(v.fee.fromMonth, 3);
+});

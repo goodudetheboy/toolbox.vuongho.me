@@ -101,6 +101,8 @@ export function previewRevision(
       // (Only while they still fall on paydays: a changed payday re-plans them too.)
       fixedDeposits: undone.every((d) => d.date >= today && onPayday(d.date)) ? undone : undefined,
       park: a.park,
+      // Its fee-waiver deposits keep their paycheck splits.
+      reserved: a.status !== 'closed' ? (a.upkeep ?? []).filter((d) => d.date >= today && onPayday(d.date)) : [],
     };
   });
 

@@ -33,6 +33,20 @@ export function termsHash(deal) {
   return createHash('sha256').update(text).digest('hex').slice(0, 16);
 }
 
+const NO_FEE = { monthly: 0, freeMonths: 0, waivers: [], once: null, note: null };
+
+/** The compact fee entry, spelled out for the app. */
+function feeOf(f) {
+  return {
+    monthly: f.m ?? 0,
+    freeMonths: f.free ?? 0,
+    waivers: (f.w ?? []).map(([kind, a, how]) =>
+      kind === 'dd' || kind === 'bal' ? { kind, amount: a } : kind === 'tx' ? { kind, count: a, how } : { kind, how: a }),
+    once: f.once ? { amount: f.once[0], how: f.once[1] } : null,
+    note: f.note ?? null,
+  };
+}
+
 const NO_DD = { required: false, amount: 0, windowDays: null, monthly: false, months: null, minDeposits: null };
 
 /**
@@ -40,10 +54,13 @@ const NO_DD = { required: false, amount: 0, windowDays: null, monthly: false, mo
  * `entry` fields: upfront, how, dd ([total, windowDays, deposits, months],
  * 0 = none, null = keep the parser's), bal ([amount, holdDays], 0 = none,
  * null = keep), tx (count, 0 = none, null = keep), later [{amount, how}],
- * extras (other requirements, e.g. "10 debit card purchases within 90 days").
+ * extras (other requirements, e.g. "10 debit card purchases within 90 days"),
+ * fee (monthly fee and how to waive it, read 2026-10-16 from the post and the
+ * bank's own site: { m, free, w: [["dd"|"bal", amount] | ["tx", count, how] |
+ * ["free", how]], once: [amount, how], note }).
  */
 export function applyTerms(deal, entry) {
-  if (!entry || entry.hash !== termsHash(deal)) return { ...deal, termsChecked: false, later: [], extras: [] };
+  if (!entry || entry.hash !== termsHash(deal)) return { ...deal, termsChecked: false, later: [], extras: [], fee: null };
   const out = {
     ...deal,
     termsChecked: true,
@@ -58,6 +75,8 @@ export function applyTerms(deal, entry) {
     later: entry.later ?? [],
     // Requirements besides direct deposit and parked cash (debit purchases, eStatements...).
     extras: entry.extras ?? [],
+    // Checked deals with no fee entry have no monthly fee.
+    fee: entry.fee ? feeOf(entry.fee) : NO_FEE,
   };
   if (entry.dd === 0) out.dd = NO_DD;
   else if (Array.isArray(entry.dd)) {

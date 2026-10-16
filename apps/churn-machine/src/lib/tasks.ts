@@ -5,7 +5,7 @@ import type { Account, AccountStatus, SavedStrategy } from './accounts';
 import type { Deal } from './types';
 import { daysBetween, shortDate } from './dates';
 
-export type TaskKind = 'open' | 'dd' | 'park' | 'unpark' | 'met' | 'bonus' | 'close';
+export type TaskKind = 'open' | 'dd' | 'park' | 'unpark' | 'met' | 'bonus' | 'close' | 'upkeep' | 'feepark';
 
 export interface Task {
   /** Unique within its account; also the key in account.done. */
@@ -68,6 +68,25 @@ export function tasksForAccount(a: Account, today: string): Task[] {
       action: false, optional: true,
     }, !!done.unpark || stage >= 4);
   }
+  // Keeping the monthly fee waived: deposits each month, or cash kept there.
+  // Missing one costs a fee, not the bonus, so they never trigger a revise.
+  const feeText = a.fee ? `keeps the ${money(a.fee.monthly)} monthly fee waived` : 'keeps the monthly fee waived';
+  for (const d of a.upkeep ?? []) {
+    add({
+      key: `fee:${d.date}`, kind: 'upkeep', date: d.date,
+      title: `${money(d.amount)} of your paycheck goes to ${a.bank}`,
+      detail: `Not for the bonus: it ${feeText}. You can move it back out after it lands.`,
+      action: false,
+    }, stage >= 4 || !!done[`fee:${d.date}`]);
+  }
+  if (a.feePark) {
+    add({
+      key: 'feepark', kind: 'feepark', date: a.feePark.from,
+      title: `Keep ${money(a.feePark.amount)} in ${a.bank}`,
+      detail: `Until ${day(a.feePark.until)}: it ${feeText}.`,
+      action: false,
+    }, stage >= 4 || !!done.feepark);
+  }
   // Transactions and other ongoing requirements aren't dated tasks: they're
   // pinned on the plan page while the account is open (see ongoingFor).
   if (a.doneBy) {
@@ -103,7 +122,7 @@ export function stateOf(t: Task, today: string): TaskState {
   return t.date === today ? 'today' : 'upcoming';
 }
 
-const ORDER: Record<TaskKind, number> = { open: 0, park: 1, dd: 2, met: 4, bonus: 5, unpark: 6, close: 7 };
+const ORDER: Record<TaskKind, number> = { open: 0, park: 1, dd: 2, upkeep: 3, feepark: 3, met: 4, bonus: 5, unpark: 6, close: 7 };
 export const byDate = (a: Task, b: Task) => a.date.localeCompare(b.date) || ORDER[a.kind] - ORDER[b.kind] || a.account.bank.localeCompare(b.account.bank);
 
 export function tasksForStrategy(accounts: Account[], today: string): Task[] {
@@ -202,10 +221,15 @@ export interface Ongoing {
  * weren't checked. Only for accounts you've opened and not finished.
  */
 export function ongoingFor(a: Account, deal: Deal | null): Ongoing[] {
-  if (a.status !== 'open') return [];
+  if (a.status === 'planned' || a.status === 'closed') return [];
   const n = deal?.transactions ?? a.transactions;
-  const texts = deal?.termsChecked ? deal.extras ?? [] : n ? [`${n} qualifying transactions (check the post for what counts)`] : [];
-  return texts.map((text) => {
+  const reqs = a.status !== 'open' ? [] : deal?.termsChecked ? deal.extras ?? [] : n ? [`${n} qualifying transactions (check the post for what counts)`] : [];
+  // The fee, until the account is closed: what keeps it waived, or that it's paid.
+  const f = a.fee;
+  const fee = !f ? [] : f.how === 'tx' || f.how === 'free'
+    ? [f.monthly ? `${f.text} (keeps the $${f.monthly} monthly fee waived)` : `${f.text} (avoids a fee)`]
+    : f.how === 'pay' ? [`$${f.monthly} monthly fee until you close it (counted in the plan)`] : [];
+  return [...reqs, ...fee].map((text) => {
     const key = ongoingKey(text);
     return { key, text, done: !!a.done?.[key] };
   });

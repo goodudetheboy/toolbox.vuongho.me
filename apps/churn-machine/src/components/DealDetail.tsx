@@ -1,7 +1,7 @@
 // One deal, laid out like a stock page: hero number, key statistics, then
 // sections. Used by the modal (sheet) and the full page.
 import type { Deal } from '../lib/types';
-import { ASSUMED, dealStatus, keepOpenDays, laterTotal, usd, valueOf } from '../lib/value';
+import { ASSUMED, dealStatus, feeLine, keepOpenDays, laterTotal, usd, valueOf, type FeePlan } from '../lib/value';
 import { shortDate } from '../lib/dates';
 import { StatusTag, VerdictTag } from './bits';
 
@@ -115,7 +115,19 @@ export function DealSections({ deal: d, today, baselineApy, full = false }: {
               <span>−{usd(v.capitalCost)}</span>
             </div>
           )}
-          {v.feeCost > 0 && <div><span>Unavoidable fees</span><span>−{usd(v.feeCost)}</span></div>}
+          {v.feeCost > 0 && (
+            <div>
+              <span>
+                {[
+                  v.fee.how === 'bal' ? `Interest you’d skip keeping ${usd(v.fee.amount!)} there to avoid the monthly fee` : null,
+                  v.fee.how === 'pay' ? `Monthly fee, ${v.fee.months} ${v.fee.months === 1 ? 'month' : 'months'} (cheaper to pay than avoid)` : null,
+                  v.fee.missed ? `Monthly fee for ${v.fee.missed} ${v.fee.missed === 1 ? 'month' : 'months'} the plan can’t cover` : null,
+                  v.fee.once > 0 ? 'one-time fee' : null,
+                ].filter(Boolean).join(', plus ').replace(/^./, (c) => c.toUpperCase())}
+              </span>
+              <span>−{usd(v.feeCost)}</span>
+            </div>
+          )}
           <div className="total"><span>You keep about</span><span className={v.net > 0 ? 'up' : 'down'}>{usd(v.net)}</span></div>
         </div>
         {v.effortNotes.length > 0 && <p className="muted">Effort: {v.effortNotes.join(', ')}.</p>}
@@ -181,7 +193,7 @@ export function DealSections({ deal: d, today, baselineApy, full = false }: {
           <dt>Card funding</dt>
           <dd>{d.ccFunding ? `Up to ${usd(d.ccFunding)}` : d.ccFunding === 0 ? 'No' : 'Unknown'}<Raw text={d.ccText && d.ccFunding ? d.ccText : null} /></dd>
           <dt>Monthly fee</dt>
-          <dd>{d.monthlyFeeText ?? 'Unknown'}</dd>
+          <dd><FeeFacts deal={d} plan={v.fee} /></dd>
           <dt>Keep open</dt>
           <dd>
             {d.eatf.days ? `${d.eatf.days} days` : `${keepOpenDays(d)} days (assumed)`}
@@ -234,5 +246,29 @@ export function ActionCard({ deal: d, today, baselineApy, actions, extra }: {
         </div>
       )}
     </div>
+  );
+}
+
+/** The deal's fees: the monthly fee, every way to waive it, and what the plans do about it. */
+function FeeFacts({ deal: d, plan }: { deal: Deal; plan: FeePlan }) {
+  const f = d.fee;
+  if (!f) return <>{d.monthlyFeeText ?? 'Unknown'}</>;
+  if (!f.monthly && !f.once && !f.waivers.length) return <>None</>;
+  const ways = f.waivers.map((w) =>
+    w.kind === 'dd' ? `${usd(w.amount)}+ in direct deposits a month`
+      : w.kind === 'bal' ? `a ${usd(w.amount)} balance`
+      : w.how.charAt(0).toLowerCase() + w.how.slice(1));
+  const line = feeLine(plan);
+  return (
+    <>
+      {f.monthly ? `${usd(f.monthly)} a month` : 'No monthly fee'}
+      {f.monthly > 0 && f.freeMonths > 0 && `, none for the first ${f.freeMonths} ${f.freeMonths === 1 ? 'month' : 'months'}`}
+      {f.monthly > 0 && ways.length > 0 && `. Waived with ${ways.join(', or ')}`}
+      {f.monthly > 0 && !ways.length && '. Can’t be waived'}
+      {!f.monthly && ways.length > 0 && ` as long as you ${ways.join(', or ')}`}
+      {f.once && `. Plus a ${usd(f.once.amount)} ${f.once.how}`}.
+      {f.note && <div className="raw">{f.note}</div>}
+      {line && <div className="raw">In plans: {line}.</div>}
+    </>
   );
 }

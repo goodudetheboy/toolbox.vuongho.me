@@ -41,6 +41,7 @@ Rules:
 - "bal": new money to deposit and keep, needed for the upfront bonus (not a small minimum balance under $1,000). amount and holdDays (days it must stay). required=false if none.
 - "tx": number of debit card purchases/transactions required, 0 if none.
 - "extras": every other requirement besides direct deposit and parked cash, each a short plain phrase with its window, e.g. "10 debit card purchases within 60 days", "Enroll in eStatements", "Keep the account open 6 months". Include the debit purchases here too. No em dashes.
+- "fee": the monthly maintenance fee of the account that earns the upfront bonus (for tiered offers, the top tier's account), usually in the "Avoiding Fees" / "Monthly Fees" section. monthly = the fee after anything costless like eStatements (0 if none). freeMonths = months with no fee at the start (e.g. "waived for the first two statement periods" = 2). waivers = every realistic way to waive it: kind "dd" (direct deposits totaling amount a month), "bal" (keep amount in the account or combined balances), "tx" (count card purchases or similar a month; how = short phrase), "free" (something costless like eStatements or one deposit a month; how = short phrase). Skip waivers like age, military, mortgages, credit cards or merchant services. once = a one-time fee (membership, joining donation), else null.
 - Only use what the text says. Don't invent numbers. Use null where unknown.`;
 
 const SCHEMA = {
@@ -74,8 +75,30 @@ const SCHEMA = {
       items: { type: 'OBJECT', properties: { amount: { type: 'INTEGER' }, how: { type: 'STRING' } }, required: ['amount', 'how'] },
     },
     extras: { type: 'ARRAY', items: { type: 'STRING' } },
+    fee: {
+      type: 'OBJECT',
+      properties: {
+        monthly: { type: 'NUMBER' },
+        freeMonths: { type: 'INTEGER' },
+        waivers: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              kind: { type: 'STRING', enum: ['dd', 'bal', 'tx', 'free'] },
+              amount: { type: 'INTEGER', nullable: true },
+              count: { type: 'INTEGER', nullable: true },
+              how: { type: 'STRING', nullable: true },
+            },
+            required: ['kind'],
+          },
+        },
+        once: { type: 'OBJECT', nullable: true, properties: { amount: { type: 'NUMBER' }, how: { type: 'STRING' } } },
+      },
+      required: ['monthly', 'freeMonths', 'waivers'],
+    },
   },
-  required: ['upfront', 'how', 'dd', 'bal', 'tx', 'later', 'extras'],
+  required: ['upfront', 'how', 'dd', 'bal', 'tx', 'later', 'extras', 'fee'],
 };
 
 /** The text Gemini reads: the index entry plus the post. */
@@ -118,10 +141,31 @@ export function toEntry(ans, text) {
   entry.tx = Number.isInteger(ans.tx) && ans.tx >= 0 ? ans.tx : null;
   entry.later = (ans.later ?? []).filter((l) => posInt(l.amount)).map((l) => ({ amount: l.amount, how: clean(l.how) }));
   entry.extras = (ans.extras ?? []).map(clean).filter(Boolean);
+  const fee = feeEntry(ans.fee, inText);
+  if (fee) entry.fee = fee;
   if (!entry.later.length) delete entry.later;
   if (!entry.extras.length) delete entry.extras;
   if (!entry.how) delete entry.how;
   return entry;
+}
+
+/** The compact fee entry (see deal-terms.mjs), or null for no fee; waivers whose amount isn't in the post are dropped. */
+export function feeEntry(f, inText) {
+  if (!f) return null;
+  const monthly = Number.isFinite(f.monthly) && f.monthly > 0 && f.monthly < 100 ? Math.round(f.monthly * 100) / 100 : 0;
+  const w = (f.waivers ?? []).flatMap((x) => {
+    if ((x.kind === 'dd' || x.kind === 'bal') && posInt(x.amount) && inText.has(x.amount)) return [[x.kind, x.amount]];
+    if (x.kind === 'tx' && posInt(x.count) && x.how) return [['tx', x.count, clean(x.how)]];
+    if (x.kind === 'free' && x.how) return [['free', clean(x.how)]];
+    return [];
+  });
+  const once = f.once && f.once.amount > 0 && f.once.amount < 200 ? [f.once.amount, clean(f.once.how) || 'one-time fee'] : null;
+  if (!monthly && !once && !w.length) return null;
+  const out = { m: monthly };
+  if (posInt(f.freeMonths) && f.freeMonths <= 12) out.free = f.freeMonths;
+  if (w.length) out.w = w;
+  if (once) out.once = once;
+  return out;
 }
 
 /** Asks Gemini for a deal's terms. Returns the raw answer. */

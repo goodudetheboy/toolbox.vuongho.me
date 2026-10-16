@@ -23,7 +23,7 @@ The round button at the top right (your photo and name once you sign in) opens a
 - **Sort** with the menu next to "All deals": best value, biggest bonus, ending soonest, least effort, best return on parked cash, or Doctor of Credit's own order.
 - **Filters** (right sidebar on a computer, the "Filters" chip on a phone): business accounts, minimum bonus, the most direct deposit you can route, the most cash you can park, your savings APY, ChexSystems-sensitive banks, and whether to show deals past their end date or ended.
 
-Each row shows the bonus in the purple pill and the **net** value under it (bonus minus the interest you'd give up on parked cash and any fees you can't avoid).
+Each row shows the bonus in the purple pill and the **net** value under it (bonus minus the interest you'd give up on parked cash and what the account's fees cost you, see Monthly fees).
 
 ### Leaving out banks
 
@@ -42,6 +42,15 @@ Some deals advertise more than you'll get for the sign-up requirements: part of 
 - In the list, a deal with long-haul money shows "+$X later, not counted".
 - A deal that only pays over a year or more counts as $0 and isn't planned.
 - New deals, and deals whose post was rewritten since the check, are read by AI (Google's Gemini) once a month (the first Monday). Their page says "read by AI" with the date, so check the post before counting on them. If the AI's answer doesn't hold up (say, an amount that isn't in the post), the deal uses the automatic read instead, and its page says so.
+
+### Monthly fees
+
+Many accounts charge a monthly fee unless you do something: keep a balance, get a direct deposit every month, make some debit card purchases, or just turn on eStatements. Every deal's fee and its ways to avoid it were checked against the post and the bank's own site, and plans account for them:
+
+- The app picks the cheapest way to deal with each fee for as long as the account stays open: something free (eStatements, one deposit a month), debit purchases, a monthly direct deposit, keeping a balance there (costs the interest you'd earn elsewhere), or simply paying the fee when that's cheaper. Free months at the start, and months the bonus's own parked cash already covers, aren't counted.
+- **Net** includes it: a paid fee, or the interest on a balance kept to avoid one, comes off the value. A deal's page shows the fee, every way to waive it, and what plans do about it ("In plans: ...").
+- In a plan, a monthly direct deposit that keeps a fee waived is part of the paycheck schedule, marked "(keeps its fee waived)". It uses a paycheck split like any other deposit, and you can move the money back out once it lands. If a month's paycheck is already spoken for, that month's fee is counted. A balance kept to avoid a fee counts against the cash you can park.
+- The **Requirements** tab lists each account's fee and how it's handled. Saved plans show the monthly deposits and kept balances as tasks, and the purchases, eStatements and paid fees in **Don't forget**.
 
 ### A deal's details
 
@@ -118,14 +127,14 @@ Open a plan to see:
 
 - Today's date and **day X of Y**.
 - **Collected** out of the planned total, and what's on the way.
-- **Don't forget**: for accounts you've marked opened, the requirements besides deposits and parked cash (debit card purchases, eStatements, online banking, small minimum balances), so you don't miss them. Tap the circle when one's done. It goes away once the account's requirements are done.
+- **Don't forget**: for accounts you've marked opened, the requirements besides deposits and parked cash (debit card purchases, eStatements, online banking, small minimum balances), so you don't miss them, plus what keeps the monthly fee away (or that it's being paid) until you close the account. Tap the circle when one's done.
 - **Today**: the tasks due today. Tap the circle next to one when it's done (tap it again to undo). For a bonus, put the amount you actually received in the box first, then tap the circle.
 - **Next two weeks**.
 - **The whole plan**: every task month by month, with a "Today" line. Tap a filled circle to undo a task you marked by mistake.
 - **Accounts in this plan**: click one to edit its dates, status, the bonus amount and notes.
 - **Revisions**: a log of every revise or settings change.
 
-Tasks you'll see: open the account, a paycheck deposit landing, moving cash in to park (and when you can move it out), requirements done, the bonus posting, and when it's safe to close (optional).
+Tasks you'll see: open the account, a paycheck deposit landing, moving cash in to park (and when you can move it out), requirements done, the bonus posting, monthly deposits or a balance that keep a fee waived, and when it's safe to close (optional).
 
 ### Falling behind: check-in and Revise
 
@@ -160,7 +169,7 @@ On a phone, deals, plans and settings open as cards from the bottom. Swipe one d
 
 - **DD**: direct deposit, usually from your paycheck. Most bonuses need a minimum amount within a window of days.
 - **Upfront**: what a deal pays once its sign-up requirements are done. Money that needs a year or more of keeping deposits or balances going is shown as "later" and never counted.
-- **Net**: the upfront bonus minus interest you'd give up on parked cash (at your savings APY) and fees you can't avoid.
+- **Net**: the upfront bonus minus interest you'd give up on parked cash (at your savings APY) and what the account's fees cost you while it's open (fees paid, or interest on a balance kept to avoid them).
 - **Park cash**: money you keep in the account for a set time to earn the bonus.
 - **Keep open**: how long to keep the account open so the bank doesn't take the bonus back.
 - **Hard pull**: a credit check that shows on your credit report. A soft pull doesn't.
