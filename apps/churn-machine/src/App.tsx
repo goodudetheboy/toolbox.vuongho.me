@@ -4,7 +4,7 @@ import { useDeals } from './lib/useDeals';
 import { signInWithGoogle, signOutUser, useAuth } from './lib/auth';
 import { allBanksIHave, saveStrategy, trackDeal, useAccounts } from './lib/accounts';
 import { usePersisted } from './lib/settings';
-import { shortDate, todayIso } from './lib/dates';
+import { todayIso } from './lib/dates';
 import type { Deal } from './lib/types';
 import { bankNames } from './lib/filters';
 import { DealsView } from './components/DealsView';
@@ -212,16 +212,6 @@ export default function App() {
             }
           }}
         />
-      )}
-
-      {data && (
-        <footer className="footer">
-          Deals from Doctor of Credit’s{' '}
-          <a href={data.source} target="_blank" rel="noreferrer">Best Bank Account Bonuses</a>
-          {' '}(updated {shortDate(data.sourceUpdated.slice(0, 10), today)}, checked {shortDate(data.fetchedAt.slice(0, 10), today)}).
-          {' '}Always read the full post before opening an account.
-          {' '}<a href={hrefFor('guide')} onClick={(e) => { e.preventDefault(); go('guide'); }}>How to use Churn Machine</a>
-        </footer>
       )}
       </main>
 

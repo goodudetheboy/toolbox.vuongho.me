@@ -683,8 +683,6 @@ select.input { cursor: pointer; }
 .signin p { color: var(--muted); max-width: 420px; margin: 10px auto 20px; }
 textarea.input { resize: vertical; }
 
-.footer { max-width: 1140px; margin: 48px auto 0; padding: 0 24px; color: var(--muted); font-size: 12.5px; text-align: center; }
-.footer a { color: var(--muted); text-decoration: underline; font-weight: 400; }
 
 .toast {
   position: fixed;

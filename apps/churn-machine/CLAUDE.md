@@ -89,8 +89,8 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
 
 ## User guide: keep it current
 
-`src/guide.md` is the user manual, shown in the app at `/guide` (the user
-menu in the top bar, and a footer link) by `GuidePage.tsx` (a small
+`src/guide.md` is the user manual, shown in the app at `/guide` (from the
+user menu in the top bar) by `GuidePage.tsx` (a small
 markdown subset: `#`/`##`/`###`, paragraphs, `- ` lists, `> ` tips,
 `**bold**`, `_italic_`, `` `code` ``, `[links](url)`).
 

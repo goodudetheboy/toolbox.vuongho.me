@@ -2,7 +2,7 @@
 
 _Last updated: October 16, 2026_
 
-Churn Machine finds bank account bonuses, builds a plan for which accounts to open with your paycheck, and walks you through running that plan day by day. The deals come from Doctor of Credit's [Best Bank Account Bonuses](https://www.doctorofcredit.com/best-bank-account-bonuses/) list. They're refreshed every Monday morning and whenever the app is updated; the footer shows when they were last checked.
+Churn Machine finds bank account bonuses, builds a plan for which accounts to open with your paycheck, and walks you through running that plan day by day. The deals come from Doctor of Credit's [Best Bank Account Bonuses](https://www.doctorofcredit.com/best-bank-account-bonuses/) list. They're refreshed every Monday morning and whenever the app is updated. Always read the full post before opening an account.
 
 > Always read the Doctor of Credit post for a deal before opening the account. Anything marked "assumed" wasn't in the post.
 
