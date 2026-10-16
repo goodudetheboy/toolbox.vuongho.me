@@ -32,6 +32,14 @@ export interface Deal {
   /** Set when the headline amount isn't in the post: the post's own top bonus. */
   bonusPostMax: number | null;
   bonusText: string | null;
+  /** True when the terms below were checked by hand (data/deal-terms.json); false for new or rewritten deals. */
+  termsChecked?: boolean;
+  /** Checked deals: the post's headline amount (bonusMax is then the upfront part only). */
+  bonusListed?: number | null;
+  /** Checked deals: what earns the upfront bonus, in a sentence. */
+  bonusHow?: string | null;
+  /** Money that needs a year or more of keeping deposits or balances going. Never counted. */
+  later?: { amount: number; how: string }[];
   availability: string | null;
   states: string[];
   nationwide: boolean;

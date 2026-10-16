@@ -3,7 +3,7 @@ import type { Deal } from '../lib/types';
 import {
   activeAdvancedCount, DEFAULT_FILTERS, filterAndSort, SORT_LABELS, type DealFilters, type SortKey,
 } from '../lib/filters';
-import { requirementSummary, usd } from '../lib/value';
+import { laterTotal, requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
 import { STATE_NAMES } from '../lib/states';
 import { Check, ExcludeBanks, MoneyInput, Segmented, StatusTag, VerdictTag, type Exclusion } from './bits';
@@ -139,7 +139,10 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
                         {CATEGORY_LABEL[d.category] && <span className="badge">{CATEGORY_LABEL[d.category]}</span>}
                       </span>
                       <span className="item-sub">{requirementSummary(d)}</span>
-                      <span className="item-meta"><StatusTag deal={d} today={today} /> · <VerdictTag verdict={v.verdict} /></span>
+                      <span className="item-meta">
+                        <StatusTag deal={d} today={today} /> · <VerdictTag verdict={v.verdict} />
+                        {laterTotal(d) > 0 && <span className="later-note"> · +{usd(laterTotal(d))} later, not counted</span>}
+                      </span>
                     </span>
                     <span className="item-side">
                       <span className="pill">

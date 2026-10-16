@@ -34,9 +34,18 @@ In the **Banks** box (sidebar, or the Filters sheet on a phone):
 
 The planner leaves out the same banks.
 
+### Upfront vs later money
+
+Some deals advertise more than you'll get for the sign-up requirements: part of the bonus only comes after you keep direct deposits going for 12 or 24 months, or it's paid a little each month for a year. Every deal on the list was checked by hand, and the app only counts the **upfront** part, the money you get once the sign-up requirements are done. Values, sorting, filters and plans all use it.
+
+- A deal's page shows "Listed as $X" when the headline differs, what earns the upfront bonus, and **Later, not counted** with any long-haul money.
+- In the list, a deal with long-haul money shows "+$X later, not counted".
+- A deal that only pays over a year or more counts as $0 and isn't planned.
+- New deals, and deals whose post was rewritten since the check, use the automatic read of the post; their page says so.
+
 ### A deal's details
 
-Click a deal to open it. You'll see the bonus, the net value and grade, **Key statistics** (direct deposit, cash to park, transactions, how long to keep it open, credit pull, when the bonus posts), **Is it worth it?** (the math behind net), the offer's terms, every detail from the post, and Doctor of Credit's take.
+Click a deal to open it. You'll see the bonus (the **upfront** part, see below), the net value and grade, **Key statistics** (direct deposit, cash to park, transactions, how long to keep it open, credit pull, when the bonus posts), **Is it worth it?** (the math behind net), the offer's terms, every detail from the post, and Doctor of Credit's take.
 
 - **Open full page** gives the deal its own page and link, with the at-a-glance lines from the list and an "Open at" card.
 - **Add to custom plan** puts the deal in your custom plan (no sign-in needed). Once it's in, **Build plan** takes you to it and **Remove** takes it out. You mark an account as opened later, from the plan's checklist when you run it.
@@ -145,7 +154,8 @@ On a phone, use your browser's "Add to Home Screen" (Safari: Share, then Add to 
 ## Words you'll see
 
 - **DD**: direct deposit, usually from your paycheck. Most bonuses need a minimum amount within a window of days.
-- **Net**: the bonus minus interest you'd give up on parked cash (at your savings APY) and fees you can't avoid.
+- **Upfront**: what a deal pays once its sign-up requirements are done. Money that needs a year or more of keeping deposits or balances going is shown as "later" and never counted.
+- **Net**: the upfront bonus minus interest you'd give up on parked cash (at your savings APY) and fees you can't avoid.
 - **Park cash**: money you keep in the account for a set time to earn the bonus.
 - **Keep open**: how long to keep the account open so the bank doesn't take the bonus back.
 - **Hard pull**: a credit check that shows on your credit report. A soft pull doesn't.

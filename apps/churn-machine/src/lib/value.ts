@@ -40,6 +40,9 @@ export function keepOpenDays(d: Deal): number {
   return d.eatf.days ?? ASSUMED.keepOpenDays;
 }
 
+/** Money a deal pays only after a year or more (not counted anywhere). */
+export const laterTotal = (d: Deal) => (d.later ?? []).reduce((t, l) => t + l.amount, 0);
+
 export function valueOf(d: Deal, baselineApy: number): Value {
   const bonus = d.bonusPostMax ?? d.bonusMax ?? 0;
   let capitalCost = 0;

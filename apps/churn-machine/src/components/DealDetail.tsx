@@ -1,7 +1,7 @@
 // One deal, laid out like a stock page: hero number, key statistics, then
 // sections. Used by the modal (sheet) and the full page.
 import type { Deal } from '../lib/types';
-import { ASSUMED, dealStatus, keepOpenDays, usd, valueOf } from '../lib/value';
+import { ASSUMED, dealStatus, keepOpenDays, laterTotal, usd, valueOf } from '../lib/value';
 import { shortDate } from '../lib/dates';
 import { StatusTag, VerdictTag } from './bits';
 
@@ -43,6 +43,13 @@ export function DealHero({ deal: d, today, baselineApy }: { deal: Deal; today: s
       <div className="hero-kicker">{d.title}</div>
       <h1 className="hero-name">{d.bank}</h1>
       <div className="hero-number">{d.bonusMax != null ? usd(d.bonusMax) : '?'}</div>
+      {d.termsChecked && d.bonusListed != null && d.bonusListed !== d.bonusMax && (
+        <div className="hero-listed">
+          {!d.bonusMax
+            ? `Listed as ${usd(d.bonusListed)}, but it’s all paid out over a year or more, so none of it is counted.`
+            : `Listed as ${usd(d.bonusListed)}. ${usd(d.bonusMax)} is what you get once the sign-up requirements are done${laterTotal(d) > 0 ? `; ${usd(laterTotal(d))} more takes a year or more and isn’t counted` : ''}.`}
+        </div>
+      )}
       <div className={`hero-delta ${v.net > 0 ? 'up' : 'down'}`}>
         {usd(v.net)} net after costs <span className="hero-dot">·</span> <VerdictTag verdict={v.verdict} />
       </div>
@@ -54,7 +61,7 @@ export function DealHero({ deal: d, today, baselineApy }: { deal: Deal; today: s
 export function KeyStats({ deal: d, baselineApy }: { deal: Deal; baselineApy: number }) {
   const v = valueOf(d, baselineApy);
   const stats: [string, string][] = [
-    ['Bonus', bonusRange(d)],
+    [d.termsChecked ? 'Upfront bonus' : 'Bonus', bonusRange(d)],
     ['Direct deposit', ddShort(d)],
     ['Park cash', d.balance ? usd(d.balance.amount) : 'None'],
     ['Transactions', d.transactions != null ? String(d.transactions) : 'None listed'],
@@ -135,6 +142,14 @@ export function DealSections({ deal: d, today, baselineApy, full = false }: {
           <dd>
             {bonusRange(d)}
             {d.bonusNote && <span className="muted"> · {d.bonusNote}</span>}
+            {d.bonusHow && <div className="raw">Upfront for: {d.bonusHow}.</div>}
+            {laterTotal(d) > 0 && (
+              <div className="later">
+                <b>Later, not counted ({usd(laterTotal(d))}):</b>
+                <ul>{d.later!.map((l, i) => <li key={i}>{usd(l.amount)}: {l.how}</li>)}</ul>
+              </div>
+            )}
+            {d.termsChecked === false && <div className="raw">These terms changed since they were last checked by hand, so the numbers are the automatic read. Check the post.</div>}
             {d.bonusPostMax != null && (
               <div className="raw">The post’s terms are for {usd(d.bonusPostMax)}, so value and plans count that. The higher amount may be a newer or portal offer; check the post.</div>
             )}

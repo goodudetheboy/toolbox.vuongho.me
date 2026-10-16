@@ -879,3 +879,9 @@ textarea.input { resize: vertical; }
 }
 .picked-action { display: flex; flex-direction: column; gap: 8px; }
 .picked-action-buttons { display: flex; justify-content: center; gap: 8px; }
+
+/* Hand-checked terms: upfront vs later */
+.hero-listed { margin-top: 6px; color: var(--muted); font-size: 14px; max-width: 560px; }
+.later-note { color: var(--muted); }
+.later { margin-top: 8px; font-size: 14px; }
+.later ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }

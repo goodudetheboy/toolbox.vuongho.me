@@ -14,9 +14,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseIndex, parseDeal } from './parse-deals.mjs';
+import { applyTerms } from './deal-terms.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(here, '..', 'public', 'deals.json');
+const TERMS = path.join(here, '..', 'data', 'deal-terms.json');
 const API = 'https://www.doctorofcredit.com/wp-json/wp/v2/posts';
 const INDEX_SLUG = 'best-bank-account-bonuses';
 const BATCH = 40;
@@ -63,11 +65,13 @@ async function main() {
     for (const p of got) posts.set(p.slug, p);
   }
 
+  const terms = JSON.parse(readFileSync(TERMS, 'utf8'));
   const seen = new Set();
   const deals = [];
   for (const entry of entries) {
     const post = posts.get(entry.slugs[0]) ?? null;
-    const deal = parseDeal(entry, post);
+    const parsed = parseDeal(entry, post);
+    const deal = applyTerms(parsed, terms[parsed.id]);
     // The same post is sometimes listed under two headings (e.g. state + business);
     // keep the first, which is the higher-ranked spot.
     if (seen.has(deal.id)) continue;
@@ -83,7 +87,8 @@ async function main() {
   };
   writeFileSync(OUT, `${JSON.stringify(out)}\n`);
   const missing = deals.filter((d) => !d.hasGlance).length;
-  console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block)`);
+  const unchecked = deals.filter((d) => !d.termsChecked).length;
+  console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block, ${unchecked} new or changed since their terms were checked)`);
 }
 
 main().catch((err) => {

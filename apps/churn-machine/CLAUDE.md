@@ -47,6 +47,14 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   [ADR 0001](docs/adr/0001-deal-data-from-doc-rest-api.md).
   `CHURN_CACHE_DIR=/tmp/doc node scripts/refresh-deals.mjs` caches raw API
   responses so parser iterations don't re-hit DoC.
+- `data/deal-terms.json` + `scripts/deal-terms.mjs` — hand-checked terms
+  for every deal as of 2026-10-16: the upfront bonus (what you get for the
+  sign-up requirements), its requirement, and "later" money (a year+ of
+  keeping deposits going, never counted). Applied during refresh while a
+  hash of the deal's terms text still matches; new or rewritten deals fall
+  back to the parser, marked unchecked. To check one, read the post and
+  add/update its entry (hash from `termsHash`). See
+  [ADR 0012](docs/adr/0012-hand-checked-deal-terms.md).
 - `scripts/parse-deals.mjs` — all parsing, regex-only and deterministic.
   Unknown → `null` → UI says "see post"; never guess. Tested with real DoC
   snippets in `parse-deals.test.mjs`; when you fix a misread deal, add its
