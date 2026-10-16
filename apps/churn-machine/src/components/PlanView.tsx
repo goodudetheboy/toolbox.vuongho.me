@@ -68,7 +68,8 @@ export function PlanView({
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Inputs stored before the pay schedule setting get the 1st and 15th.
-  const payFreq = stored.payFreq ?? 'semimonthly';
+  // Paid on the 1st and 15th (older stored inputs may say every 2 weeks).
+  const payFreq = 'semimonthly' as const;
   const startOn = stored.startOn && stored.startOn > today ? stored.startOn : null;
   const start = startOn ?? today;
   const inputs: PlanInputs = {
@@ -107,19 +108,9 @@ export function PlanView({
   const linkInputs = link?.inputs ?? inputs;
   const formMatches = !link || linkFor(link.inputs) === linkFor(inputs);
 
-  const summary = (
-    <p className="muted plan-summary">
-      {usd(stored.paycheck)} paychecks {payWhen(payFreq)} · {startOn ? `starts ${shortDate(startOn, today)}` : 'starts today'} · {stored.months} months
-      {stored.cash > 0 && ` · ${usd(stored.cash)} to park`}
-      {' · '}
-      <button type="button" className="more" onClick={() => goStep(null)}>Edit</button>
-    </p>
-  );
-
   const paycheckRows = (
     <PaycheckRows
       paycheck={stored.paycheck}
-      payFreq={payFreq}
       firstPayday={inputs.firstPayday}
       today={start}
       onChange={set}
@@ -293,7 +284,6 @@ export function PlanView({
           <div className="page-head">
             <div className="step-kicker">Step 2 of 3</div>
             <h1>How do you want to plan?</h1>
-            {summary}
           </div>
           <div className="choice-tiles">
             <button type="button" className="choice-tile" onClick={() => goStep('suggested')}>
@@ -316,7 +306,6 @@ export function PlanView({
           <div className="page-head">
             <div className="step-kicker">Step 3 of 3</div>
             <h1>Pick your deals</h1>
-            {summary}
           </div>
           <div className="card order-card">
             <DealPicker deals={deals} value={stored.picks ?? []} onChange={(picks) => set({ picks })} today={today} />

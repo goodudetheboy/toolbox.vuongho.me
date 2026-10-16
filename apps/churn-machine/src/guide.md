@@ -49,10 +49,9 @@ Plan walks you through it one screen at a time. **← back** links (and your bro
 
 **Step 1, Your paycheck:** just what's needed to get started.
 
-- **Paycheck**: the take-home pay from one paycheck that you can route.
-- **Paid**: **Semi-monthly** (the 1st and 15th, the default) or **Every 2 weeks**.
+- **Paycheck**: the take-home pay from one paycheck that you can route. Paychecks are on the 1st and 15th.
 - **Start**: the day the plan begins (today unless you pick a later date). Nothing is opened or deposited before it, and the plan length counts from it.
-- **Next payday**: filled in for you on Semi-monthly (the first 1st or 15th on or after the start); on Every 2 weeks you enter it.
+- **Next payday**: filled in for you (the first 1st or 15th on or after the start).
 
 Then **Next**.
 
@@ -60,7 +59,7 @@ Then **Next**.
 
 **Step 3, the plans.** Suggested plans are listed under **Plans for you**. Every setting is right there in **Your settings** (the panel on the right; on a phone, tap it to open), so you never have to go back to change something:
 
-- Paycheck, Paid, Start, Next payday, and **Plan for** (3, 6, 9 or 12 months; 6 to start).
+- Paycheck, Start, Next payday, and **Plan for** (3, 6, 9 or 12 months; 6 to start).
 - **More options and filters**: the two bank exclusions (same as on Deals), cash you can park, how many accounts one paycheck can be split across, how many days ahead of payday to open accounts, deals past their listed end date, the smallest bonus worth doing, and avoid hard pulls, online only, ChexSystems, business accounts. **Reset** puts them back.
 
 ### Custom plans
@@ -128,7 +127,7 @@ A bonus that's late shows under **Waiting on the bank** instead. Banks are often
 
 ### Changing a plan's settings
 
-**Edit settings** (under the plan's name, or in **Manage this plan**) lets you change the goal (or, for a custom plan, its deals), pace, paycheck, pay schedule, next payday, length, cash, splits, lead days, minimum bonus, options and banks to leave out. A live preview shows what changes. **Save and re-plan** applies it the same way as Revise: opened accounts stay, the rest is re-planned from today.
+**Edit settings** (under the plan's name, or in **Manage this plan**) lets you change the goal (or, for a custom plan, its deals), pace, paycheck, length, cash, splits, lead days, minimum bonus, options and banks to leave out. A live preview shows what changes. **Save and re-plan** applies it the same way as Revise: opened accounts stay, the rest is re-planned from today.
 
 ### Manage this plan
 

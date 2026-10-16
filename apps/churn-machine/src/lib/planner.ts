@@ -161,8 +161,9 @@ interface SimResult {
   paychecks: Paycheck[];
 }
 
+// Paychecks are on the 1st and 15th. 'biweekly' is only for plans and links
+// made before that, which keep the schedule they were built with.
 export type PayFreq = 'semimonthly' | 'biweekly';
-export const PAY_FREQ_LABELS: Record<PayFreq, string> = { semimonthly: 'Semi-monthly', biweekly: 'Every 2 weeks' };
 /** "semi-monthly" / "every 2 weeks", for sentences. */
 export const payWhen = (f: PayFreq) => (f === 'biweekly' ? 'every 2 weeks' : 'semi-monthly');
 

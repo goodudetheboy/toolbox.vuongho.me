@@ -48,3 +48,10 @@ settings card as a side panel: everything from step 1 plus Plan for and
 On phones it folds into a one-line "Your settings" card that opens on tap.
 So tweaking never means going back to step 1; the steps are only the way
 in. The separate "Filters" disclosure on suggested results is gone.
+
+## Addendum (2026-10-16): no settings summary on the in-between steps
+
+The settings summary line ("$X paychecks semi-monthly · starts … · Edit")
+was removed from step 2 and from Pick your deals at the user's request;
+the "← back" link is the way to change step 1, and every setting is in the
+panel on the results screens anyway.

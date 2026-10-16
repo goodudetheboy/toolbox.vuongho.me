@@ -853,7 +853,6 @@ textarea.input { resize: vertical; }
 .plan-step { max-width: 640px; margin: 0 auto; }
 .plan-step > .back + .page-head { margin-top: 4px; }
 .step-kicker { font-size: 13px; font-weight: 650; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.01em; }
-.plan-summary { margin-top: 8px; }
 .step-actions { display: flex; justify-content: flex-end; margin: 20px 0 8px; }
 .step-actions .btn { min-width: 160px; }
 .choice-tiles { display: flex; flex-direction: column; gap: 12px; }

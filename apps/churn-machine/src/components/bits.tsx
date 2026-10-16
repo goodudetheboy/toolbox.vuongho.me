@@ -4,7 +4,7 @@ import type { Deal } from '../lib/types';
 import { dealStatus, usd, type Verdict } from '../lib/value';
 import { daysBetween, shortDate } from '../lib/dates';
 import { STATE_NAMES } from '../lib/states';
-import { PAY_FREQ_LABELS, requirementOf, rollPayday, type PayFreq } from '../lib/planner';
+import { requirementOf } from '../lib/planner';
 import { bankKey } from '../lib/filters';
 
 export function StatusTag({ deal, today }: { deal: Deal; today: string }) {
@@ -81,46 +81,26 @@ export function Segmented<T extends string | number>({ value, options, onChange,
   );
 }
 
-/**
- * Paycheck amount, when you're paid, and (every 2 weeks only) your next payday.
- * On the 1st and 15th the next payday is known, so it's just shown.
- */
-export function PaycheckRows({ paycheck, payFreq, firstPayday, today, onChange, beforePayday }: {
+/** Paycheck amount and the next payday (paid on the 1st and 15th, so it's just shown). */
+export function PaycheckRows({ paycheck, firstPayday, today, onChange, beforePayday }: {
   paycheck: number;
-  payFreq: PayFreq;
   firstPayday: string;
   today: string;
-  onChange: (patch: { paycheck?: number; payFreq?: PayFreq; firstPayday?: string }) => void;
+  onChange: (patch: { paycheck?: number }) => void;
   /** A row to put just above "Next payday" (the plan's start date). */
   beforePayday?: React.ReactNode;
 }) {
   return (
     <>
       <label className="order-row">
-        <span>Paycheck</span>
+        <span>Paycheck <span className="faint">1st and 15th</span></span>
         <MoneyInput ariaLabel="Paycheck amount" value={paycheck} onChange={(v) => onChange({ paycheck: v ?? 0 })} />
       </label>
-      <div className="order-row">
-        <span>Paid</span>
-        <Segmented<PayFreq>
-          ariaLabel="Pay schedule"
-          value={payFreq}
-          onChange={(f) => onChange({ payFreq: f, firstPayday: rollPayday(firstPayday, today, f) })}
-          options={(Object.keys(PAY_FREQ_LABELS) as PayFreq[]).map((f) => ({ value: f, label: PAY_FREQ_LABELS[f] }))}
-        />
-      </div>
       {beforePayday}
-      {payFreq === 'biweekly' ? (
-        <label className="order-row">
-          <span>Next payday</span>
-          <input className="input" type="date" value={firstPayday} min={today} onChange={(e) => e.target.value && onChange({ firstPayday: e.target.value })} />
-        </label>
-      ) : (
-        <div className="order-row">
-          <span>Next payday</span>
-          <span className="order-value">{shortDate(firstPayday, today)}</span>
-        </div>
-      )}
+      <div className="order-row">
+        <span>Next payday</span>
+        <span className="order-value">{shortDate(firstPayday, today)}</span>
+      </div>
     </>
   );
 }

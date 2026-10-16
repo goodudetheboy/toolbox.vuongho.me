@@ -340,7 +340,8 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
   const original = planSettings(s);
   const start = planStart(original);
   const [draft, setDraft] = useState<PlanSettings>(() => (
-    { ...original, inputs: { ...original.inputs, firstPayday: rollPayday(original.inputs.firstPayday, planStartOn(original.inputs, today), original.inputs.payFreq) } }
+    // Paychecks are on the 1st and 15th; a plan saved as every 2 weeks switches when you save.
+    { ...original, inputs: { ...original.inputs, payFreq: 'semimonthly', firstPayday: rollPayday(original.inputs.firstPayday, planStartOn(original.inputs, today), 'semimonthly') } }
   ));
   const [saving, setSaving] = useState(false);
   const setIn = (patch: Partial<PlanSettings['inputs']>) => {
@@ -417,7 +418,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
           <span className="hint">Up to {draft.pace} new {draft.pace === 1 ? 'account' : 'accounts'} a month.</span>
         </div>
         <div className="order-rows">
-          <PaycheckRows paycheck={i.paycheck} payFreq={i.payFreq} firstPayday={i.firstPayday} today={planStartOn(i, today)} onChange={setIn} />
+          <PaycheckRows paycheck={i.paycheck} firstPayday={i.firstPayday} today={planStartOn(i, today)} onChange={setIn} />
           <div className="order-row">
             <span>Plan length <span className="faint">ends ~{shortDate(draft.endsOn, today)}</span></span>
             <Segmented ariaLabel="Plan length" value={i.months} onChange={(months) => setIn({ months })}
