@@ -6,7 +6,7 @@ import {
 import { shortDate } from '../lib/dates';
 import { compactUsd, requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
-import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, type Exclusion } from './bits';
+import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, VerdictTag, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
 import { Sheet } from './DealModal';
 import { decodePlanLink, encodePlanLink } from '../lib/planLink';
@@ -497,17 +497,23 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
       </div>
 
       {view === 'accounts' ? (
-        <ul className="open-list">
+        <div className="items open-items">
           {s.items.map((i) => (
-            <li key={i.deal.id}>
-              <span className="open-main">
-                <button type="button" className="bank-link open-bank" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button>
-                <span className="open-sub">{requirementSummary(i.deal)}</span>
+            <button key={i.deal.id} type="button" className="item" onClick={() => onOpenDeal(i.deal)}>
+              <span className="item-main">
+                <span className="item-name">{i.deal.bank}</span>
+                <span className="item-sub">{requirementSummary(i.deal)}</span>
+                <span className="item-meta">
+                  Open {i.openOn === today ? 'today' : shortDate(i.openOn, today)} · <VerdictTag verdict={i.value.verdict} />
+                </span>
               </span>
-              <span className="open-amount">{usd(i.value.bonus)}</span>
-            </li>
+              <span className="item-side">
+                <span className="pill">{usd(i.value.bonus)}</span>
+                <span className={`item-net ${i.value.net > 0 ? '' : 'down'}`}>{usd(i.value.net)} net</span>
+              </span>
+            </button>
           ))}
-        </ul>
+        </div>
       ) : (
         <ul className="schedule">
           {scheduleDays(s).map((day) => (

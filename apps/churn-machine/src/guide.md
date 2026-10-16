@@ -94,7 +94,7 @@ Rows show the number of accounts, cash parked (if any), a small chart, and the t
 Click a strategy to open it:
 
 - The big number and chart show bonuses adding up over time. Move your mouse or finger along the chart (or use the arrow keys) to see each payout.
-- **Accounts to open** (shown first): each account with what it needs and its bonus. Click a bank to see its deal.
+- **Accounts to open** (shown first): each account as a row like the Deals list, with what it needs, when to open it, its rating, bonus and net. Tap a row to see its deal.
 - **Schedule**: date by date, which accounts to open and how much of that paycheck goes to which bank. Paydays where everything stays in your main account are left out. Cash to park, promo codes and payout dates are on each deal's page, and in the plan's checklist once you save it.
 - **Share link** copies a link to this exact strategy (on a phone it opens the share menu). Anyone can open it, signed in or not. It includes the plan's settings and the banks it leaves out. It's rebuilt from that day's deals, so it can differ if the deals changed; a note says so.
 - If someone else's link has different settings from yours, **Use these settings in my plan** copies them into your form.
