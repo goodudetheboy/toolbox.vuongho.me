@@ -8,10 +8,6 @@ import { usePersisted } from '../lib/settings';
 import { STATE_NAMES } from '../lib/states';
 import { Check, ExcludeBanks, MoneyInput, Segmented, StatusTag, VerdictTag, type Exclusion } from './bits';
 
-const CATEGORY_LABEL: Record<Deal['category'], string> = {
-  checking: 'Checking', savings: 'Savings', business: 'Business', state: 'Local', regional: 'Local', other: '',
-};
-
 export function DealsView({ deals, today, state, baselineApy, setBaselineApy, exclusion, onOpenDeal }: {
   deals: Deal[];
   today: string;
@@ -136,7 +132,6 @@ export function DealsView({ deals, today, state, baselineApy, setBaselineApy, ex
                     <span className="item-main">
                       <span className="item-name">
                         {d.bank}
-                        {CATEGORY_LABEL[d.category] && <span className="badge">{CATEGORY_LABEL[d.category]}</span>}
                       </span>
                       <span className="item-sub">{requirementSummary(d)}</span>
                       <span className="item-meta">
