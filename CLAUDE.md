@@ -25,8 +25,8 @@ homepage.
 - `.github/workflows/deploy.yml` — CI/CD, deploys `dist/` to Firebase
   Hosting on push to `main` and weekly on Mondays (see
   `docs/adr/0007-daily-scheduled-deploy.md`); refreshes churn-machine's
-  deals before building (Gemini reads changed deal terms; the step commits
-  them back to main); also deploys the study-assistant Cloud Run API
+  deals before building (on the weekly/manual runs, Gemini reads changed
+  deal terms and the step commits them back to main); also deploys the study-assistant Cloud Run API
   (when its code changed) and publishes Firestore rules
 - `docs/` — toolbox-wide only, see below
 

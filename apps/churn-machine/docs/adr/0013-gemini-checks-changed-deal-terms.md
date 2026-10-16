@@ -7,13 +7,13 @@ Status: Accepted (amends ADR 0012)
 ADR 0012's hand-checked terms age: when Doctor of Credit rewrites a post or
 adds a deal, its hash stops matching and the deal falls back to the regex
 parser until someone reads it again. The user wanted that re-read automated,
-and chose Gemini over a weekly Claude task or the Claude API: it runs on
-every deploy, and CI's Google Cloud service account can call it through
+and chose Gemini over a weekly Claude task or the Claude API: CI's Google Cloud service account can call it through
 Vertex AI with no API key.
 
 ## Decision
 
-- During `refresh-deals.mjs`, every deal whose hash doesn't match its entry
+- On the weekly scheduled deploy (and manual runs) only, never on a push
+  (the user's call: no Gemini on every push), `refresh-deals.mjs` sends every deal whose hash doesn't match its entry
   in `data/deal-terms.json`, and that has a post, is sent to Gemini
   (`scripts/ai-terms.mjs`, `gemini-3.8-flash` on Vertex AI in `vuonghome`,
   temperature 0, a fixed JSON schema). At most 60 per run.
@@ -45,3 +45,5 @@ Vertex AI with no API key.
 - Deals with no post (only the list's one-liner) aren't sent; there's
   nothing to read.
 - Cost is a handful of small requests a week.
+- A deal rewritten mid-week shows the automatic read until Monday's run
+  (or a manual run of the Deploy workflow).
