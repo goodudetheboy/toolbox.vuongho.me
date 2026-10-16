@@ -915,6 +915,12 @@ textarea.input { resize: vertical; }
 
 /* Strategy modal: accounts to open / schedule */
 .detail-tabs { margin: 26px 0 6px; }
+.reqs-bank { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.reqs-bank:first-child { border-top: 0; }
+.reqs-name { font-size: 16px; font-weight: 650; text-align: left; color: var(--ink); justify-self: start; }
+.reqs-bonus { font-weight: 700; font-variant-numeric: tabular-nums; }
+.reqs-bank .bullets { grid-column: 1 / -1; font-size: 14.5px; }
+.reqs-bank .bullets li { margin: 4px 0; }
 .schedule { list-style: none; margin: 0; padding: 0; }
 /* Deal-style rows in a strategy's "Accounts to open", flush with the sheet's text. */
 .open-items { margin: 0 -12px; }

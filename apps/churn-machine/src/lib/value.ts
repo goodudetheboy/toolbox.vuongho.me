@@ -87,6 +87,26 @@ export function compactUsd(n: number): string {
 }
 
 /** One short line saying what you have to do. */
+/** Everything a deal asks for, one short line each (a strategy's Requirements tab). */
+export function requirementLines(d: Deal): string[] {
+  const out: string[] = [];
+  if (d.dd.required) {
+    const amt = d.dd.amount ? `${usd(d.dd.amount)} in direct deposits` : 'A direct deposit (any amount)';
+    const n = d.dd.minDeposits && d.dd.minDeposits > 1 ? `, at least ${d.dd.minDeposits} deposits` : '';
+    const win = d.dd.monthly && d.dd.months ? ` every month for ${d.dd.months} months` : d.dd.windowDays ? ` within ${d.dd.windowDays} days` : '';
+    out.push(amt + win + n);
+  }
+  if (d.balance) out.push(`Park ${usd(d.balance.amount)}${d.balance.holdDays ? ` for ${d.balance.holdDays} days` : ''}`);
+  if (d.termsChecked && d.extras?.length) out.push(...d.extras);
+  else if (d.transactions) out.push(`${d.transactions} transactions (check the post for what counts)`);
+  if (d.promoCode) out.push(`Promo code ${d.promoCode}`);
+  if (d.inBranch) out.push('Open in a branch');
+  if (d.pull === 'hard') out.push('Hard credit pull');
+  const fee = d.eatf.fee ? ` (${usd(d.eatf.fee)} fee if closed sooner)` : d.eatf.forfeit ? ' (bonus taken back if closed sooner)' : '';
+  out.push(`Keep open ${keepOpenDays(d)} days${d.eatf.days == null ? ' (assumed)' : ''}${fee}`);
+  return out;
+}
+
 export function requirementSummary(d: Deal): string {
   const parts: string[] = [];
   if (d.dd.required) {

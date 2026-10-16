@@ -4,7 +4,7 @@ import {
   buildStrategies, buildStrategy, DEFAULT_SPLITS, OBJECTIVES, SPLIT_OPTIONS, splitLabel, payWhen, rollPayday, sortStrategies, STRATEGY_SORTS, type PlanInputs, type Strategy, type StrategySort,
 } from '../lib/planner';
 import { shortDate } from '../lib/dates';
-import { compactUsd, requirementSummary, usd } from '../lib/value';
+import { compactUsd, requirementLines, requirementSummary, usd } from '../lib/value';
 import { usePersisted } from '../lib/settings';
 import { Check, DealPicker, Disclosure, ExcludeBanks, MoneyInput, PaycheckRows, Segmented, VerdictTag, type Exclusion } from './bits';
 import { cumulative, PayoutChart, Sparkline, type PayoutPoint } from './PayoutChart';
@@ -459,7 +459,7 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
   today: string;
   onOpenDeal: (d: Deal) => void;
 }) {
-  const [view, setView] = useState<'accounts' | 'schedule'>('accounts');
+  const [view, setView] = useState<'accounts' | 'reqs' | 'schedule'>('accounts');
   const [active, setActive] = useState<number | null>(null);
   const points = payoutPoints(s);
   const running = cumulative(points);
@@ -492,7 +492,7 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
 
       <div className="detail-tabs">
         <Segmented ariaLabel="View" value={view} onChange={setView}
-          options={[{ value: 'accounts', label: 'Accounts to open' }, { value: 'schedule', label: 'Schedule' }]} />
+          options={[{ value: 'accounts', label: 'Accounts to open' }, { value: 'reqs', label: 'Requirements' }, { value: 'schedule', label: 'Schedule' }]} />
       </div>
 
       {view === 'accounts' ? (
@@ -511,6 +511,16 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
                 <span className={`item-net ${i.value.net > 0 ? '' : 'down'}`}>{usd(i.value.net)} net</span>
               </span>
             </button>
+          ))}
+        </div>
+      ) : view === 'reqs' ? (
+        <div className="reqs">
+          {s.items.map((i) => (
+            <div key={i.deal.id} className="reqs-bank">
+              <button type="button" className="bank-link reqs-name" onClick={() => onOpenDeal(i.deal)}>{i.deal.bank}</button>
+              <span className="reqs-bonus">{usd(i.value.bonus)}</span>
+              <ul className="bullets">{requirementLines(i.deal).map((t) => <li key={t}>{t}</li>)}</ul>
+            </div>
           ))}
         </div>
       ) : (
