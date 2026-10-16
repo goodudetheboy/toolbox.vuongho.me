@@ -181,18 +181,26 @@ export function PlanView({
           </div>
           <div className="card order-card">
             <div className="order-rows">
-              <PaycheckRows paycheck={stored.paycheck} payFreq={payFreq} firstPayday={inputs.firstPayday} today={start} onChange={set} />
-              <label className="order-row">
-                <span>Start</span>
-                <input
-                  className="input"
-                  type="date"
-                  aria-label="Plan start date"
-                  value={start}
-                  min={today}
-                  onChange={(e) => e.target.value && set({ startOn: e.target.value > today ? e.target.value : null })}
-                />
-              </label>
+              <PaycheckRows
+                paycheck={stored.paycheck}
+                payFreq={payFreq}
+                firstPayday={inputs.firstPayday}
+                today={start}
+                onChange={set}
+                beforePayday={
+                  <label className="order-row">
+                    <span>Start</span>
+                    <input
+                      className="input"
+                      type="date"
+                      aria-label="Plan start date"
+                      value={start}
+                      min={today}
+                      onChange={(e) => e.target.value && set({ startOn: e.target.value > today ? e.target.value : null })}
+                    />
+                  </label>
+                }
+              />
               <div className="order-row">
                 <span>Plan for</span>
                 <Segmented

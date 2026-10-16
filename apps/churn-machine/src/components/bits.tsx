@@ -85,12 +85,14 @@ export function Segmented<T extends string | number>({ value, options, onChange,
  * Paycheck amount, when you're paid, and (every 2 weeks only) your next payday.
  * On the 1st and 15th the next payday is known, so it's just shown.
  */
-export function PaycheckRows({ paycheck, payFreq, firstPayday, today, onChange }: {
+export function PaycheckRows({ paycheck, payFreq, firstPayday, today, onChange, beforePayday }: {
   paycheck: number;
   payFreq: PayFreq;
   firstPayday: string;
   today: string;
   onChange: (patch: { paycheck?: number; payFreq?: PayFreq; firstPayday?: string }) => void;
+  /** A row to put just above "Next payday" (the plan's start date). */
+  beforePayday?: React.ReactNode;
 }) {
   return (
     <>
@@ -107,6 +109,7 @@ export function PaycheckRows({ paycheck, payFreq, firstPayday, today, onChange }
           options={(Object.keys(PAY_FREQ_LABELS) as PayFreq[]).map((f) => ({ value: f, label: PAY_FREQ_LABELS[f] }))}
         />
       </div>
+      {beforePayday}
       {payFreq === 'biweekly' ? (
         <label className="order-row">
           <span>Next payday</span>
