@@ -148,6 +148,8 @@ Tap the gear next to the plan's name: **Revise from today** (any time, even if y
 
 On a phone, use your browser's "Add to Home Screen" (Safari: Share, then Add to Home Screen). It opens full screen and works offline with the last deals it loaded. When there's a new version, a small "Update" bar appears.
 
+On a phone, deals, plans and settings open as cards from the bottom. Swipe one down to close it (from the top of the card, or anywhere once you've scrolled back to the top).
+
 ## What's saved where
 
 - **Your Google account** (synced): saved plans, accounts, task check-offs, and "Banks I have".
