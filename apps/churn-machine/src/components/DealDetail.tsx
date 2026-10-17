@@ -130,7 +130,7 @@ export function DealSections({ deal: d, today, baselineApy, fee, full = false }:
                 {[
                   v.fee.how === 'bal' ? `Interest you’d skip keeping ${usd(v.fee.amount!)} there to avoid the monthly fee` : null,
                   v.fee.how === 'pay' ? `Monthly fee, ${v.fee.months} ${v.fee.months === 1 ? 'month' : 'months'} (cheaper to pay than avoid)` : null,
-                  v.fee.missed ? `Monthly fee for ${v.fee.missed} ${v.fee.missed === 1 ? 'month' : 'months'} the plan can’t cover` : null,
+                  v.fee.missed ? `Monthly fee for ${v.fee.missed} ${v.fee.missed === 1 ? 'month' : 'months'} your paychecks can’t also send ${usd(v.fee.amount ?? 0)} there` : null,
                   v.fee.once > 0 ? 'one-time fee' : null,
                 ].filter(Boolean).join(', plus ').replace(/^./, (c) => c.toUpperCase())}
               </span>

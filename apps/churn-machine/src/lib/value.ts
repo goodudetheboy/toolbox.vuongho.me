@@ -107,12 +107,16 @@ export function feeLine(p: FeePlan): string | null {
       case 'none': return null;
       case 'free': return p.monthly ? `${fee}: ${lower(p.text!)} to avoid it` : p.text ? `${p.text} (avoids a fee)` : null;
       case 'tx': return `${fee}: ${lower(p.text!)} to avoid it`;
-      case 'dd': return `${fee}: keep ${usd(p.amount!)}+ a month in direct deposits going to avoid it`;
+      case 'dd': return `${fee}, waived in any month ${usd(p.amount!)}+ in direct deposits lands there`;
       case 'bal': return `${fee}: keep ${usd(p.amount!)} in the account to avoid it`;
       case 'pay': return `${fee} for ${p.months} ${p.months === 1 ? 'month' : 'months'}: cheaper to pay (${usd(p.monthly * p.months)}, counted)`;
     }
   })();
-  const missed = p.missed ? `the paychecks can’t cover it for ${p.missed} ${p.missed === 1 ? 'month' : 'months'}, so ${usd(p.missed * p.monthly)} is paid (counted)` : null;
+  // A plan's paychecks couldn't fit the waiver deposit some months (split limit): those fees are paid.
+  const months = (n: number) => `${n} ${n === 1 ? 'month' : 'months'}`;
+  const missed = p.missed
+    ? `in ${months(p.missed)} your paychecks are already split as many ways as you allow, so the plan expects you to pay it then (${usd(p.missed * p.monthly)}, counted)`
+    : null;
   const once = p.once ? `${usd(p.once)} one-time fee (counted)` : null;
   return [line, missed, once].filter(Boolean).join('; ') || null;
 }
