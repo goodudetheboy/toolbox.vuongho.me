@@ -456,9 +456,11 @@ function SaveRow({ signedIn, onSave }: { signedIn: boolean; onSave: () => Promis
 const payoutPoints = (s: Strategy): PayoutPoint[] =>
   s.items.map((i) => ({ date: i.expectedPayout, amount: i.value.bonus, label: i.deal.bank }));
 
-function StrategyDetail({ strategy: s, today, onOpenDeal }: {
+export function StrategyDetail({ strategy: s, today, start = today, onOpenDeal }: {
   strategy: Strategy;
   today: string;
+  /** Where the chart starts: today, or a saved plan's first day. */
+  start?: string;
   onOpenDeal: (d: Deal, fee?: FeePlan) => void;
 }) {
   const [view, setView] = useState<'accounts' | 'reqs' | 'schedule'>('accounts');
@@ -479,9 +481,9 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
           )}
         </div>
       </div>
-      <PayoutChart points={points} start={today} active={active} onActive={setActive} />
+      <PayoutChart points={points} start={start} active={active} onActive={setActive} />
       <div className="chart-axis">
-        <span>Today</span>
+        <span>{start === today ? 'Today' : shortDate(start, today)}</span>
         <span>{s.totals.lastPayout ? shortDate(s.totals.lastPayout, today) : ''}</span>
       </div>
 

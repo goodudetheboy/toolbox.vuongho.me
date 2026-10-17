@@ -1,21 +1,24 @@
-// One saved strategy, run day to day: where you are, what's due today, the
-// whole plan as a timeline, and a check-in that can re-plan the rest.
+// One saved strategy, run day to day: what's due today, the next paycheck's
+// split, cash parked, each account's progress, the full schedule (folded),
+// the Plan tab's overview behind a button, and a check-in that can re-plan.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Deal } from '../lib/types';
 import {
-  applyRevision, archiveStrategy, deleteStrategy, STATUS_LABELS, updateAccount, type Account, type SavedStrategy,
+  applyRevision, archiveStrategy, deleteStrategy, updateAccount, type Account, type SavedStrategy,
 } from '../lib/accounts';
 import {
-  completeTask, neglected, ongoingFor, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Task,
+  completeTask, neglected, ongoingFor, progressOf, stateOf, tasksForStrategy, undoTask, waiting, type Ongoing, type Task,
 } from '../lib/tasks';
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
 import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, SPLIT_OPTIONS, splitLabel, SUGGESTED, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
-import { levelOf, usd } from '../lib/value';
-import { BankPicker, Check, DealPicker, MoneyInput, PaycheckRows, Segmented } from './bits';
+import { levelOf, usd, type FeePlan } from '../lib/value';
+import { BankPicker, Check, DealPicker, Disclosure, MoneyInput, PaycheckRows, Segmented } from './bits';
 import { Sheet } from './DealModal';
 import { AccountDetail } from './AccountsView';
 import { GearIcon } from './icons';
+import { StrategyDetail } from './PlanView';
+import { accountCards, nextPaycheck, parkedCash, savedAsStrategy, STAGE_LABELS, type AccountCard } from '../lib/bag';
 
 const longToday = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -44,18 +47,18 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
   /** Days you opened accounts outside this plan in the last year (ChexSystems limits). */
   otherOpens: string[];
   onBack: () => void;
-  onOpenDeal: (d: Deal) => void;
+  onOpenDeal: (d: Deal, fee?: FeePlan) => void;
 }) {
   const [revision, setRevision] = useState<RevisionPreview | null>(null);
   const [editing, setEditing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [openAccount, setOpenAccount] = useState<string | null>(null);
+  const [overview, setOverview] = useState(false);
   const tasks = tasksForStrategy(accounts, today);
   const p = progressOf(accounts, today);
   const missed = neglected(tasks, today);
   const late = waiting(tasks, today);
   const dueToday = tasks.filter((t) => stateOf(t, today) === 'today' && !t.optional);
-  const soon = tasks.filter((t) => stateOf(t, today) === 'upcoming' && t.date <= addDays(today, 14));
   const nextUp = tasks.find((t) => stateOf(t, today) === 'upcoming');
   const months = [...new Set(tasks.map((t) => t.date.slice(0, 7)))];
   const set = planSettings(s);
@@ -64,10 +67,10 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
     return d ? levelOf(d, a.tier) : null;
   };
 
-  // Ongoing requirements (debit purchases, eStatements...) for accounts you've opened.
-  const ongoing = accounts
-    .map((a) => ({ account: a, items: ongoingFor(a, dealFor(a)) }))
-    .filter((x) => x.items.length > 0);
+  const cards = accountCards(accounts, today);
+  const pay = nextPaycheck(accounts, today, set.inputs.paycheck);
+  const parked = parkedCash(accounts, today);
+  const parkedNow = parked.filter((x) => x.state !== 'later').reduce((t, x) => t + x.amount, 0);
   const save = (a: Account, patch: Partial<Account>) =>
     updateAccount(uid, a.id, patch).catch((e: Error) => alert(`Couldn’t save: ${e.message}`));
   const row = (t: Task, compact = false) => (
@@ -103,6 +106,9 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         <p className="muted small" style={{ margin: '6px 0 0' }}>
           {usd(set.inputs.paycheck)} paychecks {payWhen(set.inputs.payFreq)} · {set.inputs.months} months{s.archived && ' · archived'}
         </p>
+        <button type="button" className="btn ghost small overview-btn" disabled={!deals} onClick={() => setOverview(true)}>
+          See the plan overview
+        </button>
       </div>
 
       <div className="readout" style={{ marginTop: 20 }}>
@@ -113,39 +119,6 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         </div>
       </div>
       <ProgressBar collected={p.collected} onTheWay={p.onTheWay} planned={p.planned} />
-
-      {ongoing.length > 0 && (
-        <div className="dont-forget">
-          <h3>Don’t forget</h3>
-          {ongoing.map(({ account: a, items }) => (
-            <div key={a.id} className="df-bank">
-              {dealFor(a)
-                ? <button type="button" className="bank-link df-name" onClick={() => onOpenDeal(dealFor(a)!)}>{a.bank}</button>
-                : <span className="df-name">{a.bank}</span>}
-              <ul>
-                {items.map((x) => (
-                  <li key={x.key} className={x.done ? 'done' : ''}>
-                    <button
-                      type="button"
-                      className="task-mark"
-                      aria-pressed={x.done}
-                      aria-label={x.done ? `Undo: ${x.text}` : `Mark done: ${x.text}`}
-                      onClick={() => {
-                        const done = { ...(a.done ?? {}) };
-                        if (x.done) delete done[x.key]; else done[x.key] = today;
-                        save(a, { done });
-                      }}
-                    >
-                      {x.done ? '✓' : ''}
-                    </button>
-                    <span>{x.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
 
       {missed.length > 0 && (
         <div className="checkin">
@@ -167,14 +140,6 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         </div>
       )}
 
-      {late.length > 0 && (
-        <section className="section">
-          <h2>Waiting on the bank</h2>
-          <p className="muted small">Bonuses often post late. Mark them when they land; check the post if one is very late.</p>
-          <div className="tasks">{late.map((t) => row(t))}</div>
-        </section>
-      )}
-
       <section className="section">
         <h2>Today</h2>
         {dueToday.length ? (
@@ -186,49 +151,108 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
         )}
       </section>
 
-      {soon.length > 0 && (
+      {late.length > 0 && (
         <section className="section">
-          <h2>Next two weeks</h2>
-          <div className="tasks">{soon.map((t) => row(t))}</div>
+          <h2>Waiting on the bank</h2>
+          <p className="muted small">Bonuses often post late. Mark them when they land; check the post if one is very late.</p>
+          <div className="tasks">{late.map((t) => row(t))}</div>
         </section>
       )}
 
-      <section className="section">
-        <h2>The whole plan</h2>
-        {months.map((m) => {
-          const inMonth = tasks.filter((t) => t.date.startsWith(m));
-          const nowHere = today.startsWith(m);
-          return (
-            <div key={m}>
-              <div className="month">{monthLabel(`${m}-01`)}</div>
-              <div className="tasks timeline-tasks">
-                {inMonth.map((t, i) => (
-                  <div key={`${t.account.id}:${t.key}`}>
-                    {nowHere && t.date >= today && (i === 0 || inMonth[i - 1].date < today) && <div className="today-line"><span>Today</span></div>}
-                    {row(t, true)}
-                  </div>
+      {(pay || parked.length > 0) && (
+        <div className="money-cards">
+          {pay && (
+            <div className="money-card">
+              <div className="money-kicker">Next paycheck · {pay.date === today ? 'today' : shortDate(pay.date, today)}</div>
+              <div className="money-big">{usd(pay.routes.reduce((t, r) => t + r.amount, 0))} <span>to {pay.routes.length} {pay.routes.length === 1 ? 'bank' : 'banks'}</span></div>
+              <ul className="money-rows">
+                {pay.routes.map((r) => (
+                  <li key={`${r.accountId}:${r.upkeep}`}>
+                    <span>{r.bank}{r.upkeep && <span className="faint"> · keeps the fee waived</span>}</span>
+                    <span>{usd(r.amount)}</span>
+                  </li>
                 ))}
-                {nowHere && inMonth.every((t) => t.date < today) && <div className="today-line"><span>Today</span></div>}
-              </div>
+                <li className="to-main"><span>Your main account</span><span>{usd(pay.toMain)}</span></li>
+              </ul>
             </div>
-          );
-        })}
+          )}
+          {parked.length > 0 && (
+            <div className="money-card">
+              <div className="money-kicker">Cash parked now</div>
+              <div className="money-big">
+                {usd(parkedNow)}
+                {set.inputs.cash > 0 && <span> of {usd(set.inputs.cash)} you set aside</span>}
+              </div>
+              <ul className="money-rows">
+                {parked.map((x) => (
+                  <li key={`${x.accountId}:${x.why}`} className={x.state}>
+                    <span>
+                      {x.bank}
+                      <span className="faint">
+                        {x.state === 'free' ? ' · can come out now'
+                          : x.state === 'in' ? ` · until ${shortDate(x.until, today)}`
+                          : ` · moves in ~${shortDate(x.from, today)}`}
+                        {x.why === 'fee' && ' (fee waiver)'}
+                      </span>
+                    </span>
+                    <span>{usd(x.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      <section className="section">
+        <h2>Accounts</h2>
+        <div className="acct-cards">
+          {cards.map((c) => (
+            <AccountCardView
+              key={c.account.id}
+              card={c}
+              today={today}
+              open={openAccount === c.account.id}
+              onToggle={() => setOpenAccount(openAccount === c.account.id ? null : c.account.id)}
+              ongoing={ongoingFor(c.account, dealFor(c.account))}
+              onOngoing={(key, done) => {
+                const marks = { ...(c.account.done ?? {}) };
+                if (done) marks[key] = today; else delete marks[key];
+                save(c.account, { done: marks });
+              }}
+              row={row}
+              onBank={dealFor(c.account) ? () => onOpenDeal(dealFor(c.account)!) : undefined}
+              detail={<AccountDetail uid={uid} a={c.account} today={today} />}
+            />
+          ))}
+        </div>
       </section>
 
       <section className="section">
-        <h2>Accounts in this plan</h2>
-        <div className="list">
-          {accounts.map((a) => (
-            <div key={a.id} className={`row ${openAccount === a.id ? 'open' : ''}`}>
-              <button type="button" className="row-head" aria-expanded={openAccount === a.id} onClick={() => setOpenAccount(openAccount === a.id ? null : a.id)}>
-                <span className="row-title">{a.bank}</span>
-                <span className="row-amount">{usd(a.status === 'paid' || a.status === 'closed' ? a.bonusReceived ?? a.bonus : a.bonus)}</span>
-                <span className="row-sub">{a.openOn ? `Open ${shortDate(a.openOn, today)}` : ''}{a.expectedPayout ? ` · bonus ~${shortDate(a.expectedPayout, today)}` : ''}</span>
-                <span className="row-side status">{STATUS_LABELS[a.status]}</span>
-              </button>
-              {openAccount === a.id && <AccountDetail uid={uid} a={a} today={today} />}
+        <h2>Full schedule</h2>
+        <div className="toolbar">
+          <Disclosure label={`Every step, by date (${tasks.length})`}>
+            <div style={{ flexBasis: '100%' }}>
+              {months.map((m) => {
+                const inMonth = tasks.filter((t) => t.date.startsWith(m));
+                const nowHere = today.startsWith(m);
+                return (
+                  <div key={m}>
+                    <div className="month">{monthLabel(`${m}-01`)}</div>
+                    <div className="tasks timeline-tasks">
+                      {inMonth.map((t, i) => (
+                        <div key={`${t.account.id}:${t.key}`}>
+                          {nowHere && t.date >= today && (i === 0 || inMonth[i - 1].date < today) && <div className="today-line"><span>Today</span></div>}
+                          {row(t, true)}
+                        </div>
+                      ))}
+                      {nowHere && inMonth.every((t) => t.date < today) && <div className="today-line"><span>Today</span></div>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </Disclosure>
         </div>
       </section>
 
@@ -239,6 +263,19 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
             {s.revisions!.map((r, i) => <li key={i}>{shortDate(r.on, today)}: {r.note}</li>)}
           </ul>
         </section>
+      )}
+
+      {overview && deals && (
+        <Sheet label={`${s.name}: plan overview`} onClose={() => setOverview(false)}>
+          <div className="hero">
+            <div className="hero-kicker">Plan overview, as it stands today{(s.revisions?.length ?? 0) > 0 && ' (revisions included)'}</div>
+            <h1 className="hero-name">{s.name}</h1>
+            <p className="muted small" style={{ margin: '6px 0 0' }}>
+              {usd(set.inputs.paycheck)} paychecks {payWhen(set.inputs.payFreq)} · {set.inputs.months} months
+            </p>
+          </div>
+          <StrategyDetail strategy={savedAsStrategy(s, set, accounts, deals, today)} today={today} start={p.start ?? today} onOpenDeal={onOpenDeal} />
+        </Sheet>
       )}
 
       {editing && deals && (
@@ -351,6 +388,94 @@ function PlanMenu({ archived, ready, onRevise, onEdit, onArchive, onDelete }: {
           {item('Edit settings', onEdit, !ready)}
           {item(archived ? 'Unarchive' : 'Archive', onArchive)}
           {item('Delete plan', onDelete, false, true)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One account: its stage, where its deposits and cash stand, and what's next. Opens to its steps and record. */
+function AccountCardView({ card: c, today, open, onToggle, ongoing, onOngoing, row, onBank, detail }: {
+  card: AccountCard;
+  today: string;
+  open: boolean;
+  onToggle: () => void;
+  ongoing: Ongoing[];
+  onOngoing: (key: string, done: boolean) => void;
+  row: (t: Task, compact?: boolean) => React.ReactNode;
+  onBank?: () => void;
+  detail: React.ReactNode;
+}) {
+  const a = c.account;
+  const got = a.status === 'paid' || a.status === 'closed';
+  const facts: string[] = [];
+  if (c.stage === 'todo' && a.openOn) facts.push(`Open ${a.openOn === today ? 'today' : shortDate(a.openOn, today)}`);
+  if (a.park && (c.stage === 'todo' || c.stage === 'working' || c.stage === 'waiting')) {
+    facts.push(a.park.until > today ? `Park ${usd(a.park.amount)} until ${shortDate(a.park.until, today)}` : `${usd(a.park.amount)} parked can come out`);
+  }
+  if (a.doneBy && (c.stage === 'todo' || c.stage === 'working')) facts.push(`All done by ${shortDate(a.doneBy, today)}`);
+  if (a.expectedPayout && !got) facts.push(`Bonus ~${shortDate(a.expectedPayout, today)}`);
+  if (c.stage === 'keep' && a.closeAfter) facts.push(`Keep open until ${shortDate(a.closeAfter, today)}`);
+  if (got && a.paidOn) facts.push(`Bonus received ${shortDate(a.paidOn, today)}`);
+  const todo = ongoing.filter((x) => !x.done).length;
+
+  return (
+    <div className={`acct-card stage-${c.stage} ${open ? 'open' : ''} ${c.overdue ? 'late' : ''}`}>
+      <button type="button" className="acct-head" aria-expanded={open} onClick={onToggle}>
+        <span className="acct-top">
+          <span className="acct-bank">{a.bank}</span>
+          <span className="acct-bonus">{usd(got ? a.bonusReceived ?? a.bonus : a.bonus)}</span>
+        </span>
+        <span className="acct-stage">
+          <span className={`stage-tag ${c.stage}`}>{STAGE_LABELS[c.stage]}</span>
+          {c.overdue > 0 && <span className="task-state overdue"> · {c.overdue} overdue</span>}
+        </span>
+        {c.dd && c.stage !== 'done' && (
+          <span className="acct-meter">
+            <span className="acct-meter-label">
+              Direct deposits: {usd(c.dd.doneAmount)} of {usd(c.dd.totalAmount)} <span className="faint">({c.dd.done}/{c.dd.total})</span>
+            </span>
+            <span className="progress"><span className="progress-got" style={{ width: `${c.dd.totalAmount ? (c.dd.doneAmount / c.dd.totalAmount) * 100 : 0}%` }} /></span>
+          </span>
+        )}
+        {facts.length > 0 && <span className="acct-facts">{facts.join(' · ')}</span>}
+        {c.next && (c.stage === 'todo' || c.stage === 'working' || c.stage === 'waiting') && (
+          <span className="acct-next">
+            Next: {c.next.title.charAt(0).toLowerCase() + c.next.title.slice(1)}
+            {' · '}{c.next.date === today ? 'today' : c.next.date < today ? <span className="task-state overdue">was due {shortDate(c.next.date, today)}</span> : shortDate(c.next.date, today)}
+          </span>
+        )}
+        {todo > 0 && !open && <span className="acct-next faint">{todo} ongoing {todo === 1 ? 'requirement' : 'requirements'} to keep up</span>}
+      </button>
+      {open && (
+        <div className="acct-body">
+          {onBank && <button type="button" className="bank-link" onClick={onBank}>See the {a.bank} deal</button>}
+          {ongoing.length > 0 && (
+            <div className="dont-forget">
+              <h3>Keep up while it’s open</h3>
+              <ul>
+                {ongoing.map((x) => (
+                  <li key={x.key} className={x.done ? 'done' : ''}>
+                    <button
+                      type="button"
+                      className="task-mark"
+                      aria-pressed={x.done}
+                      aria-label={x.done ? `Undo: ${x.text}` : `Mark done: ${x.text}`}
+                      onClick={() => onOngoing(x.key, !x.done)}
+                    >
+                      {x.done ? '✓' : ''}
+                    </button>
+                    <span>{x.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <h4>Steps</h4>
+          <div className="tasks">{c.tasks.map((t) => row(t, true))}</div>
+          <div className="toolbar" style={{ marginTop: 12 }}>
+            <Disclosure label="Edit the record"><div style={{ flexBasis: '100%' }}>{detail}</div></Disclosure>
+          </div>
         </div>
       )}
     </div>

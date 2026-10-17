@@ -653,6 +653,46 @@ button.task-mark:focus-visible { outline: 2px solid var(--accent); outline-offse
 .checkin .task { border-bottom-color: #f3e2c6; }
 .checkin .btn.primary { margin-top: 14px; }
 
+.overview-btn { margin: 10px 0 0 -14px; }
+
+/* next paycheck + cash parked */
+.money-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 32px; }
+.money-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.money-kicker { color: var(--muted); font-weight: 600; font-size: 13.5px; }
+.money-big { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.money-big span { font-size: 14px; font-weight: 550; color: var(--muted); letter-spacing: 0; }
+.money-rows { list-style: none; margin: 10px 0 0; padding: 0; }
+.money-rows li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.money-rows li > span:last-child { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.money-rows li.to-main, .money-rows li.later { color: var(--muted); }
+.money-rows li.to-main > span:last-child, .money-rows li.later > span:last-child { font-weight: 550; }
+.money-rows li.free .faint { color: var(--accent); font-weight: 600; }
+
+/* account cards */
+.acct-cards { display: flex; flex-direction: column; gap: 10px; }
+.acct-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.acct-card.late { border-color: #f3d9b0; }
+.acct-card.stage-done, .acct-card.stage-close { opacity: 0.75; }
+.acct-head { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 14px 16px; border: 0; background: none; text-align: left; cursor: pointer; }
+.acct-head:hover, .acct-card.open > .acct-head { background: var(--hover); }
+.acct-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.acct-bank { font-weight: 650; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-bonus { font-weight: 650; font-variant-numeric: tabular-nums; }
+.acct-stage { font-size: 13px; }
+.stage-tag { display: inline-block; padding: 1px 8px; border-radius: 6px; background: var(--field); color: var(--muted); font-weight: 650; font-size: 12px; }
+.stage-tag.working { background: var(--accent-soft); color: var(--accent-strong); }
+.stage-tag.waiting, .stage-tag.keep { background: var(--accent-wash); color: var(--accent); }
+.acct-meter { display: flex; flex-direction: column; gap: 0; margin-top: 4px; max-width: 420px; }
+.acct-meter-label { font-size: 13.5px; }
+.acct-meter .progress { height: 6px; margin-top: 5px; }
+.acct-facts { color: var(--muted); font-size: 13.5px; }
+.acct-next { font-size: 13.5px; font-weight: 550; }
+.acct-body { padding: 4px 16px 16px; border-top: 1px solid var(--line); }
+.acct-body > .bank-link { margin-top: 10px; font-size: 14px; }
+.acct-body h4 { font-size: 15px; font-weight: 700; margin: 16px 0 2px; }
+.acct-body .dont-forget { margin-top: 12px; }
+.acct-body .detail { padding: 0; }
+
 .changes { list-style: none; margin: 0; padding: 0; }
 .changes li { padding: 10px 0 10px 26px; border-bottom: 1px solid var(--line); position: relative; }
 .changes li::before { content: '•'; position: absolute; left: 8px; color: var(--faint); }
@@ -936,8 +976,6 @@ textarea.input { resize: vertical; }
 /* Plan page: ongoing requirements for opened accounts */
 .dont-forget { margin-top: 20px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
 .dont-forget h3 { margin: 0 0 8px; font-size: 16px; }
-.df-bank + .df-bank { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-.df-name { font-weight: 650; font-size: 15px; }
 .dont-forget ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
 /* A deal's bonus levels: the one counted is marked in the accent color. */

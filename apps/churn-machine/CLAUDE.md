@@ -22,8 +22,10 @@ Bank account bonus churning, three tabs (Deals, Plan, My Bag):
   by-account and by-paycheck schedule.
 - **My Bag** (Google sign-in; was "My plans") — strategy-first: the active strategies
   you saved, each with a tracker page (`/accounts/<savedId>`): what day of
-  the plan it is, money collected, today's tasks, the next two weeks, the
-  whole plan as a timeline, and a check-in that offers **Revise plan** when
+  the plan it is, money collected, today's tasks, the next paycheck's
+  split, cash parked now, a card per account (stage, deposits landed, next
+  step), the full schedule folded away, the Plan tab's overview behind a
+  button (`src/lib/bag.ts`), and a check-in that offers **Revise plan** when
   you've missed something. Accounts outside a plan and "Banks I have" sit
   below. See [ADR 0009](docs/adr/0009-strategy-first-tracking.md).
 

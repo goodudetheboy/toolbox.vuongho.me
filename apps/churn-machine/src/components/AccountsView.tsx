@@ -7,8 +7,9 @@ import {
 import { completeTask, isFinished, neglected, progressOf, stateOf, strategyAccounts, tasksForStrategy } from '../lib/tasks';
 import type { Deal } from '../lib/types';
 import { ProgressBar, StrategyTracker } from './StrategyTracker';
+import { nextStepOf } from '../lib/bag';
 import { shortDate } from '../lib/dates';
-import { usd } from '../lib/value';
+import { usd, type FeePlan } from '../lib/value';
 import { signInWithGoogle } from '../lib/auth';
 import { BankPicker, Disclosure, MoneyInput } from './bits';
 
@@ -32,7 +33,7 @@ export function AccountsView({
   openPlan: (id: string) => void;
   onBack: () => void;
   onBuildPlan: () => void;
-  onOpenDeal: (d: Deal) => void;
+  onOpenDeal: (d: Deal, fee?: FeePlan) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -212,6 +213,7 @@ function PlanCard({ s, accts, today, onOpen }: { s: SavedStrategy; accts: Accoun
   const p = progressOf(accts, today);
   const dueToday = tasks.filter((t) => stateOf(t, today) === 'today' && !t.optional).length;
   const missed = neglected(tasks, today).length;
+  const next = nextStepOf(accts, today);
   const parts = [
     p.start && p.start > today ? `Starts ${shortDate(p.start, today)}` : p.days ? `Day ${Math.min(p.day, p.days)} of ${p.days}` : null,
     dueToday ? `${dueToday} to do today` : null,
@@ -224,6 +226,11 @@ function PlanCard({ s, accts, today, onOpen }: { s: SavedStrategy; accts: Accoun
           {parts || `${accts.length} accounts`}
           {missed > 0 && <span className="task-state overdue"> · {missed} overdue</span>}
         </span>
+        {next && !s.archived && (
+          <span className="item-meta">
+            Next: {next.title.charAt(0).toLowerCase() + next.title.slice(1)} · {next.date === today ? 'today' : next.date < today ? `was due ${shortDate(next.date, today)}` : shortDate(next.date, today)}
+          </span>
+        )}
         <ProgressBar collected={p.collected} onTheWay={p.onTheWay} planned={p.planned} />
       </span>
       <span className="item-side">

@@ -137,7 +137,7 @@ Click a strategy to open it:
 
 - **Collected so far** across all plans, and how much is on the way.
 - **To do today**: today's and overdue tasks from every active plan. Tap the circle to mark one done, or the rest of the row to open its plan.
-- **Active plans**: each with a progress bar, the day of the plan (or "Starts Dec 1" if it starts later), tasks today and anything overdue.
+- **Active plans**: each with a progress bar, the day of the plan (or "Starts Dec 1" if it starts later), tasks today, anything overdue, and the plan's next step.
 - **Finished and archived** plans, folded away.
 - **Banks I have**: the banks you have or had an account with. Pick from the list, or type any name and choose "Add". Accounts you've opened through the app count automatically. This list is saved to your Google account.
 - **Accounts outside a plan**: accounts you added by hand (**Add an account by hand**), and any you tracked from a deal before that button became Add to custom plan.
@@ -147,12 +147,13 @@ Click a strategy to open it:
 Open a plan to see:
 
 - Today's date and **day X of Y**.
+- **See the plan overview**: the same view you saw on the Plan tab (the bonus chart, Accounts to open, Requirements and Schedule), for the plan as it stands now, revisions included.
 - **Collected** out of the planned total, and what's on the way.
-- **Don't forget**: for accounts you've marked opened, the requirements besides deposits and parked cash (debit card purchases, eStatements, online banking, small minimum balances), so you don't miss them, plus what keeps the monthly fee away (or that it's being paid) until you close the account. Tap the circle when one's done.
 - **Today**: the tasks due today. Tap the circle next to one when it's done (tap it again to undo). For a bonus, put the amount you actually received in the box first, then tap the circle.
-- **Next two weeks**.
-- **The whole plan**: every task month by month, with a "Today" line. Tap a filled circle to undo a task you marked by mistake.
-- **Accounts in this plan**: click one to edit its dates, status, the bonus amount and notes.
+- **Next paycheck**: the next payday that sends money to your plan's banks, how much goes to each, and what's left for your main account.
+- **Cash parked now**: money sitting in your plan's banks for a bonus (or to keep a fee waived), how long it stays, and which you can move out now. Cash still to move in shows below with its date.
+- **Accounts**: a card per bank, the ones that need you first. Each shows where it stands (Not opened, Working on it, Waiting on bonus, Bonus in, Can close, Done), how much of its direct deposits has landed, its key dates and its next step. Tap a card for its steps, what to **keep up while it's open** (debit card purchases, eStatements, what keeps the monthly fee away...), a link to the deal, and **Edit the record** (dates, status, bonus amount, notes).
+- **Full schedule**: every step month by month, with a "Today" line, folded away. Tap a filled circle to undo a step you marked by mistake.
 - **Revisions**: a log of every revise or settings change.
 
 Tasks you'll see: open the account, a paycheck deposit landing, moving cash in to park (and when you can move it out), requirements done, the bonus posting, monthly deposits or a balance that keep a fee waived, and when it's safe to close (optional).
