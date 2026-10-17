@@ -13,13 +13,18 @@ import { dollars } from './parse-deals.mjs';
 const PROJECT = 'vuonghome';
 export const MODEL = process.env.CHURN_GEMINI_MODEL || 'gemini-3.8-flash';
 const URL = `https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/${MODEL}:generateContent`;
-export const vertexUrl = () => URL;
+/** Vertex AI generateContent for `model` (default: MODEL). */
+export const vertexUrl = (model = MODEL) => (model === MODEL ? URL : URL.replace(`/models/${MODEL}:`, `/models/${model}:`));
 const MAX_CHARS = 16000;
 
 let token = process.env.GEMINI_TOKEN || null;
-/** A Vertex AI access token, or null when there's no way to get one (no AI check then). */
-export function aiToken() {
-  if (token) return token;
+/**
+ * A Vertex AI access token, or null when there's no way to get one (no AI
+ * check then). `fresh`: the last one expired (they last an hour), get a new
+ * one from gcloud if it's there.
+ */
+export function aiToken(fresh = false) {
+  if (token && !fresh) return token;
   try {
     token = execSync('gcloud auth print-access-token', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || null;
   } catch {
@@ -171,12 +176,11 @@ export function feeEntry(f, inText) {
 
 /** Asks Gemini for a deal's terms. Returns the raw answer. */
 export async function askGemini(text) {
-  const t = aiToken();
-  if (!t) throw new Error('no Vertex AI token');
+  if (!aiToken()) throw new Error('no Vertex AI token');
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(URL, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${aiToken()}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: PROMPT }] },
         contents: [{ role: 'user', parts: [{ text }] }],
@@ -189,6 +193,7 @@ export async function askGemini(text) {
       if (!out) throw new Error('empty answer');
       return JSON.parse(out);
     }
+    if (res.status === 401 && attempt < 3 && aiToken(true)) continue;
     if (attempt >= 3 || ![429, 500, 503].includes(res.status)) throw new Error(`Gemini HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
     await new Promise((r) => setTimeout(r, 4000 * attempt));
   }

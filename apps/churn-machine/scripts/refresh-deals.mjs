@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { parseIndex, parseDeal, htmlToLines } from './parse-deals.mjs';
 import { applyTerms, termsHash, writeTerms } from './deal-terms.mjs';
 import { aiToken, askGemini, dealText, MODEL, toEntry } from './ai-terms.mjs';
-import { applyChex, checkChex } from './chex.mjs';
+import { applyChex, checkChex, LIST_SLUGS } from './chex.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(here, '..', 'public', 'deals.json');
@@ -88,7 +88,7 @@ async function main() {
   const ai = await checkChangedTerms(parsed, terms);
   const termed = parsed.map(({ deal }, i) => ({ ...applyTerms(deal, terms[deal.id]), rank: i + 1 }));
   // Each bank's sensitivity to recently opened accounts (Gemini looks up banks the list doesn't have).
-  const chex = await checkChex(termed, CHEX, new Date().toISOString().slice(0, 10));
+  const chex = await checkChex(termed, CHEX, new Date().toISOString().slice(0, 10), await chexLists());
   const deals = termed.map((d) => applyChex(d, chex.data));
 
   const out = {
@@ -101,6 +101,18 @@ async function main() {
   const missing = deals.filter((d) => !d.hasGlance).length;
   const unchecked = deals.filter((d) => !d.termsChecked).length;
   console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block, ${ai}, ${unchecked} still unchecked; ${chex.log})`);
+}
+
+/** Doctor of Credit's ChexSystems and EWS lists, only when Gemini will read them (null if they can't be fetched). */
+async function chexLists() {
+  if (process.env.CHURN_AI_TERMS === '0' || !aiToken()) return null;
+  try {
+    const [[sensitive], [ews]] = await Promise.all(Object.entries(LIST_SLUGS).map(([k, slug]) =>
+      getJson(`${API}?slug=${slug}&_fields=slug,modified_gmt,content`, `chex-${k}`)));
+    return sensitive && ews ? { sensitive, ews } : null;
+  } catch {
+    return null;
+  }
 }
 
 const AI_MAX = 60;

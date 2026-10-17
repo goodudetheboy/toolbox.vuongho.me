@@ -69,8 +69,8 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   [ADR 0015](docs/adr/0015-bonus-levels.md).
 - ChexSystems: `data/chex.json` (per bank: sensitive or not, reported denial
   limits as [accounts, months], EWS), hand-made from Doctor of Credit's list,
-  the rest looked up monthly by Gemini with Google Search
-  (`scripts/chex.mjs`); applied to deals as `chex`. No overall cap: the
+  the rest filled in monthly by Gemini (`scripts/chex.mjs`: one read of
+  DoC's lists, then a quick search pass + careful read per remaining bank); applied to deals as `chex`. No overall cap: the
   planner keeps each sensitive bank under its own limits (`chexLimits`; a
   sensitive bank with no numbers gets [12, 12]), counting My Bag's recent
   openings, and tries sensitive banks first. See
