@@ -138,6 +138,32 @@ export function keepOpenDays(d: Deal): number {
   return d.eatf.days ?? ASSUMED.keepOpenDays;
 }
 
+/**
+ * Every bonus level of a deal as a deal of its own (top first), with that
+ * level's bonus, requirements and fee; just [d] when there's one level.
+ */
+export function levelsOf(d: Deal): Deal[] {
+  if (!d.tiers || d.tiers.length < 2) return [d];
+  return d.tiers.map((t, i) => ({
+    ...d, tier: i, bonusMax: t.bonus, bonusMin: t.bonus, bonusHow: t.how,
+    dd: t.dd, balance: t.balance, transactions: t.transactions, extras: t.extras, fee: t.fee,
+  }));
+}
+
+/** One level of a deal (a saved account's), or the deal itself when it has no levels. */
+export function levelOf(d: Deal, tier: number | null | undefined): Deal {
+  return tier == null ? d : levelsOf(d)[tier] ?? d;
+}
+
+/** The level that nets the most (ties: the bigger bonus), out of the ones `ok` allows (all, if none is). */
+export function bestLevel(d: Deal, baselineApy: number, ok: (l: Deal) => boolean = () => true): Deal {
+  const all = levelsOf(d);
+  if (all.length === 1) return d;
+  const pool = all.filter(ok).length ? all.filter(ok) : all;
+  const net = (l: Deal) => valueOf(l, baselineApy).net;
+  return pool.reduce((b, l) => (net(l) > net(b) || (net(l) === net(b) && (l.bonusMax ?? 0) > (b.bonusMax ?? 0)) ? l : b));
+}
+
 /** Money a deal pays only after a year or more (not counted anywhere). */
 export const laterTotal = (d: Deal) => (d.later ?? []).reduce((t, l) => t + l.amount, 0);
 

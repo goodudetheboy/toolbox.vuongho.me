@@ -1,6 +1,6 @@
 // Deterministic deal filtering and sorting, shared by the Deals list and the planner.
 import type { Deal } from './types';
-import { dealStatus, valueOf, type Value } from './value';
+import { bestLevel, dealStatus, levelsOf, valueOf, type Value } from './value';
 
 export interface DealFilters {
   query: string;
@@ -111,7 +111,11 @@ export function sortDeals(items: Ranked[], key: SortKey): Ranked[] {
 }
 
 export function filterAndSort(deals: Deal[], f: DealFilters, key: SortKey, today: string, baselineApy: number): Ranked[] {
-  const ranked = deals.filter((d) => matches(d, f, today)).map((deal) => ({ deal, value: valueOf(deal, baselineApy) }));
+  // A deal with bonus levels shows the one that nets the most among those the filters allow.
+  const ranked = deals
+    .filter((d) => levelsOf(d).some((l) => matches(l, f, today)))
+    .map((d) => bestLevel(d, baselineApy, (l) => matches(l, f, today)))
+    .map((deal) => ({ deal, value: valueOf(deal, baselineApy) }));
   return sortDeals(ranked, key);
 }
 

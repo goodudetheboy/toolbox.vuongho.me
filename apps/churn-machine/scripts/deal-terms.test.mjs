@@ -91,3 +91,25 @@ test('Gemini entries are applied and marked as read by AI', () => {
   assert.deepEqual(d.termsBy, { ai: true, on: '2026-10-19' });
   assert.equal(applyTerms(fourLeaf, { hash: termsHash(fourLeaf), upfront: 350 }).termsBy, null);
 });
+
+test('bonus levels inherit what they leave out from the top level', () => {
+  const entry = {
+    hash: termsHash(fourLeaf), upfront: 500, dd: [2500, 60, 1, null], bal: [10000, 90], fee: { m: 25, w: [['dd', 5000]] },
+    tiers: [
+      { upfront: 300, how: 'Checking only', bal: 0 },
+      { upfront: 200, how: 'Cheaper account', dd: [500, null], bal: 0, fee: { m: 0 } },
+    ],
+  };
+  const d = applyTerms(fourLeaf, entry);
+  assert.equal(d.tiers.length, 3);
+  assert.equal(d.bonusMin, 200);
+  const [top, mid, low] = d.tiers;
+  assert.equal(top.bonus, 500);
+  assert.deepEqual(top.balance, { amount: 10000, holdDays: 90 });
+  assert.equal(mid.balance, null);
+  assert.equal(mid.dd.amount, 2500);
+  assert.equal(mid.fee.monthly, 25);
+  assert.equal(low.dd.amount, 500);
+  assert.equal(low.dd.windowDays, 60);
+  assert.equal(low.fee.monthly, 0);
+});

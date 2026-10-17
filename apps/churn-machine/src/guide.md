@@ -1,6 +1,6 @@
 # How to use Churn Machine
 
-_Last updated: October 16, 2026_
+_Last updated: October 17, 2026_
 
 Churn Machine finds bank account bonuses, builds a plan for which accounts to open with your paycheck, and walks you through running that plan day by day. The deals come from Doctor of Credit's [Best Bank Account Bonuses](https://www.doctorofcredit.com/best-bank-account-bonuses/) list. They're refreshed every Monday morning and whenever the app is updated. Always read the full post before opening an account.
 
@@ -51,6 +51,15 @@ Many accounts charge a monthly fee unless you do something: keep a balance, get 
 - **Net** includes it: a paid fee, or the interest on a balance kept to avoid one, comes off the value. A deal's page shows the fee, every way to waive it, and what plans do about it ("In plans: ...").
 - In a plan, a monthly direct deposit that keeps a fee waived is part of the paycheck schedule, marked "(keeps its fee waived)". It uses a paycheck split like any other deposit, and you can move the money back out once it lands. If a month's paycheck is already spoken for, that month's fee is counted. A balance kept to avoid a fee counts against the cash you can park.
 - The **Requirements** tab lists each account's fee and how it's handled. Saved plans show the monthly deposits and kept balances as tasks, and the purchases, eStatements and paid fees in **Don't forget**.
+
+### Bonus levels
+
+Some deals pay different amounts for different amounts of money: e*Trade pays $400 for parking $20,000 or $800 for $100,000, and TD pays $300 for its checking account alone or $500 with its savings account too. Every level of these deals was checked, and the app counts the one that's best for you:
+
+- On the Deals list and a deal's page, the level that **nets the most** (bigger isn't always better: parking $100,000 costs more interest than the extra bonus). If a filter (like the most cash you can park) rules out a level, the best one left.
+- In a plan, the best level the cash you set covers. A plan never takes two levels of the same deal.
+- A deal's page has a **Bonus levels** section listing every level with its requirements and net. The one used is marked "counted" (or "in this plan" when you opened it from a strategy), and the rest of the page (bonus, requirements, net) is for that level.
+- Some lower levels are a different, cheaper account at the bank. Where that account's monthly fee couldn't be checked, the top level's fee is used, so its net may be a little low.
 
 ### A deal's details
 
@@ -103,7 +112,7 @@ Rows show the number of accounts, cash parked (if any), a small chart, and the t
 Click a strategy to open it:
 
 - The big number and chart show bonuses adding up over time. Move your mouse or finger along the chart (or use the arrow keys) to see each payout.
-- **Accounts to open** (shown first): each account as a row like the Deals list, with what it needs, when to open it, its rating, bonus and net. Tap a row to see its deal.
+- **Accounts to open** (shown first): each account as a row like the Deals list, with what it needs, when to open it, its rating, bonus and net. Tap a row to see its deal, with the numbers from this plan: the bonus level it uses and how it handles the fee (a fee month your paychecks can't cover is counted).
 - **Requirements**: every account's requirements at a glance, one list per bank: direct deposit, cash to park, other things like debit purchases or eStatements, promo code, branch visit, hard pull, and how long to keep it open.
 - **Schedule**: date by date, which accounts to open and how much of that paycheck goes to which bank. Paydays where everything stays in your main account are left out. Payout dates are on each deal's page, and in the plan's checklist once you save it.
 - **Share link** copies a link to this exact strategy (on a phone it opens the share menu). Anyone can open it, signed in or not. It includes the plan's settings and the banks it leaves out. It's rebuilt from that day's deals, so it can differ if the deals changed; a note says so.
@@ -168,6 +177,7 @@ On a phone, deals, plans and settings open as cards from the bottom. Swipe one d
 ## Words you'll see
 
 - **DD**: direct deposit, usually from your paycheck. Most bonuses need a minimum amount within a window of days.
+- **Bonus level**: one of the amounts a deal pays, each with its own requirements (see Bonus levels).
 - **Upfront**: what a deal pays once its sign-up requirements are done. Money that needs a year or more of keeping deposits or balances going is shown as "later" and never counted.
 - **Net**: the upfront bonus minus interest you'd give up on parked cash (at your savings APY) and what the account's fees cost you while it's open (fees paid, or interest on a balance kept to avoid them).
 - **Park cash**: money you keep in the account for a set time to earn the bonus.

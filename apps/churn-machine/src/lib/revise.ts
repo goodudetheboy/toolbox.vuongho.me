@@ -6,7 +6,7 @@ import {
   isPayday, nextPayday, OBJECTIVES, planStartOn, PACE_LABELS, requirementOf, revisePlan, rollPayday, type Committed, type Objective, type Pace, type PlanInputs,
 } from './planner';
 import { addDays, maxIso, shortDate } from './dates';
-import { ASSUMED } from './value';
+import { ASSUMED, levelOf } from './value';
 
 export interface PlanSettings {
   inputs: PlanInputs;
@@ -79,7 +79,10 @@ export function previewRevision(
   // A plan that hasn't started yet is re-planned from its start date.
   const from = planStartOn(set.inputs, today);
   const payday = rollPayday(set.inputs.firstPayday, from, freq);
-  const dealOf = (a: Account) => deals.find((d) => d.id === a.dealId) ?? null;
+  const dealOf = (a: Account) => {
+    const d = deals.find((x) => x.id === a.dealId);
+    return d ? levelOf(d, a.tier) : null;
+  };
   const keyOf = (a: Account) => a.dealId ?? a.id;
   const onPayday = (iso: string) => isPayday(iso, payday, freq);
 
@@ -142,7 +145,7 @@ export function previewRevision(
       continue;
     }
     const next = accountFromItem(item, saved.id, name);
-    if (item.openOn === a.openOn && JSON.stringify(item.deposits) === JSON.stringify(a.deposits)) continue;
+    if (item.openOn === a.openOn && (item.deal.tier ?? null) === (a.tier ?? null) && JSON.stringify(item.deposits) === JSON.stringify(a.deposits)) continue;
     update.push({ id: a.id, patch: { ...next, done: {} } });
     if (item.openOn !== a.openOn) {
       lines.push({ tone: 'plain', text: `Open ${a.bank} on ${shortDate(item.openOn, today)}${a.openOn ? ` (was ${shortDate(a.openOn, today)})` : ''}.` });

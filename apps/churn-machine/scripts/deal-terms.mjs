@@ -57,7 +57,9 @@ const NO_DD = { required: false, amount: 0, windowDays: null, monthly: false, mo
  * extras (other requirements, e.g. "10 debit card purchases within 90 days"),
  * fee (monthly fee and how to waive it, read 2026-10-16 from the post and the
  * bank's own site: { m, free, w: [["dd"|"bal", amount] | ["tx", count, how] |
- * ["free", how]], once: [amount, how], note }).
+ * ["free", how]], once: [amount, how], note }), tiers (lower bonus levels,
+ * best first: [{ upfront, how, dd, bal, tx, extras, fee }], each field as
+ * above but missing = the top level's).
  */
 export function applyTerms(deal, entry) {
   if (!entry || entry.hash !== termsHash(deal)) return { ...deal, termsChecked: false, later: [], extras: [], fee: null };
@@ -69,7 +71,8 @@ export function applyTerms(deal, entry) {
     // What the post headlines (may include later money or a different tier).
     bonusListed: deal.bonusPostMax ?? deal.bonusMax,
     bonusMax: entry.upfront,
-    bonusMin: Math.min(deal.bonusMin ?? entry.upfront, entry.upfront),
+    // Lower amounts only count when they're listed as levels (tiers below).
+    bonusMin: entry.upfront,
     bonusPostMax: null,
     bonusHow: entry.how ?? null,
     later: entry.later ?? [],
@@ -78,21 +81,42 @@ export function applyTerms(deal, entry) {
     // Checked deals with no fee entry have no monthly fee.
     fee: entry.fee ? feeOf(entry.fee) : NO_FEE,
   };
-  if (entry.dd === 0) out.dd = NO_DD;
-  else if (Array.isArray(entry.dd)) {
-    const [total, windowDays, deposits, months] = entry.dd;
+  Object.assign(out, reqsOf(out, entry));
+  // Lower bonus levels, each a full set of requirements: what isn't given is
+  // the same as the top level's (fee included). The app counts whichever nets
+  // the most (or, in a plan, the best one your cash covers).
+  if (entry.tiers?.length) {
+    const top = { bonus: out.bonusMax, how: out.bonusHow, dd: out.dd, balance: out.balance, transactions: out.transactions, extras: out.extras, fee: out.fee };
+    out.tiers = [top, ...entry.tiers.map((t) => ({
+      bonus: t.upfront,
+      how: t.how,
+      ...reqsOf(out, t),
+      extras: t.extras ?? out.extras,
+      fee: t.fee ? feeOf(t.fee) : out.fee,
+    }))];
+    out.bonusMin = Math.min(...out.tiers.map((t) => t.bonus));
+  }
+  return out;
+}
+
+/** Direct deposit, parked cash and transaction count: the entry's, else `base`'s (0 = none). */
+function reqsOf(base, e) {
+  const out = { dd: base.dd, balance: base.balance, transactions: base.transactions };
+  if (e.dd === 0) out.dd = NO_DD;
+  else if (Array.isArray(e.dd)) {
+    const [total, windowDays, deposits, months] = e.dd;
     out.dd = {
       required: true,
       amount: total,
-      windowDays: windowDays ?? deal.dd.windowDays,
+      windowDays: windowDays ?? base.dd.windowDays,
       monthly: !!months,
       months: months ?? null,
       minDeposits: deposits ?? null,
     };
   }
-  if (entry.bal === 0) out.balance = null;
-  else if (Array.isArray(entry.bal)) out.balance = { amount: entry.bal[0], holdDays: entry.bal[1] };
-  if (entry.tx === 0) out.transactions = null;
-  else if (typeof entry.tx === 'number') out.transactions = entry.tx;
+  if (e.bal === 0) out.balance = null;
+  else if (Array.isArray(e.bal)) out.balance = { amount: e.bal[0], holdDays: e.bal[1] ?? base.balance?.holdDays ?? null };
+  if (e.tx === 0) out.transactions = null;
+  else if (typeof e.tx === 'number') out.transactions = e.tx;
   return out;
 }

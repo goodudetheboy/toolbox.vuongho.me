@@ -261,3 +261,21 @@ test('free fee months and months the bonus balance covers are not charged', () =
   assert.equal(v.fee.months, 1);
   assert.equal(v.fee.fromMonth, 3);
 });
+
+test('a deal with bonus levels: the best level your cash covers, never two of them', () => {
+  const lv = (bonus: number, amount: number) => ({
+    bonus, how: null, dd: { required: false, amount: 0, windowDays: null, monthly: false, months: null, minDeposits: null },
+    balance: { amount, holdDays: 75 }, transactions: null, extras: [] as string[], fee: FEE({ monthly: 0 })!,
+  });
+  const d = deal('levels', { ...lv(800, 100000), bonusMax: 800, tiers: [lv(800, 100000), lv(400, 20000)] });
+  const poor = buildStrategy([d], { ...INPUTS, cash: 5000 }, 'money', 1, TODAY, 0.04);
+  assert.equal(poor.items.length, 0);
+  const some = buildStrategy([d], { ...INPUTS, cash: 25000 }, 'money', 1, TODAY, 0.04);
+  assert.equal(some.items.length, 1);
+  assert.equal(some.items[0].deal.tier, 1);
+  assert.equal(some.items[0].value.bonus, 400);
+  // With the cash for both, the one that nets more ($400 on $20k beats $800 on $100k at 4%).
+  const rich = buildStrategy([d], { ...INPUTS, cash: 200000 }, 'money', 1, TODAY, 0.04);
+  assert.equal(rich.items.length, 1);
+  assert.equal(rich.items[0].deal.tier, 1);
+});

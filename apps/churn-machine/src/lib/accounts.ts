@@ -56,6 +56,8 @@ export interface Account {
   /** Cash kept there to waive the fee. */
   feePark?: { amount: number; from: string; until: string } | null;
   transactionsBy?: string | null;
+  /** Which bonus level of the deal the plan took (Deal.tiers), when it has levels. */
+  tier?: number | null;
 }
 
 export interface SavedStrategy {
@@ -148,6 +150,7 @@ export function accountFromItem(item: PlanItem, strategyId: string, strategyName
     bank: item.deal.bank,
     title: item.deal.title,
     dealId: item.deal.id,
+    tier: item.deal.tier ?? null,
     docUrl: item.deal.url,
     bonus: item.value.bonus,
     status: 'planned',

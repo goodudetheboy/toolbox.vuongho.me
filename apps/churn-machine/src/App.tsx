@@ -6,7 +6,7 @@ import { allBanksIHave, saveStrategy, useAccounts } from './lib/accounts';
 import { usePersisted } from './lib/settings';
 import { todayIso } from './lib/dates';
 import type { Deal } from './lib/types';
-import type { FeePlan } from './lib/value';
+import { bestLevel, levelOf, type FeePlan } from './lib/value';
 import { bankNames } from './lib/filters';
 import { DealsView } from './components/DealsView';
 import { PlanView } from './components/PlanView';
@@ -48,13 +48,17 @@ export default function App() {
   // Opened from a strategy: how that plan handles the deal's fee, so the
   // sheet's net matches the strategy's (missed waiver months are paid there).
   const [modalFee, setModalFee] = useState<FeePlan | undefined>(undefined);
+  // Which bonus level it was opened at (a plan's or a list row's); none: the one that nets the most.
+  const [modalTier, setModalTier] = useState<number | undefined>(undefined);
   const closeModal = useCallback(() => setModalId(null), []);
   const banks = useMemo(() => (data ? bankNames(data.deals) : []), [data]);
   const dealById = (id: string | null) => (id && data?.deals.find((d) => d.id === id)) || null;
-  const modalDeal = dealById(modalId);
+  const shown = (d: Deal | null, tier?: number) => (d ? (tier != null ? levelOf(d, tier) : bestLevel(d, prefs.baselineApy)) : null);
+  const modalDeal = shown(dealById(modalId), modalTier);
   const openDeal = (d: Deal, fee?: FeePlan) => {
     setModalId(d.id);
     setModalFee(fee);
+    setModalTier(d.tier);
   };
   useEffect(closeModal, [route.tab, route.dealId, route.strategyId, route.savedId, closeModal]);
   const today = todayIso();
@@ -177,7 +181,7 @@ export default function App() {
         <div className="empty">Loading deals…</div>
       ) : tab === 'deal' ? (
         <DealPage
-          deal={dealById(route.dealId)}
+          deal={shown(dealById(route.dealId))}
           today={today}
           baselineApy={prefs.baselineApy}
           actions={dealById(route.dealId) && pickAction(dealById(route.dealId)!)}

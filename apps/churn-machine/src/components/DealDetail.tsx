@@ -1,7 +1,7 @@
 // One deal, laid out like a stock page: hero number, key statistics, then
 // sections. Used by the modal (sheet) and the full page.
 import type { Deal } from '../lib/types';
-import { ASSUMED, dealStatus, feeLine, keepOpenDays, laterTotal, usd, valueOf, type FeePlan } from '../lib/value';
+import { ASSUMED, dealStatus, feeLine, keepOpenDays, laterTotal, levelsOf, requirementSummary, usd, valueOf, type FeePlan } from '../lib/value';
 import { shortDate } from '../lib/dates';
 import { StatusTag, VerdictTag } from './bits';
 
@@ -43,7 +43,14 @@ export function DealHero({ deal: d, today, baselineApy, fee }: { deal: Deal; tod
       <div className="hero-kicker">{d.title}</div>
       <h1 className="hero-name">{d.bank}</h1>
       <div className="hero-number">{d.bonusMax != null ? usd(d.bonusMax) : '?'}</div>
-      {d.termsChecked && d.bonusListed != null && d.bonusListed !== d.bonusMax && (
+      {d.tiers && d.tier != null && (
+        <div className="hero-listed">
+          {d.tier === 0
+            ? `The top of ${d.tiers.length} bonus levels.`
+            : `One of ${d.tiers.length} bonus levels; the top one pays ${usd(d.tiers[0].bonus)}.`} See Bonus levels below.
+        </div>
+      )}
+      {!d.tiers && d.termsChecked && d.bonusListed != null && d.bonusListed !== d.bonusMax && (
         <div className="hero-listed">
           {!d.bonusMax
             ? `Listed as ${usd(d.bonusListed)}, but it’s all paid out over a year or more, so none of it is counted.`
@@ -134,6 +141,8 @@ export function DealSections({ deal: d, today, baselineApy, fee, full = false }:
         </div>
         {v.effortNotes.length > 0 && <p className="muted">Effort: {v.effortNotes.join(', ')}.</p>}
       </section>
+
+      {d.tiers && d.tier != null && <Levels deal={d} baselineApy={baselineApy} inPlan={!!fee} />}
 
       {full && d.blurb.length > 0 && (
         <section className="section">
@@ -272,5 +281,33 @@ function FeeFacts({ deal: d, plan, inPlan }: { deal: Deal; plan: FeePlan; inPlan
       {f.note && <div className="raw">{f.note}</div>}
       {line && <div className="raw">{inPlan ? 'In this plan' : 'In plans'}: {line}.</div>}
     </>
+  );
+}
+
+/** Every bonus level side by side, with the one shown above marked. */
+function Levels({ deal: d, baselineApy, inPlan }: { deal: Deal; baselineApy: number; inPlan: boolean }) {
+  return (
+    <section className="section">
+      <h2>Bonus levels</h2>
+      <p className="muted">
+        {inPlan
+          ? 'The plan uses the level marked below: the one that nets the most with the cash you have.'
+          : 'The numbers above use the level marked below: the one that nets the most. A plan picks the best one your cash covers.'}
+      </p>
+      <div className="summary-rows levels">
+        {levelsOf(d).map((l) => {
+          const v = valueOf(l, baselineApy);
+          return (
+            <div key={l.tier} className={l.tier === d.tier ? 'level-on' : undefined}>
+              <span>
+                <b>{usd(l.bonusMax ?? 0)}</b>{l.tier === d.tier && <span className="tag"> {inPlan ? 'in this plan' : 'counted'}</span>}
+                <span className="level-how">{l.bonusHow ?? requirementSummary(l)}</span>
+              </span>
+              <span className={v.net > 0 ? 'up' : 'down'}>{usd(v.net)} net</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

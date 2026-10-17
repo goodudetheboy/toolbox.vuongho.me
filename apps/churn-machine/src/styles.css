@@ -939,3 +939,8 @@ textarea.input { resize: vertical; }
 .df-bank + .df-bank { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .df-name { font-weight: 650; font-size: 15px; }
 .dont-forget ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* A deal's bonus levels: the one counted is marked in the accent color. */
+.levels .level-how { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); }
+.levels .level-on b, .levels .level-on .tag { color: var(--accent); }
+.levels .tag { font-size: 12.5px; font-weight: 650; }

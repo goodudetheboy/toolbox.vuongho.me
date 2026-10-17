@@ -61,6 +61,12 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   handle a fee: free / purchases / monthly direct deposit / kept balance /
   pay), and the planner routes waiver deposits and counts waiver balances.
   See [ADR 0014](docs/adr/0014-monthly-fees-in-the-planner.md).
+- Bonus levels: `tiers` in `data/deal-terms.json` (lower levels, anything
+  left out inherits the top's), `levelsOf`/`bestLevel` in `value.ts` (one
+  Deal per level). The list and deal page count the level that nets the
+  most; the planner tries every level (one per deal) and keeps the better
+  of with-levels / top-only. Saved accounts store `tier`. See
+  [ADR 0015](docs/adr/0015-bonus-levels.md).
 - `scripts/ai-terms.mjs` — once a month (first Monday's scheduled refresh) and on manual runs, never on a push, Gemini (Vertex AI in
   `vuonghome`, no API key) reads deals whose terms are new or changed, with
   sanity checks; entries are saved with `by: "gemini"` and CI commits

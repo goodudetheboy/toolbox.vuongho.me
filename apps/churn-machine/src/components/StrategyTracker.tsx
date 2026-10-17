@@ -11,7 +11,7 @@ import {
 import { planSettings, planStart, previewRevision, type PlanSettings, type RevisionPreview } from '../lib/revise';
 import { OBJECTIVES, PACE_LABELS, payWhen, planStartOn, rollPayday, SPLIT_OPTIONS, splitLabel, SUGGESTED, type Objective, type Pace } from '../lib/planner';
 import { addDays, monthLabel, shortDate } from '../lib/dates';
-import { usd } from '../lib/value';
+import { levelOf, usd } from '../lib/value';
 import { BankPicker, Check, DealPicker, MoneyInput, PaycheckRows, Segmented } from './bits';
 import { Sheet } from './DealModal';
 import { AccountDetail } from './AccountsView';
@@ -57,7 +57,10 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
   const nextUp = tasks.find((t) => stateOf(t, today) === 'upcoming');
   const months = [...new Set(tasks.map((t) => t.date.slice(0, 7)))];
   const set = planSettings(s);
-  const dealFor = (a: Account) => deals?.find((d) => d.id === a.dealId) ?? null;
+  const dealFor = (a: Account) => {
+    const d = deals?.find((x) => x.id === a.dealId);
+    return d ? levelOf(d, a.tier) : null;
+  };
 
   // Ongoing requirements (debit purchases, eStatements...) for accounts you've opened.
   const ongoing = accounts

@@ -9,7 +9,7 @@
 // exceeds what you have). See docs/adr/0002-planner-greedy-with-full-resimulation.md.
 import type { Deal } from './types';
 import { addDays, daysBetween, maxIso, shortDate } from './dates';
-import { ASSUMED, dealStatus, feePlans, keepOpenDays, usd, valueOf, type FeePlan, type Value } from './value';
+import { ASSUMED, dealStatus, feePlans, keepOpenDays, levelsOf, usd, valueOf, type FeePlan, type Value } from './value';
 import { availableIn, bankKey, isBusiness } from './filters';
 
 export interface PlanInputs {
@@ -388,9 +388,10 @@ function pickBlocker(d: Deal, inputs: PlanInputs, start: string): string | null 
   }
   if (!d.hasGlance || d.dd.required == null) return 'its terms couldn’t be read, see the post';
   if (!availableIn(d, inputs.state)) return 'isn’t offered in your state';
-  const req = requirementOf(d);
-  if (req.balance > inputs.cash) return `needs ${usd(req.balance)} parked (you set ${usd(inputs.cash)} under More options)`;
-  if (req.need > 0 && inputs.paycheck <= 0) return 'needs a direct deposit';
+  const reqs = levelsOf(d).map(requirementOf);
+  const park = Math.min(...reqs.map((r) => r.balance));
+  if (park > inputs.cash) return `needs ${usd(park)} parked (you set ${usd(inputs.cash)} under More options)`;
+  if (reqs.every((r) => r.need > 0) && inputs.paycheck <= 0) return 'needs a direct deposit';
   return null;
 }
 
@@ -400,6 +401,8 @@ export function candidates(deals: Deal[], inputs: PlanInputs, today: string, bas
     const picks = new Set(inputs.picks);
     return deals
       .filter((d) => picks.has(d.id) && !pickBlocker(d, inputs, today))
+      .flatMap(levelsOf)
+      .filter((l) => fitsYou(l, inputs))
       .map((deal) => candidate(deal, baselineApy));
   }
   const excluded = new Set(inputs.excludeBanks.map(bankKey));
@@ -414,15 +417,20 @@ export function candidates(deals: Deal[], inputs: PlanInputs, today: string, bas
       if (inputs.noChexSensitive && d.chexSensitive) return false;
       if (inputs.online && d.inBranch) return false;
       if (!inputs.business && isBusiness(d)) return false;
-      if ((d.bonusMax ?? 0) < Math.max(1, inputs.minBonus)) return false;
       if (excluded.has(bankKey(d.bank))) return false;
-      const req = requirementOf(d);
-      if (req.balance > inputs.cash) return false;
-      if (req.need > 0 && inputs.paycheck <= 0) return false;
       return true;
     })
+    // Each bonus level is its own candidate; a plan takes at most one per deal.
+    .flatMap(levelsOf)
+    .filter((l) => (l.bonusMax ?? 0) >= Math.max(1, inputs.minBonus) && fitsYou(l, inputs))
     .map((deal) => candidate(deal, baselineApy))
     .filter((c) => c.value.net > 0);
+}
+
+/** Your cash covers its parked balance, and you have a paycheck if it needs a direct deposit. */
+function fitsYou(d: Deal, inputs: PlanInputs): boolean {
+  const req = requirementOf(d);
+  return req.balance <= inputs.cash && !(req.need > 0 && inputs.paycheck <= 0);
 }
 
 function candidate(deal: Deal, baselineApy: number) {
@@ -551,41 +559,59 @@ function planCore(
   const pays = paydays(inputs.firstPayday, end, inputs.payFreq);
   // Fee-waiver deposits run until accounts can close, which can be after the plan ends.
   const simPays = paydays(inputs.firstPayday, addDays(end, 400), inputs.payFreq);
-  const ranked = rankFor(objective, candidates(deals, inputs, today, baselineApy, custom), inputs.paycheck, inputs.payFreq);
   // Already-opened accounts stay in every simulation. Any that can't be met
   // even on their own are "at risk": scheduled best-effort, never blocking picks.
   const atRisk = fixed.length ? simulate(fixed, simPays, inputs).failed : new Set<string>();
-  const sel: Selection[] = [...fixed];
-  const usedBanks = new Set<string>(fixed.map((f) => bankKey(f.deal.bank)));
-  const openedPerMonth = new Map<string, number>();
-  for (const f of fixed) openedPerMonth.set(f.open.slice(0, 7), (openedPerMonth.get(f.open.slice(0, 7)) ?? 0) + 1);
+  const greedy = (ranked: Candidate[]): Selection[] => {
+    const sel: Selection[] = [...fixed];
+    const usedBanks = new Set<string>(fixed.map((f) => bankKey(f.deal.bank)));
+    const openedPerMonth = new Map<string, number>();
+    for (const f of fixed) openedPerMonth.set(f.open.slice(0, 7), (openedPerMonth.get(f.open.slice(0, 7)) ?? 0) + 1);
 
-  // Opening slots: a week (leadDays) before each payday, plus today for deals
-  // that don't need a paycheck at all.
-  const slots = [...new Set([today, ...pays.map((p) => maxIso(today, addDays(p, -inputs.leadDays)))])].sort();
-  for (const open of slots) {
-    for (const c of ranked) {
-      const month = open.slice(0, 7);
-      if ((openedPerMonth.get(month) ?? 0) >= pace) break;
-      // One deal per bank, unless you picked two from the same bank yourself.
-      if ((!custom && usedBanks.has(bankKey(c.deal.bank))) || sel.some((s) => s.deal.id === c.deal.id)) continue;
-      if (c.deal.expires && dealStatus(c.deal, today) !== 'date-passed' && open > c.deal.expires) continue;
-      const finish = addDays(open, Math.max(c.req.need > 0 || c.deal.transactions ? c.req.windowDays : 0, c.req.holdDays));
-      if (finish > end) continue;
-      // The cheapest way to handle the fee, unless it's keeping a balance that
-      // doesn't fit the cash you have: then the next cheapest that isn't.
-      let trial = [...sel, { deal: c.deal, req: c.req, open, fee: c.value.fee }];
-      if (!parkedOk(trial, inputs.cash) && c.value.fee.how === 'bal') {
-        const other = c.fees.find((f) => f.how !== 'bal');
-        if (other) trial = [...sel, { deal: c.deal, req: c.req, open, fee: other }];
+    // Opening slots: a week (leadDays) before each payday, plus today for deals
+    // that don't need a paycheck at all.
+    const slots = [...new Set([today, ...pays.map((p) => maxIso(today, addDays(p, -inputs.leadDays)))])].sort();
+    // Two passes: each deal at its preferred level first (the first one ranked),
+    // then other levels of deals still out. Otherwise a lower level would take a
+    // deal whose top level only had to wait for a later paycheck.
+    const preferred = ranked.filter((c, i) => ranked.findIndex((x) => x.deal.id === c.deal.id) === i);
+    for (const pass of [preferred, ranked]) {
+      for (const open of slots) {
+        for (const c of pass) {
+          const month = open.slice(0, 7);
+          if ((openedPerMonth.get(month) ?? 0) >= pace) break;
+          // One deal per bank, unless you picked two from the same bank yourself.
+          if ((!custom && usedBanks.has(bankKey(c.deal.bank))) || sel.some((s) => s.deal.id === c.deal.id)) continue;
+          if (c.deal.expires && dealStatus(c.deal, today) !== 'date-passed' && open > c.deal.expires) continue;
+          const finish = addDays(open, Math.max(c.req.need > 0 || c.deal.transactions ? c.req.windowDays : 0, c.req.holdDays));
+          if (finish > end) continue;
+          // The cheapest way to handle the fee, unless it's keeping a balance that
+          // doesn't fit the cash you have: then the next cheapest that isn't.
+          let trial = [...sel, { deal: c.deal, req: c.req, open, fee: c.value.fee }];
+          if (!parkedOk(trial, inputs.cash) && c.value.fee.how === 'bal') {
+            const other = c.fees.find((f) => f.how !== 'bal');
+            if (other) trial = [...sel, { deal: c.deal, req: c.req, open, fee: other }];
+          }
+          if (!parkedOk(trial, inputs.cash)) continue;
+          const needsSim = c.req.need > 0 || trial.at(-1)!.fee.how === 'dd';
+          if (needsSim && !simulate(trial, simPays, inputs, atRisk).ok) continue;
+          sel.push(trial[trial.length - 1]);
+          usedBanks.add(bankKey(c.deal.bank));
+          openedPerMonth.set(month, (openedPerMonth.get(month) ?? 0) + 1);
+        }
       }
-      if (!parkedOk(trial, inputs.cash)) continue;
-      const needsSim = c.req.need > 0 || trial.at(-1)!.fee.how === 'dd';
-      if (needsSim && !simulate(trial, simPays, inputs, atRisk).ok) continue;
-      sel.push(trial[trial.length - 1]);
-      usedBanks.add(bankKey(c.deal.bank));
-      openedPerMonth.set(month, (openedPerMonth.get(month) ?? 0) + 1);
     }
+    return sel;
+  };
+  // Greedy picks can come out worse with bonus levels than without (a lower
+  // level crowding out a better deal), so unless the goal is speed, also plan
+  // with every deal at its top level only and keep whichever nets more.
+  const all = rankFor(objective, candidates(deals, inputs, today, baselineApy, custom), inputs.paycheck, inputs.payFreq);
+  let sel = greedy(all);
+  if (objective !== 'fast' && all.some((c) => c.deal.tier != null)) {
+    const tops = greedy(all.filter((c) => !c.deal.tier));
+    const net = (xs: Selection[]) => xs.reduce((t, x) => t + (x.fixed ? 0 : valueOf(x.deal, baselineApy, x.fee).net), 0);
+    if (net(tops) > net(sel)) sel = tops;
   }
 
   const sim = simulate(sel, simPays, inputs, atRisk);
@@ -654,7 +680,7 @@ export function buildStrategies(deals: Deal[], inputs: PlanInputs, today: string
   for (const objective of custom ? ['custom' as const] : SUGGESTED) {
     for (const pace of PACES) {
       const s = buildStrategy(deals, inputs, objective, pace, today, baselineApy);
-      const sig = s.items.map((i) => `${i.deal.id}@${i.openOn}`).join('|');
+      const sig = s.items.map((i) => `${i.deal.id}:${i.deal.tier ?? 0}@${i.openOn}`).join('|');
       if (!s.items.length || seen.has(sig)) continue;
       seen.add(sig);
       out.push(s);

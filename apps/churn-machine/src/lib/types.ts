@@ -46,6 +46,10 @@ export interface Deal {
   extras?: string[];
   /** Checked deals: the monthly fee and the ways to waive it (null when unchecked: see monthlyFee). */
   fee?: Fee | null;
+  /** Checked deals with more than one bonus level: every level, top first (see levelsOf). */
+  tiers?: Level[];
+  /** Set on one level of such a deal (levelsOf): which of `tiers` this is. */
+  tier?: number;
   availability: string | null;
   states: string[];
   nationwide: boolean;
@@ -83,6 +87,17 @@ export interface DealsFile {
   sourceUpdated: string;
   fetchedAt: string;
   deals: Deal[];
+}
+
+/** One bonus level of a deal: what it pays and everything it takes. */
+export interface Level {
+  bonus: number;
+  how: string | null;
+  dd: DirectDeposit;
+  balance: Deal['balance'];
+  transactions: number | null;
+  extras: string[];
+  fee: Fee;
 }
 
 /** One way to keep a monthly fee waived. */
