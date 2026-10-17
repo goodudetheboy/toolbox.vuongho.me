@@ -200,7 +200,7 @@ export function DealSections({ deal: d, today, baselineApy, fee, full = false }:
           <dt>Credit pull</dt>
           <dd>{PULL[d.pull]}<Raw text={d.pullText && !/^soft( pull)?$|^hard( pull)?$/i.test(d.pullText) ? d.pullText : null} /></dd>
           <dt>ChexSystems</dt>
-          <dd>{d.chexText ?? 'Unknown'}</dd>
+          <dd><ChexFacts deal={d} /></dd>
           <dt>Card funding</dt>
           <dd>{d.ccFunding ? `Up to ${usd(d.ccFunding)}` : d.ccFunding === 0 ? 'No' : 'Unknown'}<Raw text={d.ccText && d.ccFunding ? d.ccText : null} /></dd>
           <dt>Monthly fee</dt>
@@ -309,5 +309,27 @@ function Levels({ deal: d, baselineApy, inPlan }: { deal: Deal; baselineApy: num
         })}
       </div>
     </section>
+  );
+}
+
+/** The post's ChexSystems line plus what's reported about the bank (data/chex.json). */
+function ChexFacts({ deal: d }: { deal: Deal }) {
+  const c = d.chex;
+  const months = (m: number) => (m === 1 ? 'a month' : m === 12 ? 'a year' : `${m} months`);
+  return (
+    <>
+      {d.chexText ?? 'Unknown'}
+      {c?.sensitive === true && (
+        <div className="raw">
+          Reported to turn down people who opened many accounts recently
+          {c.limits.length > 0 && `: denials at ${c.limits.map(([n, m]) => `${n} new ${n === 1 ? 'account' : 'accounts'} in ${months(m)}`).join(', or ')}`}.
+          {' '}Plans open it before others pile up.
+        </div>
+      )}
+      {c?.sensitive === false && <div className="raw">Reported not to mind recently opened accounts.</div>}
+      {c?.note && <div className="raw">{c.note}</div>}
+      {c?.ews && <div className="raw">Also checks Early Warning Services.</div>}
+      {c?.ai && <div className="raw">Looked up by AI{c.ai.on ? ` on ${c.ai.on}` : ''}{c.ai.sources.length ? ` (${c.ai.sources.join(', ')})` : ''}, not by hand.</div>}
+    </>
   );
 }

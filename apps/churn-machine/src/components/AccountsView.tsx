@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
-  addManualAccount, advance, allBanksIHave, saveBanksIHave, deleteAccount, nextStep, STATUS_LABELS, updateAccount,
+  addManualAccount, advance, allBanksIHave, recentOpens, saveBanksIHave, deleteAccount, nextStep, STATUS_LABELS, updateAccount,
   type Account, type AccountStatus, type SavedStrategy,
 } from '../lib/accounts';
 import { completeTask, isFinished, neglected, progressOf, stateOf, strategyAccounts, tasksForStrategy } from '../lib/tasks';
@@ -73,6 +73,7 @@ export function AccountsView({
         banks={banks}
         today={today}
         alsoExclude={allBanksIHave(banksIHave, accounts.filter((a) => a.strategyId !== s.id))}
+        otherOpens={recentOpens(accounts.filter((a) => a.strategyId !== s.id), today)}
         onBack={onBack}
         onOpenDeal={onOpenDeal}
       />

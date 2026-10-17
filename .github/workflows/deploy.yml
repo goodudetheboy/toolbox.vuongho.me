@@ -77,8 +77,9 @@ jobs:
       # Never fails the deploy: on error the committed deals.json is kept.
       # Once a month (the first Monday's scheduled run) and on manual runs, deals
       # whose terms are new or changed are read by Gemini through Vertex AI (this
-      # service account has roles/aiplatform.user); every other run skips it.
-      # See churn-machine ADR 0013.
+      # service account has roles/aiplatform.user), and banks with no ChexSystems
+      # entry are looked up by Gemini with Google Search; every other run skips it.
+      # See churn-machine ADRs 0013 and 0016.
       - name: Refresh churn-machine deals
         env:
           EVENT: ${{ github.event_name }}
@@ -89,16 +90,17 @@ jobs:
             CHURN_AI_TERMS=0 npm run refresh -w apps/churn-machine
           fi
 
-      # Keeps Gemini's reads so the next run doesn't read the same deals again.
-      # Pushes made with GITHUB_TOKEN don't start another deploy.
-      - name: Save churn-machine deal terms read by Gemini
+      # Keeps Gemini's reads (changed deal terms, banks' ChexSystems sensitivity)
+      # so the next run doesn't read them again. Pushes made with GITHUB_TOKEN
+      # don't start another deploy.
+      - name: Save churn-machine data read by Gemini
         run: |
-          FILE=apps/churn-machine/data/deal-terms.json
-          if git diff --quiet -- "$FILE"; then exit 0; fi
+          FILE="apps/churn-machine/data/deal-terms.json apps/churn-machine/data/chex.json"
+          if git diff --quiet -- $FILE; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$FILE"
-          git commit -m "Churn machine: Gemini read changed deal terms"
+          git add $FILE
+          git commit -m "Churn machine: Gemini read changed deal terms and banks"
           for i in 1 2 3; do
             if git pull --rebase --autostash origin main && git push origin HEAD:main; then exit 0; fi
             git rebase --abort 2>/dev/null || true

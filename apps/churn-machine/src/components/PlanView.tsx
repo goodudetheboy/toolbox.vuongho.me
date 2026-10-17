@@ -36,7 +36,7 @@ function defaults(today: string): StoredInputs {
 
 
 export function PlanView({
-  deals, dealsDate, today, state, baselineApy, exclusion, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy, goStep, picks, setPicks,
+  deals, dealsDate, today, state, baselineApy, exclusion, recent, onOpenDeal, signedIn, onSave, route, openStrategy, closeStrategy, goStep, picks, setPicks,
 }: {
   /** The custom plan's deals (shared with the deal modal's "Add to custom plan"). */
   picks: string[];
@@ -52,6 +52,8 @@ export function PlanView({
   state: string | null;
   baselineApy: number;
   exclusion: Exclusion;
+  /** Days you opened accounts in the last year (My Bag): they count toward ChexSystems limits. */
+  recent: string[];
   onOpenDeal: (d: Deal, fee?: FeePlan) => void;
   signedIn: boolean;
   onSave: (s: Strategy, inputs: PlanInputs, baselineApy: number) => Promise<void>;
@@ -70,8 +72,7 @@ export function PlanView({
   const set = (patch: Partial<StoredInputs>) => setStored({ ...stored, ...patch });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Inputs stored before the pay schedule setting get the 1st and 15th.
-  // Paid on the 1st and 15th (older stored inputs may say every 2 weeks).
+  // Paid on the 15th and the last day of the month (older stored inputs may say every 2 weeks).
   const payFreq = 'semimonthly' as const;
   const startOn = stored.startOn && stored.startOn > today ? stored.startOn : null;
   const start = startOn ?? today;
@@ -83,6 +84,7 @@ export function PlanView({
     firstPayday: rollPayday(stored.firstPayday, start, payFreq),
     state,
     excludeBanks: exclusion.effective,
+    recentOpens: recent,
   };
   const key = JSON.stringify(inputs);
   const strategies = useMemo(
@@ -489,6 +491,10 @@ function StrategyDetail({ strategy: s, today, onOpenDeal }: {
         <div><dt>Last bonus</dt><dd>{s.totals.lastPayout ? shortDate(s.totals.lastPayout, today) : '–'}</dd></div>
         <div><dt>Parks up to</dt><dd>{s.totals.peakParked > 0 ? usd(s.totals.peakParked) : 'Nothing'}</dd></div>
       </dl>
+      <p className="muted small">
+        Up to {s.totals.perYear} new {s.totals.perYear === 1 ? 'account' : 'accounts'} in any 12 months, counting ones you opened recently.
+        Banks reported to mind that many are opened while you're under their limit.
+      </p>
 
       <div className="detail-tabs">
         <Segmented ariaLabel="View" value={view} onChange={setView}

@@ -143,6 +143,12 @@ export function blankAccount(): Omit<Account, 'id' | 'bank' | 'title' | 'bonus'>
   };
 }
 
+/** Days accounts were opened in the 12 months before `today` (they count toward ChexSystems limits in plans). */
+export function recentOpens(accounts: Account[], today: string): string[] {
+  const from = addDays(today, -365);
+  return accounts.map((a) => a.openedOn).filter((d): d is string => !!d && d > from && d <= today);
+}
+
 /** A planned account for one item of a strategy. */
 export function accountFromItem(item: PlanItem, strategyId: string, strategyName: string): Omit<Account, 'id'> {
   return {

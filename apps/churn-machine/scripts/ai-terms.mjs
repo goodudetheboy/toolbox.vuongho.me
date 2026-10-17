@@ -13,6 +13,7 @@ import { dollars } from './parse-deals.mjs';
 const PROJECT = 'vuonghome';
 export const MODEL = process.env.CHURN_GEMINI_MODEL || 'gemini-3.8-flash';
 const URL = `https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/${MODEL}:generateContent`;
+export const vertexUrl = () => URL;
 const MAX_CHARS = 16000;
 
 let token = process.env.GEMINI_TOKEN || null;

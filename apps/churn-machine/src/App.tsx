@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cameFromApp, hrefFor, useRoute, type Tab } from './lib/router';
 import { useDeals } from './lib/useDeals';
 import { signInWithGoogle, signOutUser, useAuth } from './lib/auth';
-import { allBanksIHave, saveStrategy, useAccounts } from './lib/accounts';
+import { allBanksIHave, recentOpens, saveStrategy, useAccounts } from './lib/accounts';
 import { usePersisted } from './lib/settings';
 import { todayIso } from './lib/dates';
 import type { Deal } from './lib/types';
@@ -211,6 +211,7 @@ export default function App() {
           state={prefs.state}
           baselineApy={prefs.baselineApy}
           exclusion={exclusion}
+          recent={recentOpens(acc.accounts, today)}
           onOpenDeal={openDeal}
           signedIn={!!user}
           onSave={async (s, inputs, apy) => {

@@ -20,10 +20,12 @@ import { fileURLToPath } from 'node:url';
 import { parseIndex, parseDeal, htmlToLines } from './parse-deals.mjs';
 import { applyTerms, termsHash, writeTerms } from './deal-terms.mjs';
 import { aiToken, askGemini, dealText, MODEL, toEntry } from './ai-terms.mjs';
+import { applyChex, checkChex } from './chex.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(here, '..', 'public', 'deals.json');
 const TERMS = path.join(here, '..', 'data', 'deal-terms.json');
+const CHEX = path.join(here, '..', 'data', 'chex.json');
 const API = 'https://www.doctorofcredit.com/wp-json/wp/v2/posts';
 const INDEX_SLUG = 'best-bank-account-bonuses';
 const BATCH = 40;
@@ -84,7 +86,10 @@ async function main() {
   }
 
   const ai = await checkChangedTerms(parsed, terms);
-  const deals = parsed.map(({ deal }, i) => ({ ...applyTerms(deal, terms[deal.id]), rank: i + 1 }));
+  const termed = parsed.map(({ deal }, i) => ({ ...applyTerms(deal, terms[deal.id]), rank: i + 1 }));
+  // Each bank's sensitivity to recently opened accounts (Gemini looks up banks the list doesn't have).
+  const chex = await checkChex(termed, CHEX, new Date().toISOString().slice(0, 10));
+  const deals = termed.map((d) => applyChex(d, chex.data));
 
   const out = {
     source: `https://www.doctorofcredit.com/${INDEX_SLUG}/`,
@@ -95,7 +100,7 @@ async function main() {
   writeFileSync(OUT, `${JSON.stringify(out)}\n`);
   const missing = deals.filter((d) => !d.hasGlance).length;
   const unchecked = deals.filter((d) => !d.termsChecked).length;
-  console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block, ${ai}, ${unchecked} still unchecked)`);
+  console.log(`wrote ${deals.length} deals to ${path.relative(process.cwd(), OUT)} (${missing} without an "offer at a glance" block, ${ai}, ${unchecked} still unchecked; ${chex.log})`);
 }
 
 const AI_MAX = 60;

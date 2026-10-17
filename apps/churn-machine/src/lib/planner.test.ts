@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Deal } from './types';
 import {
-  buildStrategy, buildStrategies, isPayday, nextPayday, paydays, requirementOf, revisePlan, rollPayday, type Committed, type PlanInputs,
+  buildStrategy, buildStrategies, isPayday, monthPaydays, nextPayday, paydays, requirementOf, revisePlan, rollPayday, type Committed, type PlanInputs,
 } from './planner';
 import { addDays } from './dates';
 
@@ -162,25 +162,31 @@ test('an on-track opened account keeps its exact deposits through a revision', (
   assert.equal(oct23.splits.find((x) => x.dealId === 'kept')?.amount, 1500);
 });
 
-test('1st-and-15th paydays: rolling forward, stepping, and month/year ends', () => {
-  assert.equal(rollPayday('2026-10-15', '2026-10-16', 'semimonthly'), '2026-11-01');
+test('paydays on the 15th and the last day, the Friday before on a weekend', () => {
+  // Oct 31 2026 is a Saturday, Nov 15 a Sunday, Jan 31 2027 a Sunday.
+  assert.equal(rollPayday('2026-10-15', '2026-10-16', 'semimonthly'), '2026-10-30');
   assert.equal(rollPayday('2026-10-01', '2026-10-15', 'semimonthly'), '2026-10-15');
-  assert.equal(rollPayday('2026-12-20', '2026-10-01', 'semimonthly'), '2027-01-01');
-  assert.equal(nextPayday('2026-12-15', 'semimonthly'), '2027-01-01');
-  assert.equal(nextPayday('2026-02-01', 'semimonthly'), '2026-02-15');
-  assert.deepEqual(paydays('2026-11-01', '2026-12-31', 'semimonthly'), ['2026-11-01', '2026-11-15', '2026-12-01', '2026-12-15']);
-  assert.ok(isPayday('2027-03-15', '2026-11-01', 'semimonthly'));
-  assert.ok(!isPayday('2027-03-14', '2026-11-01', 'semimonthly'));
+  assert.equal(rollPayday('2026-12-20', '2026-10-01', 'semimonthly'), '2026-12-31');
+  assert.equal(nextPayday('2026-10-30', 'semimonthly'), '2026-11-13');
+  assert.equal(nextPayday('2026-12-31', 'semimonthly'), '2027-01-15');
+  assert.equal(nextPayday('2027-01-15', 'semimonthly'), '2027-01-29');
+  assert.deepEqual(paydays('2026-11-13', '2026-12-31', 'semimonthly'), ['2026-11-13', '2026-11-30', '2026-12-15', '2026-12-31']);
+  // February: the 28th of 2027 is a Sunday.
+  assert.deepEqual(monthPaydays('2027-02'), ['2027-02-15', '2027-02-26']);
+  assert.ok(isPayday('2027-03-15', '2026-11-13', 'semimonthly'));
+  assert.ok(isPayday('2026-11-13', '2026-11-13', 'semimonthly'));
+  assert.ok(!isPayday('2026-11-15', '2026-11-13', 'semimonthly'));
+  assert.ok(!isPayday('2026-11-01', '2026-11-13', 'semimonthly'));
   assert.equal(nextPayday('2026-10-23', 'biweekly'), '2026-11-06');
 });
 
-test('a 1st-and-15th plan deposits only on the 1st and 15th, inside each window', () => {
+test('a semi-monthly plan deposits only on paydays, inside each window', () => {
   const deals = Array.from({ length: 8 }, (_, i) => deal(`d${i}`, { rank: i + 1, bonusMax: 200 + i * 50,
     dd: { required: true, amount: 1000 + i * 500, windowDays: 60 + (i % 3) * 30, monthly: false, months: null, minDeposits: null } }));
-  const inputs: PlanInputs = { ...INPUTS, payFreq: 'semimonthly', firstPayday: '2026-11-01' };
+  const inputs: PlanInputs = { ...INPUTS, payFreq: 'semimonthly', firstPayday: '2026-10-30' };
   const s = buildStrategy(deals, inputs, 'money', 3, TODAY, 0.04);
   assert.ok(s.items.length > 0);
-  for (const p of s.paychecks) assert.match(p.date, /-(01|15)$/);
+  for (const p of s.paychecks) assert.ok(isPayday(p.date, '2026-10-30', 'semimonthly'), p.date);
   for (const item of s.items) {
     const req = requirementOf(item.deal);
     const inWindow = item.deposits.filter((d) => d.date <= addDays(item.openOn, req.windowDays));
@@ -208,14 +214,14 @@ test('a custom plan schedules only your picks, ignores filters, and says why a p
 
 test('a later start date: nothing opens or gets paid before it', () => {
   const deals = Array.from({ length: 6 }, (_, i) => deal(`d${i}`, { rank: i + 1 }));
-  const inputs: PlanInputs = { ...INPUTS, payFreq: 'semimonthly', firstPayday: '2026-11-01', startOn: '2027-01-10' };
+  const inputs: PlanInputs = { ...INPUTS, payFreq: 'semimonthly', firstPayday: '2026-10-30', startOn: '2027-01-10' };
   const s = buildStrategy(deals, inputs, 'money', 3, TODAY, 0.04);
   assert.ok(s.items.length > 0);
   for (const i of s.items) assert.ok(i.openOn >= '2027-01-10', `${i.deal.id} opens ${i.openOn}`);
   assert.equal(s.paychecks[0].date, '2027-01-15');
   // A start date in the past is just today.
   const past = buildStrategy(deals, { ...inputs, startOn: '2026-01-01' }, 'money', 3, TODAY, 0.04);
-  assert.equal(past.paychecks[0].date, '2026-11-01');
+  assert.equal(past.paychecks[0].date, '2026-10-30');
 });
 
 const FEE = (over: Partial<NonNullable<Deal['fee']>>): Deal['fee'] => ({ monthly: 15, freeMonths: 0, waivers: [], once: null, note: null, ...over });
@@ -278,4 +284,30 @@ test('a deal with bonus levels: the best level your cash covers, never two of th
   const rich = buildStrategy([d], { ...INPUTS, cash: 200000 }, 'money', 1, TODAY, 0.04);
   assert.equal(rich.items.length, 1);
   assert.equal(rich.items[0].deal.tier, 1);
+});
+
+test('ChexSystems: no overall cap; a bank limit counts accounts you opened recently', () => {
+  const free = { dd: { required: false, amount: 0, windowDays: null, monthly: false, months: null, minDeposits: null }, transactions: 1 };
+  const deals = Array.from({ length: 12 }, (_, i) => deal(`d${i}`, { ...free, rank: i + 1 }));
+  const all = buildStrategy(deals, { ...INPUTS, months: 12 }, 'money', 3, TODAY, 0.04);
+  assert.equal(all.items.length, 12);
+  // Reported to deny at 2 new accounts in 6 months; you opened 2 in the last two months.
+  const picky = deal('picky', { ...free, chexSensitive: true, chex: { sensitive: true, limits: [[2, 6]], note: null, ews: false, ai: null } });
+  const recent = buildStrategy([picky], { ...INPUTS, months: 12, recentOpens: ['2026-09-01', '2026-10-01'] }, 'money', 3, TODAY, 0.04);
+  assert.ok(recent.items.every((i) => i.openOn >= '2027-02-28'), 'waits until one of them is 6 months old');
+});
+
+test('ChexSystems: a sensitive bank opens before others pile up past its limit', () => {
+  const free = { dd: { required: false, amount: 0, windowDays: null, monthly: false, months: null, minDeposits: null }, transactions: 1 };
+  const deals = [
+    ...Array.from({ length: 4 }, (_, i) => deal(`big${i}`, { ...free, rank: i + 1, bonusMax: 900 })),
+    // Reported to deny with 2 new accounts in the last month; worth the least.
+    deal('picky', { ...free, rank: 9, bonusMax: 200, chexSensitive: true,
+      chex: { sensitive: true, limits: [[2, 1]], note: null, ews: false, ai: null } }),
+  ];
+  const s = buildStrategy(deals, INPUTS, 'money', 3, TODAY, 0.04);
+  const picky = s.items.find((i) => i.deal.id === 'picky');
+  assert.ok(picky, 'the sensitive bank is still planned');
+  const before = s.items.filter((i) => i.deal.id !== 'picky' && i.openOn <= picky!.openOn && i.openOn > addDays(picky!.openOn, -30));
+  assert.ok(before.length < 2, `${before.length} accounts opened within a month before it`);
 });

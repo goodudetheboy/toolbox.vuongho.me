@@ -70,6 +70,17 @@ export interface Deal {
   chexPulls: 'yes' | 'no' | 'mixed' | 'unknown';
   chexSensitive: boolean;
   chexText: string | null;
+  /** The bank's reported sensitivity to recently opened accounts (data/chex.json), when known. */
+  chex?: {
+    sensitive: boolean | null;
+    /** Reported denials: [accounts opened, within months]. */
+    limits: [number, number][];
+    note: string | null;
+    /** Checks Early Warning Services too. */
+    ews: boolean;
+    /** Looked up by Gemini with web search, not by hand. */
+    ai: { on: string | null; sources: string[] } | null;
+  } | null;
   ccFunding: number | null;
   ccText: string | null;
   monthlyFee: { amount: number | null; avoidable: boolean | null };

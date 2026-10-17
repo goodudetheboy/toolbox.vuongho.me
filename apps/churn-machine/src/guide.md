@@ -61,6 +61,17 @@ Some deals pay different amounts for different amounts of money: e*Trade pays $4
 - A deal's page has a **Bonus levels** section listing every level with its requirements and net. The one used is marked "counted" (or "in this plan" when you opened it from a strategy), and the rest of the page (bonus, requirements, net) is for that level.
 - Some lower levels are a different, cheaper account at the bank. Where that account's monthly fee couldn't be checked, the top level's fee is used, so its net may be a little low.
 
+### ChexSystems
+
+Most banks check ChexSystems (some big ones also check Early Warning Services), reports that list the bank accounts you've opened. Opening a lot in a short time can look like fraud, so some banks turn you down. We're not experts on this; the basics, and what the app does:
+
+- It goes bank by bank, not one limit for everything. Banks reported not to mind (Chase, Wells Fargo, TD and others) have no limit. Banks reported to be sensitive are opened early in a plan, before the others pile up, and only while you're under the limit people have reported (for example "denials at 2 new accounts in a month"). A sensitive bank with no reported numbers gets the usual rule of thumb: trouble around 12 new accounts a year.
+- Accounts you've marked opened in My Bag in the last year count toward those limits.
+- A deal's page shows what's reported under **ChexSystems**. Banks Doctor of Credit's list doesn't cover were looked up by AI with a web search, and say so.
+- These are other people's reports, not bank rules. Applying in a branch is sometimes more forgiving.
+
+To learn more: [Doctor of Credit on ChexSystems](https://www.doctorofcredit.com/an-introduction-to-chexsystems-inc/), [banks that are inquiry sensitive](https://www.doctorofcredit.com/banks-credit-unions-chexsystems-inquiry-sensitive/), [banks that check Early Warning Services](https://www.doctorofcredit.com/banks-credit-unions-dodont-pull-early-warning-services/) and [how many accounts a year is safe](https://www.doctorofcredit.com/how-many-bank-accounts-can-i-safely-open-within-a-year-for-bank-bonus-purposes/).
+
 ### A deal's details
 
 Click a deal to open it. You'll see the bonus (the **upfront** part, see below), the net value and grade, **Key statistics** (direct deposit, cash to park, transactions, how long to keep it open, credit pull, when the bonus posts), **Is it worth it?** (the math behind net), the offer's terms, every detail from the post, and Doctor of Credit's take.
@@ -76,9 +87,9 @@ Plan walks you through it one screen at a time. **← back** links (and your bro
 
 **Step 1, Your paycheck:** just what's needed to get started.
 
-- **Paycheck**: the take-home pay from one paycheck that you can route. Paychecks are on the 1st and 15th.
+- **Paycheck**: the take-home pay from one paycheck that you can route. Paychecks are on the 15th and the last day of the month, or the Friday before when that's a weekend.
 - **Start**: the day the plan begins (today unless you pick a later date). Nothing is opened or deposited before it, and the plan length counts from it.
-- **Next payday**: filled in for you (the first 1st or 15th on or after the start).
+- **Next payday**: filled in for you (the first payday on or after the start).
 
 Then **Next**.
 
@@ -111,6 +122,7 @@ Rows show the number of accounts, cash parked (if any), a small chart, and the t
 
 Click a strategy to open it:
 
+- Under the numbers: the most new accounts it opens in any 12 months (counting ones you opened recently).
 - The big number and chart show bonuses adding up over time. Move your mouse or finger along the chart (or use the arrow keys) to see each payout.
 - **Accounts to open** (shown first): each account as a row like the Deals list, with what it needs, when to open it, its rating, bonus and net. Tap a row to see its deal, with the numbers from this plan: the bonus level it uses and how it handles the fee (a fee month your paychecks can't cover is counted).
 - **Requirements**: every account's requirements at a glance, one list per bank: direct deposit, cash to park, other things like debit purchases or eStatements, promo code, branch visit, hard pull, and how long to keep it open.
@@ -183,7 +195,7 @@ On a phone, deals, plans and settings open as cards from the bottom. Swipe one d
 - **Park cash**: money you keep in the account for a set time to earn the bonus.
 - **Keep open**: how long to keep the account open so the bank doesn't take the bonus back.
 - **Hard pull**: a credit check that shows on your credit report. A soft pull doesn't.
-- **ChexSystems**: a banking history report some banks check; opening many accounts can get you declined at sensitive banks.
+- **ChexSystems**: a banking history report most banks check; opening many accounts can get you declined at sensitive banks (see ChexSystems).
 - **Assumed**: a value the post didn't give, so the app used a typical one. Check the post.
 
 ## Not built yet

@@ -1,4 +1,4 @@
-// Turns a paycheck (1st and 15th, or every 2 weeks) + a time window into concrete churning schedules:
+// Turns a paycheck (15th and month end, or every 2 weeks) + a time window into concrete churning schedules:
 // which account to open when, how to split each paycheck, when the bonus should
 // land and when it's safe to close. Fully deterministic — same inputs, same plan.
 //
@@ -8,14 +8,14 @@
 // paycheck first, at most `maxSplits` accounts per paycheck, parked cash never
 // exceeds what you have). See docs/adr/0002-planner-greedy-with-full-resimulation.md.
 import type { Deal } from './types';
-import { addDays, daysBetween, maxIso, shortDate } from './dates';
+import { addDays, daysBetween, maxIso, shortDate, toDate } from './dates';
 import { ASSUMED, dealStatus, feePlans, keepOpenDays, levelsOf, usd, valueOf, type FeePlan, type Value } from './value';
 import { availableIn, bankKey, isBusiness } from './filters';
 
 export interface PlanInputs {
   /** Take-home pay per paycheck. */
   paycheck: number;
-  /** When you're paid: the 1st and 15th, or every 14 days from `firstPayday`. */
+  /** When you're paid: the 15th and the last day of the month (Friday before on a weekend), or every 14 days from `firstPayday`. */
   payFreq: PayFreq;
   firstPayday: string;
   /** Plan length; requirements must be finished inside it (payouts may land after). */
@@ -40,6 +40,21 @@ export interface PlanInputs {
   startOn: string | null;
   /** A custom plan's deals (ids). Only used by the 'custom' objective. */
   picks: string[];
+  /** Days you opened other accounts in the last year (from My Bag): they count toward banks' ChexSystems limits. Not in links. */
+  recentOpens?: string[];
+}
+
+/**
+ * A bank reported sensitive to recently opened accounts but with no numbers
+ * gets Doctor of Credit's general guidance: trouble usually starts around 12
+ * new accounts a year.
+ */
+export const SENSITIVE_DEFAULT_LIMITS: [number, number][] = [[12, 12]];
+
+/** A bank's ChexSystems limits ([accounts, months]): reported ones, the default for a sensitive bank, else none. */
+export function chexLimits(d: Deal): [number, number][] {
+  if (d.chex?.limits.length) return d.chex.limits;
+  return d.chexSensitive && d.chex?.sensitive !== false ? SENSITIVE_DEFAULT_LIMITS : [];
 }
 
 export type Objective = 'money' | 'big' | 'easy' | 'fast' | 'custom';
@@ -171,6 +186,8 @@ export interface Strategy {
     accounts: number;
     peakParked: number;
     effort: number;
+    /** Most new accounts in any 12 months, counting the ones you opened recently. */
+    perYear: number;
     firstPayout: string | null;
     lastPayout: string | null;
   };
@@ -190,20 +207,37 @@ interface SimResult {
   feeMissed: Map<string, number>;
 }
 
-// Paychecks are on the 1st and 15th. 'biweekly' is only for plans and links
-// made before that, which keep the schedule they were built with.
+// Paychecks are on the 15th and the last day of the month, or the Friday
+// before when that's a weekend. 'biweekly' is only for plans and links made
+// before that, which keep the schedule they were built with.
 export type PayFreq = 'semimonthly' | 'biweekly';
 /** "semi-monthly" / "every 2 weeks", for sentences. */
 export const payWhen = (f: PayFreq) => (f === 'biweekly' ? 'every 2 weeks' : 'semi-monthly');
 
-/** The first 1st or 15th on or after `iso`. */
+/** A weekend date moved back to the Friday before. */
+function weekdayOrFriday(iso: string): string {
+  const dow = toDate(iso).getUTCDay();
+  return dow === 6 ? addDays(iso, -1) : dow === 0 ? addDays(iso, -2) : iso;
+}
+
+/** A month's two paydays ('YYYY-MM'): the 15th and the last day, each on a weekday. */
+export function monthPaydays(ym: string): [string, string] {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return [weekdayOrFriday(`${ym}-15`), weekdayOrFriday(`${ym}-${String(last).padStart(2, '0')}`)];
+}
+
+const nextMonth = (ym: string) => {
+  const [y, m] = ym.split('-').map(Number);
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+};
+
+/** The first payday on or after `iso`. */
 function semimonthlyOnOrAfter(iso: string): string {
-  const day = Number(iso.slice(8, 10));
-  if (day === 1 || day === 15) return iso;
-  if (day < 15) return `${iso.slice(0, 8)}15`;
-  const y = Number(iso.slice(0, 4));
-  const m = Number(iso.slice(5, 7));
-  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  for (let ym = iso.slice(0, 7); ; ym = nextMonth(ym)) {
+    const hit = monthPaydays(ym).find((p) => p >= iso);
+    if (hit) return hit;
+  }
 }
 
 /** The payday after payday `iso`. */
@@ -221,7 +255,7 @@ export function rollPayday(payday: string, today: string, freq: PayFreq): string
 
 /** Whether `iso` is one of your paydays (`anchor` is any known payday). */
 export function isPayday(iso: string, anchor: string, freq: PayFreq): boolean {
-  if (freq === 'semimonthly') return iso.endsWith('-01') || iso.endsWith('-15');
+  if (freq === 'semimonthly') return monthPaydays(iso.slice(0, 7)).includes(iso);
   return ((daysBetween(anchor, iso) % 14) + 14) % 14 === 0;
 }
 
@@ -378,6 +412,27 @@ function parkedOk(sel: Selection[], cash: number): boolean {
     if (total > cash) return false;
   }
   return true;
+}
+
+/** Most dates in any 365-day stretch. */
+export function mostInAYear(dates: string[]): number {
+  const ds = [...dates].sort();
+  return ds.reduce((m, d, i) => Math.max(m, ds.filter((x, j) => j >= i && x < addDays(d, 365)).length), 0);
+}
+
+/**
+ * ChexSystems, bank by bank: every inquiry-sensitive bank in the plan is
+ * opened while the accounts opened before it (in the plan, or recently in My
+ * Bag) are under its limits ([accounts, months]; a month ~ 30 days). Banks
+ * that don't mind have no limit.
+ */
+function chexOk(sel: Selection[], inputs: PlanInputs): boolean {
+  return sel.every((s, i) => (s.fixed ? [] : chexLimits(s.deal)).every(([n, months]) => {
+    const from = addDays(s.open, -months * 30);
+    const before = [...(inputs.recentOpens ?? []), ...sel.filter((_, j) => j !== i).map((x) => x.open)]
+      .filter((d) => d > from && d <= s.open).length;
+    return before < n;
+  }));
 }
 
 /** Why a picked deal can't go in a custom plan at all, or null if it can be tried. */
@@ -592,7 +647,7 @@ function planCore(
             const other = c.fees.find((f) => f.how !== 'bal');
             if (other) trial = [...sel, { deal: c.deal, req: c.req, open, fee: other }];
           }
-          if (!parkedOk(trial, inputs.cash)) continue;
+          if (!parkedOk(trial, inputs.cash) || !chexOk(trial, inputs)) continue;
           const needsSim = c.req.need > 0 || trial.at(-1)!.fee.how === 'dd';
           if (needsSim && !simulate(trial, simPays, inputs, atRisk).ok) continue;
           sel.push(trial[trial.length - 1]);
@@ -607,11 +662,21 @@ function planCore(
   // level crowding out a better deal), so unless the goal is speed, also plan
   // with every deal at its top level only and keep whichever nets more.
   const all = rankFor(objective, candidates(deals, inputs, today, baselineApy, custom), inputs.paycheck, inputs.payFreq);
+  const net = (xs: Selection[]) => xs.reduce((t, x) => t + (x.fixed ? 0 : valueOf(x.deal, baselineApy, x.fee).net), 0);
   let sel = greedy(all);
   if (objective !== 'fast' && all.some((c) => c.deal.tier != null)) {
     const tops = greedy(all.filter((c) => !c.deal.tier));
-    const net = (xs: Selection[]) => xs.reduce((t, x) => t + (x.fixed ? 0 : valueOf(x.deal, baselineApy, x.fee).net), 0);
     if (net(tops) > net(sel)) sel = tops;
+  }
+  // ChexSystems-sensitive banks are best opened first, before other new
+  // accounts pile up: try again with the ones picked (plus any a bank limit
+  // kept out) moved to the front, and keep that unless it nets less.
+  const sensitive = (c: Candidate) => chexLimits(c.deal).length > 0;
+  const picked = new Set(sel.map((x) => x.deal.id));
+  const front = all.filter((c) => sensitive(c) && picked.has(c.deal.id));
+  if (front.length) {
+    const first = greedy([...front, ...all.filter((c) => !front.includes(c))]);
+    if (net(first) >= net(sel)) sel = first;
   }
 
   const sim = simulate(sel, simPays, inputs, atRisk);
@@ -657,6 +722,7 @@ function planCore(
       accounts: items.length,
       peakParked: peakParked(sel.filter((s) => !fixedIds.has(s.deal.id))),
       effort: items.reduce((t, i) => t + i.value.effort, 0),
+      perYear: mostInAYear([...(inputs.recentOpens ?? []), ...items.map((i) => i.openOn)]),
       firstPayout: payouts[0] ?? null,
       lastPayout: payouts.at(-1) ?? null,
     },

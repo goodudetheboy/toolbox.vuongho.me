@@ -944,3 +944,4 @@ textarea.input { resize: vertical; }
 .levels .level-how { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); }
 .levels .level-on b, .levels .level-on .tag { color: var(--accent); }
 .levels .tag { font-size: 12.5px; font-weight: 650; }
+.warn-text { color: var(--warn); }

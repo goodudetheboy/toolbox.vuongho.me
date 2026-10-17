@@ -81,7 +81,7 @@ export function Segmented<T extends string | number>({ value, options, onChange,
   );
 }
 
-/** Paycheck amount and the next payday (paid on the 1st and 15th, so it's just shown). */
+/** Paycheck amount and the next payday (paid on the 15th and the last day of the month, so it's just shown). */
 export function PaycheckRows({ paycheck, firstPayday, today, onChange, beforePayday }: {
   paycheck: number;
   firstPayday: string;
@@ -93,7 +93,7 @@ export function PaycheckRows({ paycheck, firstPayday, today, onChange, beforePay
   return (
     <>
       <label className="order-row">
-        <span>Paycheck <span className="faint">1st and 15th</span></span>
+        <span>Paycheck <span className="faint">15th and month end</span></span>
         <MoneyInput ariaLabel="Paycheck amount" value={paycheck} onChange={(v) => onChange({ paycheck: v ?? 0 })} />
       </label>
       {beforePayday}

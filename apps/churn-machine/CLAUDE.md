@@ -67,6 +67,16 @@ no em dashes (toolbox-wide preference, see root progress 2026-10-07).
   most; the planner tries every level (one per deal) and keeps the better
   of with-levels / top-only. Saved accounts store `tier`. See
   [ADR 0015](docs/adr/0015-bonus-levels.md).
+- ChexSystems: `data/chex.json` (per bank: sensitive or not, reported denial
+  limits as [accounts, months], EWS), hand-made from Doctor of Credit's list,
+  the rest looked up monthly by Gemini with Google Search
+  (`scripts/chex.mjs`); applied to deals as `chex`. No overall cap: the
+  planner keeps each sensitive bank under its own limits (`chexLimits`; a
+  sensitive bank with no numbers gets [12, 12]), counting My Bag's recent
+  openings, and tries sensitive banks first. See
+  [ADR 0016](docs/adr/0016-chexsystems-in-plans.md).
+- Paydays (semi-monthly): the 15th and the last day of the month, the Friday
+  before on a weekend (`monthPaydays` in `planner.ts`).
 - `scripts/ai-terms.mjs` — once a month (first Monday's scheduled refresh) and on manual runs, never on a push, Gemini (Vertex AI in
   `vuonghome`, no API key) reads deals whose terms are new or changed, with
   sanity checks; entries are saved with `by: "gemini"` and CI commits

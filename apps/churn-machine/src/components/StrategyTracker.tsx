@@ -30,7 +30,7 @@ export function ProgressBar({ collected, onTheWay, planned }: { collected: numbe
   );
 }
 
-export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, today, alsoExclude, onBack, onOpenDeal }: {
+export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, today, alsoExclude, otherOpens, onBack, onOpenDeal }: {
   uid: string;
   strategy: SavedStrategy;
   /** This strategy's accounts. */
@@ -41,6 +41,8 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
   today: string;
   /** Banks you have outside this plan, so a revision doesn't pick them. */
   alsoExclude: string[];
+  /** Days you opened accounts outside this plan in the last year (ChexSystems limits). */
+  otherOpens: string[];
   onBack: () => void;
   onOpenDeal: (d: Deal) => void;
 }) {
@@ -88,7 +90,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
           <PlanMenu
             archived={!!s.archived}
             ready={!!deals}
-            onRevise={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude))}
+            onRevise={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude, undefined, otherOpens))}
             onEdit={() => setEditing(true)}
             onArchive={() => archiveStrategy(uid, s.id, !s.archived)}
             onDelete={async () => {
@@ -158,7 +160,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
             type="button"
             className="btn primary"
             disabled={!deals}
-            onClick={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude))}
+            onClick={() => deals && setRevision(previewRevision(deals, s, accounts, today, alsoExclude, undefined, otherOpens))}
           >
             Revise plan
           </button>
@@ -248,6 +250,7 @@ export function StrategyTracker({ uid, strategy: s, accounts, deals, banks, toda
           banks={banks}
           today={today}
           alsoExclude={alsoExclude}
+          otherOpens={otherOpens}
           onClose={() => setEditing(false)}
         />
       )}
@@ -407,7 +410,7 @@ function TaskRow({ task: t, today, compact, onDone, onUndo, onBank }: {
 }
 
 /** Change a running plan's settings; the rest of the plan is re-planned from today. */
-function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoExclude, onClose }: {
+function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoExclude, otherOpens, onClose }: {
   uid: string;
   strategy: SavedStrategy;
   accounts: Account[];
@@ -415,12 +418,13 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
   banks: string[];
   today: string;
   alsoExclude: string[];
+  otherOpens: string[];
   onClose: () => void;
 }) {
   const original = planSettings(s);
   const start = planStart(original);
   const [draft, setDraft] = useState<PlanSettings>(() => (
-    // Paychecks are on the 1st and 15th; a plan saved as every 2 weeks switches when you save.
+    // Paychecks are on the 15th and month end; a plan saved as every 2 weeks switches when you save.
     { ...original, inputs: { ...original.inputs, payFreq: 'semimonthly', firstPayday: rollPayday(original.inputs.firstPayday, planStartOn(original.inputs, today), 'semimonthly') } }
   ));
   const [saving, setSaving] = useState(false);
@@ -430,7 +434,7 @@ function EditPlanSheet({ uid, strategy: s, accounts, deals, banks, today, alsoEx
   };
   const key = JSON.stringify(draft);
   const preview = useMemo(
-    () => previewRevision(deals, s, accounts, today, alsoExclude, draft),
+    () => previewRevision(deals, s, accounts, today, alsoExclude, draft, otherOpens),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [key, deals, accounts, today],
   );

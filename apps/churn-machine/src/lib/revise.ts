@@ -72,6 +72,8 @@ const money = (n: number) => `$${n.toLocaleString('en-US')}`;
  */
 export function previewRevision(
   deals: Deal[], saved: SavedStrategy, accounts: Account[], today: string, alsoExclude: string[], edited?: PlanSettings,
+  /** Days you opened accounts outside this plan in the last year. */
+  otherOpens: string[] = [],
 ): RevisionPreview {
   const set = edited ?? planSettings(saved);
   const name = strategyName(set.objective, set.pace);
@@ -109,7 +111,7 @@ export function previewRevision(
     };
   });
 
-  const inputs: PlanInputs = { ...set.inputs, firstPayday: payday, excludeBanks: [...set.inputs.excludeBanks, ...alsoExclude] };
+  const inputs: PlanInputs = { ...set.inputs, firstPayday: payday, excludeBanks: [...set.inputs.excludeBanks, ...alsoExclude], recentOpens: otherOpens };
   const r = revisePlan(deals, inputs, set.objective, set.pace, from, set.baselineApy, set.endsOn, committed);
 
   const lines: RevisionPreview['lines'] = [];
