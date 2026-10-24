@@ -542,6 +542,9 @@ right.
   (`useReadAloud.ts`). The sentence being read is highlighted on the card (CSS
   Custom Highlight `read-aloud`). Starting Practice or leaving the part stops it,
   so the mic never hears Biggu. Hints themselves stay silent (2026-10-05 addendum).
+  Each piece's audio is cached on the device (`speechCache.ts`): in memory, plus
+  Cache Storage keyed by SHA-256 of the exact text (capped at 200 pieces, oldest
+  dropped), so listening again — even after a reload — makes no `/speak` calls.
 - **Hint limit moved into the Practice button.** The separate "Hints 3/5/10/20/∞"
   row is gone. The Practice button is split: the right end shows the limit
   ("5 💡 ⌄") and opens a menu of the limits upward (`PracticeButton.tsx`). Still a
