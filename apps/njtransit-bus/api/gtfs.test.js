@@ -15,17 +15,24 @@ function fixture() {
       'A,100,MAIN ST AT 1ST AVE,40.0000,-74.0000,0,,',
       'A2,101,"MAIN ST AT 1ST AVE, FAR SIDE",40.00027,-74.0000,0,,',
       'M,200,MIDDLE RD,40.0100,-74.0000,0,,',
+      'C,400,CLIFF BOTTOM RD,40.0201,-74.0010,0,,',
+      'C2,401,RIVER RD,40.0300,-74.0000,0,,',
       'T-..,300,BIG TERMINAL,40.0200,-74.0000,0,STN-300,..',
       'T-201_1,300,BIG TERMINAL,40.0200,-74.0000,0,STN-300,201_1',
       'STN-300,STN-300,BIG TERMINAL,40.0200,-74.0000,1,,',
     ]),
-    'routes.txt': csv(['route_id,agency_id,route_short_name,route_long_name,route_type', 'R1,NJB,1,Main,3']),
+    'routes.txt': csv([
+      'route_id,agency_id,route_short_name,route_long_name,route_type',
+      'R1,NJB,1,Main,3',
+      'R9,NJB,9,River,3',
+    ]),
     'trips.txt': csv([
       'trip_id,route_id,service_id,trip_headsign,direction_id',
       '11,R1,WK,1 BIG TERMINAL,0',
       '12,R1,WK,1 BIG TERMINAL,0',
       '13,R1,WK,1 MAIN ST,1',
       '14,R1,SAT,1 BIG TERMINAL,0',
+      '15,R9,WK,9 RIVER RD,0',
     ]),
     'stop_times.txt': csv([
       'trip_id,arrival_time,departure_time,stop_id,stop_sequence',
@@ -40,6 +47,10 @@ function fixture() {
       '13,17:20:00,17:20:00,A2,2',
       '14,09:00:00,09:00:00,A,1',
       '14,09:20:00,09:20:00,T-..,2',
+      // Route 9 stops ~90 m from the terminal but never at it.
+      '15,10:00:00,10:00:00,A,1',
+      '15,10:30:00,10:30:00,C,2',
+      '15,10:40:00,10:40:00,C2,3',
     ]),
     'calendar.txt': csv([
       'service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date',
@@ -104,4 +115,15 @@ test('departures: right direction, service days, after-midnight times, gates', (
   assert.deepEqual(g.departures('100', '300', sat, sat + 6 * 3600 * 1000).departures.map((d) => d.trip), ['14']);
 
   assert.equal(g.departures('100', 'nope', monday, monday + 1), null);
+});
+
+test('a nearby stop only counts if it shares a route with the chosen one', () => {
+  const g = loadGtfs(fixture());
+  const monday = nyTime(2026, 10, 26, 7, 0);
+  // Route 9 reaches CLIFF BOTTOM RD, within walking distance of the terminal,
+  // but no route serves both, so it isn't a way to get to the terminal.
+  const trips = g.departures('100', '300', monday, monday + 6 * 3600 * 1000).departures.map((d) => d.trip);
+  assert.deepEqual(trips, ['11']);
+  // Asking for CLIFF BOTTOM RD itself still finds route 9.
+  assert.deepEqual(g.departures('100', '400', monday, monday + 6 * 3600 * 1000).departures.map((d) => d.trip), ['15']);
 });

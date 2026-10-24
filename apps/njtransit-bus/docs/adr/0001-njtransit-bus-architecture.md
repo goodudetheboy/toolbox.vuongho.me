@@ -43,11 +43,16 @@ Checked against the live API on 2026-10-24:
   positions, routes and headsigns per stop, service calendars. It reloads
   the timetable after 20 h, inside the request that notices (Cloud Run
   throttles CPU outside requests, so nothing runs in the background).
-- **Which buses**: a trip counts if it stops within 200 m of the "from"
-  stop and later within 200 m of the "to" stop. The radius is what makes
-  the flip button work: the way back usually leaves from the stop across
-  the street, a different stop number. When a bus leaves from a nearby stop
-  rather than the one picked, the board says "FROM <that stop>".
+- **Which buses**: a trip counts if it stops at the "from" stop or a
+  nearby one, and later at the "to" stop or a nearby one. "Nearby" is
+  within 200 m **and** served by a route that also serves the chosen stop
+  (amended 2026-10-24: distance alone matched Port Imperial Blvd, 178 m
+  from Boulevard East at 50th St but at the bottom of the Palisades, so the
+  158 showed up for a Boulevard East trip). The radius is what makes the
+  flip button work: the way back usually leaves from the stop across the
+  street, a different stop number on the same routes. When a bus leaves
+  from a nearby stop rather than the one picked, the board says "FROM
+  <that stop>".
 - **Live**: for the next ~75 min's buses, `getBusDV` at the stops they leave
   from (at most 3, cached 15 s), matched by trip id. Tracked → NJ Transit's
   estimate, shown as minutes; not tracked → the timetable time, shown as a
@@ -67,8 +72,9 @@ Checked against the live API on 2026-10-24:
 - One cold start costs ~6 s plus the zip download from NJ Transit; the
   instance then serves stop search and departures from memory in
   milliseconds. Each cold start downloads ~50 MB from NJ Transit.
-- The 200 m radius can pull in a stop a short walk away; the "FROM" line
-  makes that visible instead of hiding it.
+- The 200 m radius can pull in a stop a short walk away on the same line;
+  the "FROM" line makes that visible instead of hiding it. A route that only
+  stops nearby (no stop shared with the chosen one) is never shown.
 - Only bus data is searched for stops, but light rail is in the same
   timetable and would mostly work; untested.
 - The NJ Transit login lives in Secret Manager; rotating the password means

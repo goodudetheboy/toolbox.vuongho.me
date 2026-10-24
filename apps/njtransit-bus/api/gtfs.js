@@ -5,8 +5,9 @@
 //   and headsigns each stop sees so two same-named stops across the street
 //   from each other can be told apart;
 // - which trips go from one place to another (the "from" and "to" are each
-//   every stop within WALK_METERS of the chosen one, so flipping a trip still
-//   works when the way back leaves from the other side of the street);
+//   the chosen stop plus stops within WALK_METERS of it on a route it shares,
+//   so flipping a trip still works when the way back leaves from the other
+//   side of the street);
 // - their scheduled departures over the next day, with the Port Authority gate
 //   when the timetable has one.
 //
@@ -115,6 +116,7 @@ export function loadGtfs(zipBytes) {
         lat: +f[c.stop_lat],
         lon: +f[c.stop_lon],
         routes: new Map(),
+        served: new Set(), // every route stopping here, last stops included
         heads: new Map(),
       };
       stop.norm = normalize(stop.name);
@@ -200,6 +202,7 @@ export function loadGtfs(zipBytes) {
   const fill = stopPosStart.slice(0, stops.length);
   for (let i = 0; i < n; i++) {
     stopPos[fill[sStop[i]]++] = i;
+    stops[sStop[i]].served.add(trips[sTrip[i]].route);
     const last = i + 1 === n || sTrip[i + 1] !== sTrip[i];
     if (last) continue;
     const trip = trips[sTrip[i]];
@@ -239,11 +242,17 @@ export function loadGtfs(zipBytes) {
     return { code: stop.code, name: stop.name, lat: stop.lat, lon: stop.lon, routes, headsigns: top(stop.heads, 3), ...extra };
   }
 
+  // The stop itself, plus stops within the radius that share a route with it:
+  // the other side of the street, or the next stop on the same line. Distance
+  // alone isn't enough: a stop 180 m away can be at the bottom of a cliff (Port
+  // Imperial under Boulevard East) on routes that never come near this one.
   function nearbyStops(stop, radius = WALK_METERS) {
     const out = [];
     for (const s of stops) {
       const d = meters(stop.lat, stop.lon, s.lat, s.lon);
-      if (d <= radius) out.push({ stop: s, d });
+      if (d > radius) continue;
+      if (s !== stop && ![...s.served].some((r) => stop.served.has(r))) continue;
+      out.push({ stop: s, d });
     }
     return out.sort((a, b) => a.d - b.d);
   }
