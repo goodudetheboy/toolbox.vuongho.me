@@ -573,6 +573,37 @@ export function buildProp(kind: ToolModel | 'screwdriver' | 'nut', m: Mats): Pro
         restQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.3, 0)),
       };
     }
+    case 'bus': {
+      // A die-cast toy bus in NJ Transit blue, standing on its wheels. Long axis along X.
+      const L = 0.075;
+      const W = 0.026;
+      const blue = new THREE.MeshStandardMaterial({ color: 0x003da5, metalness: 0.35, roughness: 0.35 });
+      const white = new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 0.5 });
+      const glass = new THREE.MeshStandardMaterial({ color: 0x10151c, metalness: 0.6, roughness: 0.15 });
+      g.add(mesh(new RoundedBoxGeometry(L, 0.024, W, 3, 0.004), blue, 0, 0.003, 0));
+      // Window band all the way round, a white stripe under it.
+      g.add(mesh(new RoundedBoxGeometry(L - 0.004, 0.008, W + 0.0006, 2, 0.002), glass, 0.001, 0.0085, 0));
+      g.add(mesh(new THREE.BoxGeometry(L - 0.006, 0.0025, W + 0.0008), white, 0, 0.0015, 0));
+      for (const x of [-0.024, 0.022]) {
+        for (const z of [-W / 2 + 0.002, W / 2 - 0.002]) {
+          const wheel = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.005, 20), m.rubber, x, -0.009, z);
+          wheel.rotation.x = Math.PI / 2;
+          g.add(wheel);
+          const hub = mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.0052, 12), m.brushed, x, -0.009, z);
+          hub.rotation.x = Math.PI / 2;
+          g.add(hub);
+        }
+      }
+      return {
+        group: shadow(g),
+        shapes: [{ shape: new CANNON.Box(new CANNON.Vec3(L / 2, 0.015, W / 2)) }],
+        mass: 0.06,
+        restHalfHeight: 0.015,
+        restQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.35, 0)),
+        // Picked up: side-on to the camera, nose to the right.
+        showQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15, 0, 0)),
+      };
+    }
     case 'screwdriver': {
       const handle = new THREE.MeshPhysicalMaterial({ color: 0xe8a90c, roughness: 0.18, clearcoat: 1});
       g.add(mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.1, 6), handle, 0, 0.05, 0));

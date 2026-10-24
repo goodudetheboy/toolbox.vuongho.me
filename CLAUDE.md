@@ -14,10 +14,12 @@ homepage.
   `docs/adr/0001-monorepo-npm-workspaces.md`). Each tool also has its own
   `CLAUDE.md`, `docs/adr/`, and `docs/progress/` — see "Docs are split
   per-app" below. Current tools: `pdf-redactor`, `audio-transcriber`,
-  `trip-planner`, `study-assistant` (the only one with a Cloud Run backend,
+  `trip-planner`, `study-assistant` (Cloud Run backend in
   `apps/study-assistant/api/`, deployed by CI), `churn-machine` (bank bonus
   deals + planner + account tracker; its deal data is fetched from Doctor of
-  Credit at build time).
+  Credit at build time), `njtransit-bus` (next NJ Transit bus between two
+  stops, live; Cloud Run backend in `apps/njtransit-bus/api/` holding the
+  NJ Transit developer login, deployed by CI).
 - `scripts/combine-dist.mjs` — merges every app's `dist/` into one root
   `dist/` before deploy (homepage at root, each tool under `/<tool-name>/`)
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the
@@ -26,8 +28,8 @@ homepage.
   Hosting on push to `main` and weekly on Mondays (see
   `docs/adr/0007-daily-scheduled-deploy.md`); refreshes churn-machine's
   deals before building (once a month and on manual runs, Gemini reads
-  changed deal terms and the step commits them back to main); also deploys the study-assistant Cloud Run API
-  (when its code changed) and publishes Firestore rules
+  changed deal terms and the step commits them back to main); also deploys the study-assistant and
+  njtransit-bus Cloud Run APIs (each only when its code changed) and publishes Firestore rules
 - `docs/` — toolbox-wide only, see below
 
 ## Docs are split per-app — read the right `CLAUDE.md`/`docs/` for the job
@@ -86,6 +88,7 @@ npm run dev:audio-transcriber
 npm run dev:trip-planner
 npm run dev:study-assistant
 npm run dev:churn-machine
+npm run dev:njtransit-bus  # needs its API running locally, see apps/njtransit-bus/CLAUDE.md
 npm run build              # build every app (apps/*/dist)
 npm run combine            # merge every app's dist/ into root dist/
 ```

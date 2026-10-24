@@ -223,7 +223,7 @@ export class ToolboxScene {
   }
 
   private spawnItems(m: ReturnType<typeof materials>) {
-    const toolSlots: [number, number][] = [[-0.13, 0.058], [0.085, -0.045], [-0.16, -0.055], [-0.083, -0.072], [0.19, 0.03]];
+    const toolSlots: [number, number][] = [[-0.13, 0.058], [0.085, -0.045], [-0.16, -0.055], [-0.083, -0.072], [0.19, 0.03], [0.0, -0.08]];
     this.tools.forEach((tool, i) => {
       const [x, z] = toolSlots[i % toolSlots.length];
       this.addItem(buildProp(tool.model, m), x, z + Math.floor(i / toolSlots.length) * 0.01, i, Math.floor(i / toolSlots.length) * 0.04);

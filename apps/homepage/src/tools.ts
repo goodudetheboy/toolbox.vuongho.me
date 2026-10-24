@@ -1,7 +1,7 @@
 // Each tool is rendered as a physical object inside the 3D toolbox. `model`
 // picks which prop represents it; tools without a dedicated prop fall back
 // to a generic wrench so a newly added tool still shows up.
-export type ToolModel = 'marker' | 'microphone' | 'compass' | 'duck' | 'coins' | 'wrench';
+export type ToolModel = 'marker' | 'microphone' | 'compass' | 'duck' | 'coins' | 'bus' | 'wrench';
 
 export interface Tool {
   name: string;
@@ -41,5 +41,11 @@ export const tools: Tool[] = [
     description: 'Browse bank account bonuses, plan which accounts to open with your paycheck, and track them.',
     href: '/churn-machine/',
     model: 'coins',
+  },
+  {
+    name: 'NJ Transit Bus',
+    description: 'When the next NJ Transit bus comes from your stop, live, with the Port Authority gate.',
+    href: '/njtransit-bus/',
+    model: 'bus',
   },
 ];

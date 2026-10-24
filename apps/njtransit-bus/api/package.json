@@ -1,0 +1,18 @@
+{
+  "name": "toolbox-njtransit-bus-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cloud Run backend for njtransit-bus: holds the NJ Transit developer login, serves stop search and departures.",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  }
+}

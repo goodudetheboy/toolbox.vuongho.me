@@ -73,6 +73,38 @@ jobs:
           URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome --format='value(status.url)')
           echo "VITE_STUDY_API_URL=$URL" >> "$GITHUB_ENV"
 
+      # njtransit-bus has a Cloud Run backend too (holds the NJ Transit developer
+      # login, keeps the timetable in memory). 1 GiB: the timetable takes ~600 MB.
+      - name: Deploy njtransit-bus API (only when it changed, or doesn't exist yet)
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          SERVICE=toolbox-njtransit-bus-api
+          REGION=us-central1
+          deploy=true
+          if gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome >/dev/null 2>&1; then
+            if [ "$EVENT" != push ]; then
+              deploy=false
+            elif git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+              && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- apps/njtransit-bus/api .github/workflows/deploy.yml; then
+              deploy=false
+            fi
+          fi
+          if [ "$deploy" = true ]; then
+            gcloud run deploy "$SERVICE" \
+              --source apps/njtransit-bus/api \
+              --region "$REGION" --project vuonghome \
+              --allow-unauthenticated \
+              --timeout 120 --memory 1Gi --cpu 1 --cpu-boost --max-instances 2 \
+              --set-secrets NJT_USERNAME=njtransit-bus-username:latest,NJT_PASSWORD=njtransit-bus-password:latest \
+              --set-env-vars "^;^ALLOWED_ORIGINS=https://toolbox.vuongho.me,http://localhost:5173" \
+              --quiet
+          fi
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome --format='value(status.url)')
+          echo "VITE_NJTRANSIT_BUS_API_URL=$URL" >> "$GITHUB_ENV"
+
       # Pulls the latest deals via Doctor of Credit's WordPress API (~8 requests).
       # Never fails the deploy: on error the committed deals.json is kept.
       # Once a month (the first Monday's scheduled run) and on manual runs, deals
