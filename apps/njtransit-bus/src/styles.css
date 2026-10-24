@@ -374,6 +374,13 @@ a {
   letter-spacing: -0.02em;
 }
 
+.leaves {
+  margin-top: 18px;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
 .route {
   display: flex;
   align-items: baseline;

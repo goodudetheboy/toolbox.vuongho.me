@@ -18,8 +18,8 @@ export const clockText = (ms: number) => {
   return `${c.time} ${c.ampm}`;
 };
 
-/** Whole minutes until `at`, never negative. */
-export const minutesUntil = (at: number, now: number) => Math.max(0, Math.floor((at - now) / 60000));
+/** Minutes until `at`, to the nearest minute (as NJ Transit counts), never negative. */
+export const minutesUntil = (at: number, now: number) => Math.max(0, Math.round((at - now) / 60000));
 
 /** "200_1" → "200-1", the way NJ Transit writes Port Authority gates. */
 export const gateText = (gate: string) => gate.replace(/_/g, '-');

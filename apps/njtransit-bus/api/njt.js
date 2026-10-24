@@ -68,6 +68,9 @@ const empty = (v) => v === null || v === undefined || v === '' || v === 'EMPTY' 
 // Live departures from one stop over about the next hour, keyed by trip id.
 // `live` is true only when NJ Transit is tracking the bus ("in 4 mins",
 // "All Aboard"); otherwise departurestatus is just the scheduled clock time.
+// For a tracked bus the countdown is the estimate: departuretime can stay on
+// the timetable minute while the countdown moves, and it's what NJ Transit's
+// own app shows.
 export async function liveDepartures(stopCode) {
   const body = await callJson('BUSDV2', 'getBusDV', { stop: stopCode, direction: '', route: '', IP: '' });
   const now = Date.now();
@@ -82,7 +85,7 @@ export async function liveDepartures(stopCode) {
       at = now;
       live = true;
     } else if (mins) {
-      at = parseDvClock(t.departuretime, scheduled ?? now) ?? now + +mins[1] * 60000;
+      at = now + +mins[1] * 60000;
       live = true;
     } else {
       at = parseDvClock(t.departuretime, scheduled ?? now) ?? scheduled;

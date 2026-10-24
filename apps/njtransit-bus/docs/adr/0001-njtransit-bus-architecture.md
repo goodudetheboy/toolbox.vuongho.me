@@ -29,7 +29,10 @@ Checked against the live API on 2026-10-24:
   Authority board. Its `internal_trip_number` equals the GTFS `trip_id`.
 - A bus is being tracked only when `departurestatus` is "in N mins" or "All
   Aboard"; otherwise it's the scheduled clock time (even with a vehicle
-  assigned). `departuretime` is the estimate when tracked.
+  assigned). When tracked, the "in N mins" countdown is the estimate to use
+  (amended 2026-10-24): `departuretime` is a whole-minute clock that lags it
+  (it read 02:05 PM while the countdown said 2:07), and the countdown is what
+  NJ Transit's own app shows.
 - GTFS `stops.txt` has one row per Port Authority gate (`platform_code`
   like `200_1`), all with stop_code 26229, so the timetable alone knows each
   trip's scheduled gate. `lanegate` from BUSDV2 uses the same format.
@@ -55,7 +58,8 @@ Checked against the live API on 2026-10-24:
   <that stop>".
 - **Live**: for the next ~75 min's buses, `getBusDV` at the stops they leave
   from (at most 3, cached 15 s), matched by trip id. Tracked → NJ Transit's
-  estimate, shown as minutes; not tracked → the timetable time, shown as a
+  countdown (fetch time + N min), shown as minutes rounded to the nearest
+  minute plus the clock time it lands on; not tracked → the timetable time, shown as a
   clock time and marked SCHEDULED/SCHED. Buses scheduled up to 45 min ago
   stay if NJ Transit still has them coming. If BUSDV2 fails, the board still
   shows the timetable (`liveOk: false` changes the SCHEDULED note).

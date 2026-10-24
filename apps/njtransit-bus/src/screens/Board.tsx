@@ -135,6 +135,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
               <div className="next">
                 <div className="label">NEXT BUS</div>
                 <BigTime bus={first} now={now} />
+                {first.live && <div className="leaves">LEAVES {clockText(first.at)}</div>}
                 <div className="route">
                   <strong>{first.route}</strong>
                   <span>TO {first.headsign}</span>
@@ -238,7 +239,10 @@ function Tile({ bus, now, solid, next, from }: { bus: Bus; now: number; solid: b
       <div className="left">
         {next && <div className="tag">NEXT</div>}
         {bus.live ? (
-          <div className="when">{mins === 0 ? 'NOW' : <>{mins}<small> MIN</small></>}</div>
+          <>
+            <div className="when">{mins === 0 ? 'NOW' : <>{mins}<small> MIN</small></>}</div>
+            <div className="sub">{clockText(bus.at)}</div>
+          </>
         ) : (
           <div className="when clock">
             {c.time}
