@@ -155,6 +155,12 @@ function StopField({
         placeholder="Stop name or number"
         autoComplete="off"
         enterKeyHint="search"
+        // Select the whole name on tap so typing replaces it. Done a frame
+        // later because mobile browsers place the caret after focus fires.
+        onFocus={(e) => {
+          const el = e.currentTarget;
+          requestAnimationFrame(() => el.setSelectionRange(0, el.value.length));
+        }}
         onChange={(e) => {
           typed.current = true;
           setText(e.target.value);
