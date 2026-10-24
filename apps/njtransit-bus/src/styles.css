@@ -23,6 +23,8 @@ html,
 body {
   margin: 0;
   background: var(--page-bg, #ffffff);
+  /* Giant type must never make the page scroll sideways. */
+  overflow-x: clip;
 }
 
 button,
@@ -49,6 +51,7 @@ a {
 }
 
 .screen {
+  overflow-x: clip;
   min-height: 100dvh;
   max-width: 520px;
   margin: 0 auto;
@@ -281,21 +284,21 @@ a {
   font-size: min(17vw, 68px);
 }
 .big.d2 .num {
-  font-size: min(55vw, 230px);
+  font-size: min(50vw, 220px);
 }
 .big.d2 .unit {
   font-size: min(12vw, 48px);
 }
 .big.word .num {
-  font-size: min(48vw, 200px);
+  font-size: min(34vw, 150px);
   letter-spacing: -0.06em;
 }
 .big.clock .num {
-  font-size: min(33vw, 132px);
+  font-size: min(28vw, 120px);
   letter-spacing: -0.07em;
 }
 .big.clock .unit {
-  font-size: min(9vw, 36px);
+  font-size: min(8vw, 32px);
   letter-spacing: -0.02em;
 }
 
