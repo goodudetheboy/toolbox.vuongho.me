@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { departures, type Bus, type Departures } from '../lib/api';
 import { clock, clockText, gateText, minutesUntil, shortName, tinyName } from '../lib/format';
-import { loadBookmarks, saveBookmarks, sameTrip, type Trip } from '../lib/saved';
+import { loadBookmarks, saveBookmarks, sameTrip, type Bookmark, type Trip } from '../lib/saved';
 import Stats, { NerdIcon } from './Stats';
 
 const REFRESH_MS = 20 * 1000;
@@ -77,13 +77,26 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const { data, error, loading, retry } = useDepartures(from.code, to.code, stats);
   const now = useNow();
   const [wipe, setWipe] = useState<{ color: string; key: number } | null>(null);
-  const [saved, setSaved] = useState(() => loadBookmarks().some((b) => sameTrip(b, trip)));
+  const [bookmark, setBookmark] = useState<Bookmark | null>(() => loadBookmarks().find((b) => sameTrip(b, trip)) ?? null);
+  const [naming, setNaming] = useState(false);
+  const saved = bookmark !== null;
 
-  function toggleSaved() {
+  // Saving keeps the bookmark's place in the list when it's only being renamed.
+  function saveBookmark(title: string) {
     const list = loadBookmarks();
-    const next = saved ? list.filter((b) => !sameTrip(b, trip)) : [...list, { home: trip.home, dest: trip.dest }];
-    saveBookmarks(next);
-    setSaved(!saved);
+    const b: Bookmark = { home: trip.home, dest: trip.dest, ...(title && { title }) };
+    const i = list.findIndex((x) => sameTrip(x, trip));
+    if (i >= 0) list[i] = { ...b, home: list[i].home, dest: list[i].dest };
+    else list.push(b);
+    saveBookmarks(list);
+    setBookmark(i >= 0 ? list[i] : b);
+    setNaming(false);
+  }
+
+  function removeBookmark() {
+    saveBookmarks(loadBookmarks().filter((b) => !sameTrip(b, trip)));
+    setBookmark(null);
+    setNaming(false);
   }
   const scroller = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLElement>(null);
@@ -121,14 +134,15 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
         <section className="hero">
           <div className="top">
             <button className="where" onClick={onEdit} aria-label="Change stops">
+              {bookmark?.title && <span className="where-title">{bookmark.title}</span>}
               {shortName(fromName)}
               <br />→ {shortName(toName)}
             </button>
             <div className="top-buttons">
               <button
                 className={`flip${saved ? ' on' : ''}`}
-                onClick={toggleSaved}
-                aria-label={saved ? 'Remove bookmark' : 'Bookmark this trip'}
+                onClick={() => setNaming(true)}
+                aria-label={saved ? 'Edit bookmark' : 'Bookmark this trip'}
                 aria-pressed={saved}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
@@ -227,6 +241,16 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
         )}
       </div>
       {stats && <Stats data={data} now={now} onClose={() => setStats(false)} />}
+      {naming && (
+        <NameSheet
+          bookmark={bookmark}
+          from={shortName(fromName)}
+          to={shortName(toName)}
+          onSave={saveBookmark}
+          onRemove={removeBookmark}
+          onClose={() => setNaming(false)}
+        />
+      )}
       {wipe && (
         <div key={wipe.key} className="wipe" style={{ background: wipe.color }} onAnimationEnd={() => setWipe(null)} aria-hidden="true" />
       )}
@@ -288,6 +312,76 @@ function Tile({ bus, now, solid, next, from }: { bus: Bus; now: number; solid: b
         )}
         {!bus.live && <div className="sched-tag">SCHED</div>}
       </div>
+    </div>
+  );
+}
+
+// Bookmarking asks for an optional name, shown above the stop names on the
+// board and in the saved list. Tapping the bookmark again renames or removes it.
+function NameSheet({
+  bookmark,
+  from,
+  to,
+  onSave,
+  onRemove,
+  onClose,
+}: {
+  bookmark: Bookmark | null;
+  from: string;
+  to: string;
+  onSave: (title: string) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(bookmark?.title ?? '');
+  return (
+    <div className="stats" role="dialog" aria-label="Bookmark" onPointerUp={(e) => e.stopPropagation()}>
+      <div className="stats-head">
+        <div className="label">{bookmark ? 'BOOKMARK' : 'SAVE TRIP'}</div>
+        <button className="flip" onClick={onClose} aria-label="Close">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" aria-hidden="true">
+            <path d="M5 5l14 14M19 5L5 19" />
+          </svg>
+        </button>
+      </div>
+      <form
+        className="name-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSave(title.trim().toUpperCase());
+        }}
+      >
+        <div className="small">
+          {from}
+          <br />→ {to}
+        </div>
+        <div className="field">
+          <label htmlFor="bookmark-title" className="small">
+            NAME (OPTIONAL)
+          </label>
+          <input
+            id="bookmark-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="E.G. TO WORK"
+            maxLength={40}
+            autoComplete="off"
+            enterKeyHint="done"
+            autoFocus
+          />
+        </div>
+        <div className="name-buttons">
+          <button type="submit" className="stats-copy">
+            SAVE
+          </button>
+          {bookmark && (
+            <button type="button" className="stats-copy" onClick={onRemove}>
+              REMOVE
+            </button>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

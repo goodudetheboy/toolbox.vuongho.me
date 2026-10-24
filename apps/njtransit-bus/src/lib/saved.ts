@@ -30,8 +30,9 @@ export function saveTrip(trip: Trip) {
   }
 }
 
-// Bookmarked trips: a pair of stops, either way round counts as the same trip.
-export type Bookmark = Pick<Trip, 'home' | 'dest'>;
+// Bookmarked trips: a pair of stops, either way round counts as the same trip,
+// with an optional name ("WORK") shown above the stop names.
+export type Bookmark = Pick<Trip, 'home' | 'dest'> & { title?: string };
 
 const BOOKMARKS_KEY = 'njtransit-bus:bookmarks';
 
@@ -52,7 +53,7 @@ export function saveBookmarks(list: Bookmark[]) {
   }
 }
 
-export const sameTrip = (a: Bookmark, b: Bookmark) =>
+export const sameTrip = (a: Pick<Trip, 'home' | 'dest'>, b: Pick<Trip, 'home' | 'dest'>) =>
   (a.home.code === b.home.code && a.dest.code === b.dest.code) ||
   (a.home.code === b.dest.code && a.dest.code === b.home.code);
 

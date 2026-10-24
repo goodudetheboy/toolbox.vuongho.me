@@ -138,6 +138,13 @@ a {
   line-height: 1.15;
 }
 
+.saved-title {
+  font-size: 30px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
 .saved-meta {
   margin-top: 4px;
   font-size: 12px;
@@ -289,6 +296,15 @@ a {
   letter-spacing: 0.05em;
   line-height: 1.25;
   min-height: 44px;
+}
+
+.where-title {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .top-buttons {
@@ -710,6 +726,26 @@ a {
   font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.16em;
+}
+
+.name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.name-form .field input {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+}
+
+.name-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.name-buttons .stats-copy {
+  margin-top: 0;
 }
 
 /* Flipping direction: the old color pulls away downward, revealing the new one. */

@@ -37,7 +37,8 @@ export default function Setup({ initial, onGo }: Props) {
             {bookmarks.map((b, i) => (
               <li key={`${b.home.code}-${b.dest.code}`} className={i % 2 === 0 ? 'solid' : ''}>
                 {/* Full names: two stops on the same street only differ after "AT". */}
-                <button className="saved-go" onClick={() => onGo({ ...b, back: false })}>
+                <button className="saved-go" onClick={() => onGo({ home: b.home, dest: b.dest, back: false })}>
+                  {b.title && <span className="saved-title">{b.title}</span>}
                   <span>{shortName(b.home.name)}</span>
                   <span>→ {shortName(b.dest.name)}</span>
                   <span className="saved-meta">FROM STOP {describe(b.home)}</span>
