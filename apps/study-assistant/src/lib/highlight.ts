@@ -1,6 +1,7 @@
 import { normalize } from './words';
 
-// Marks a word range of a part on its rendered reading card (opened from a cram-sheet card),
+// Marks a word range of a part on its rendered reading card (opened from a cram-sheet card,
+// or the sentence being read aloud),
 // with the CSS Custom Highlight API: nothing in the React-rendered DOM is touched, and
 // browsers without it simply show no highlight.
 //
@@ -10,6 +11,8 @@ import { normalize } from './words';
 // up rather than mark the wrong words.
 
 const NAME = 'cram-source';
+/** The sentence Biggu is reading aloud (Listen). */
+export const READ_ALOUD = 'read-aloud';
 
 interface Pos {
   node: Text;
@@ -61,7 +64,7 @@ function words(root: HTMLElement, includeHeadings: boolean): Word[] {
 }
 
 /** Highlights words start..end (inclusive) inside `root`; returns the range to scroll to, or null. */
-export function highlightWords(root: HTMLElement, start: number, end: number, expected: number): Range | null {
+export function highlightWords(root: HTMLElement, start: number, end: number, expected: number, name = NAME): Range | null {
   if (typeof CSS === 'undefined' || !('highlights' in CSS)) return null;
   let list = words(root, false);
   if (list.length === 0) list = words(root, true);
@@ -69,10 +72,10 @@ export function highlightWords(root: HTMLElement, start: number, end: number, ex
   const range = document.createRange();
   range.setStart(list[start].start.node, list[start].start.offset);
   range.setEnd(list[end].end.node, list[end].end.offset);
-  CSS.highlights.set(NAME, new Highlight(range));
+  CSS.highlights.set(name, new Highlight(range));
   return range;
 }
 
-export function clearHighlight(): void {
-  if (typeof CSS !== 'undefined' && 'highlights' in CSS) CSS.highlights.delete(NAME);
+export function clearHighlight(name = NAME): void {
+  if (typeof CSS !== 'undefined' && 'highlights' in CSS) CSS.highlights.delete(name);
 }

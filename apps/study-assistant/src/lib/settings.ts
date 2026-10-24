@@ -17,16 +17,20 @@ function load(): number {
   }
 }
 
+function save(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // just a preference
+  }
+}
+
 /** Max hints per recitation (auto + Hint button). */
 export function useHintLimit(): [number, (n: number) => void] {
   const [limit, setLimit] = useState(load);
   const update = useCallback((n: number) => {
     setLimit(n);
-    try {
-      localStorage.setItem(HINT_LIMIT_KEY, n === Infinity ? 'inf' : String(n));
-    } catch {
-      // just a preference
-    }
+    save(HINT_LIMIT_KEY, n === Infinity ? 'inf' : String(n));
   }, []);
   return [limit, update];
 }

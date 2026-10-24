@@ -7,16 +7,18 @@ import MarkedWords from '../components/MarkedWords';
 import Menu from '../components/Menu';
 import SessionFeedback from '../components/SessionFeedback';
 import PartTitle from '../components/PartTitle';
+import PracticeButton from '../components/PracticeButton';
 import { Icon, Paper, Star } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { saveFeedback, sessionContext } from '../lib/feedback';
-import { clearHighlight, highlightWords } from '../lib/highlight';
+import { READ_ALOUD, clearHighlight, highlightWords } from '../lib/highlight';
 import { stopPurr } from '../lib/purr';
 import { notesStore, partId } from '../lib/notes';
 import { encodeMarks, textHash } from '../lib/marks';
-import { HINT_LIMITS, useHintLimit } from '../lib/settings';
+import { useHintLimit } from '../lib/settings';
 import type { Route } from '../lib/router';
 import type { AppUser, Note } from '../lib/types';
+import { useReadAloud } from '../lib/useReadAloud';
 import { HINT_VISIBLE_MS, useRecitation } from '../lib/useRecitation';
 import { tokenize } from '../lib/words';
 import { t } from '../strings';
@@ -49,6 +51,7 @@ export default function Study({
   }, [note.glossary, tokens]);
   const [hintLimit, setHintLimit] = useHintLimit();
   const rec = useRecitation(tokens, vocabulary, hintLimit);
+  const listen = useReadAloud(tokens);
   const isLast = index === note.chunks.length - 1;
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -70,6 +73,14 @@ export default function Study({
     }
     return clearHighlight;
   }, [reading, hlFrom, hlTo, tokens.length, chunk.markdown]);
+
+  // While Biggu reads the part aloud, mark the sentence he's on.
+  const [readFrom, readTo] = listen.current ? [listen.current.from, listen.current.to] : [-1, -1];
+  useEffect(() => {
+    if (!reading || readFrom < 0 || !readRef.current) return;
+    highlightWords(readRef.current, readFrom, readTo, tokens.length, READ_ALOUD);
+    return () => clearHighlight(READ_ALOUD);
+  }, [reading, readFrom, readTo, tokens.length, chunk.markdown]);
 
   // Shared by the attempt document and its feedback record.
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -145,24 +156,31 @@ export default function Study({
             <Markdown text={chunk.markdown} />
           </div>
         </Paper>
-        <div className="hint-limit">
-          <span className="hint-limit-label">
-            <Icon name="bulb" size={20} /> {t.hintLimit}
-          </span>
-          <div className="seg small" role="radiogroup" aria-label={t.hintLimit}>
-            {HINT_LIMITS.map((n) => (
-              <button key={n} role="radio" aria-checked={hintLimit === n} className={hintLimit === n ? 'on' : ''} onClick={() => setHintLimit(n)}>
-                {n === Infinity ? '∞' : n}
-              </button>
-            ))}
-          </div>
+        <div className="listen-row">
+          <button className={`btn btn-listen ${listen.playing ? 'on' : ''}`} onClick={listen.playing ? listen.stop : listen.start}>
+            {listen.playing ? <Icon name="stop" size={20} /> : <Icon name="sound" size={22} />}
+            {listen.playing ? t.stopListening : t.listen}
+            {listen.loading && (
+              <span className="dots-loader small" aria-hidden>
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
+          </button>
         </div>
+        {listen.failed && <p className="error-text">{t.listenFailed}</p>}
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
           <PettableBiggu mood="read" size={84} className="corner-biggu" />
-          <button className="btn btn-primary btn-big btn-mic" onClick={rec.start}>
-            <Icon name="mic" size={30} /> {t.startSpeaking}
-          </button>
+          <PracticeButton
+            onStart={() => {
+              listen.stop(); // the mic mustn't hear Biggu reading
+              void rec.start();
+            }}
+            hintLimit={hintLimit}
+            onHintLimit={setHintLimit}
+          />
         </div>
         <ConfirmDialog
           open={confirmDelete}

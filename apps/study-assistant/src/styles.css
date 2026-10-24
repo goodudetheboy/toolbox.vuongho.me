@@ -1265,22 +1265,121 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   opacity: 0.95;
 }
 
-/* ---------- hint limit, hints taken */
+/* ---------- Practice button with its hint settings, hints taken */
 
-.hint-limit {
+.practice-split {
+  position: relative;
   display: flex;
+  width: 100%;
+  max-width: 420px;
+  min-height: 64px;
+  border: 3px solid var(--outline);
+  border-radius: 22px;
+  background: var(--sky-deep);
+  box-shadow: 0 4px 0 var(--outline);
+  color: #fff;
+}
+
+.practice-split > button {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  background: none;
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.practice-split > button:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.practice-go {
+  flex: 1;
   gap: 10px;
+  font-size: 1.25rem;
+  border-radius: 19px 0 0 19px;
+}
+
+.practice-hints {
+  gap: 3px;
+  padding: 0 12px 0 14px;
+  border-left: 2.5px dashed rgba(255, 255, 255, 0.6) !important;
+  border-radius: 0 19px 19px 0;
+  font-size: 1.15rem;
+}
+
+.practice-hints-n {
+  min-width: 1ch;
+  font-size: 1.3rem;
+}
+
+.practice-chevron {
+  display: inline-flex;
+  transform: rotate(180deg); /* the menu opens upward */
+  transition: transform 0.15s;
+}
+
+.practice-chevron.up {
+  transform: none;
+}
+
+.practice-pop {
+  top: auto;
+  bottom: calc(100% + 10px);
+  min-width: 230px;
+  color: var(--ink);
+  transform-origin: bottom right;
+}
+
+.menu-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 4px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.menu-check {
+  display: inline-flex;
+  width: 18px;
+  color: var(--sky-deep);
+}
+
+.menu-item.on {
+  color: var(--sky-ink);
+}
+
+.listen-row {
+  display: flex;
+  justify-content: center;
   margin: 16px 0 0;
 }
 
-.hint-limit-label {
-  display: inline-flex;
-  align-items: center;
+.btn-listen {
+  min-height: 46px;
+  padding: 0 18px;
+  gap: 8px;
+}
+
+.dots-loader.small {
   gap: 4px;
-  font-weight: 800;
-  color: var(--ink-soft);
+}
+
+.dots-loader.small span {
+  width: 7px;
+  height: 7px;
+}
+
+.btn-listen.on {
+  background: var(--yellow);
+}
+
+::highlight(read-aloud) {
+  background-color: var(--yellow);
 }
 
 .seg.small {

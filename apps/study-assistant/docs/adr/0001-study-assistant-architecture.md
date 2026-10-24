@@ -531,3 +531,18 @@ the user's photo `art/biggu-photo-2.jpg` (`art/fix-throat.sh`, with
 `fix_prep.py` / `fix_post.py`). That kept the poses and faces exactly.
 `generate.sh`'s description of him is corrected too, so future drawings start
 right.
+
+## Addendum 2026-10-24 — Listen (Biggu reads the part aloud); hint limit lives in the Practice button
+
+- **Listen.** The read screen has a Listen button under the card. Biggu reads the
+  part aloud with the existing `/speak` TTS (same model and voice as hints). The
+  API is unchanged: `/speak` still takes ≤300 characters, so the client splits the
+  part into pieces (`src/lib/readAloud.ts`: break at a sentence end or a new line once
+  ≥60 chars, never past 280) and plays them in order, fetching two pieces ahead
+  (`useReadAloud.ts`). The sentence being read is highlighted on the card (CSS
+  Custom Highlight `read-aloud`). Starting Practice or leaving the part stops it,
+  so the mic never hears Biggu. Hints themselves stay silent (2026-10-05 addendum).
+- **Hint limit moved into the Practice button.** The separate "Hints 3/5/10/20/∞"
+  row is gone. The Practice button is split: the right end shows the limit
+  ("5 💡 ⌄") and opens a menu of the limits upward (`PracticeButton.tsx`). Still a
+  per-device localStorage setting.

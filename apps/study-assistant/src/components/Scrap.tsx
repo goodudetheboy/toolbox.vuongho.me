@@ -114,7 +114,7 @@ export function Heart({ size = 20, style }: { size?: number; style?: CSSProperti
 }
 
 /** Hand-drawn style icons for the big buttons. */
-export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'file' | 'camera' | 'back' | 'plus' | 'retry' | 'next' | 'dots' | 'trash' | 'book' | 'bulb' | 'pencil' | 'chart' | 'check' | 'calendar' | 'search' | 'filter' | 'user' | 'chat' | 'logout' | 'shield' | 'close'; size?: number }) {
+export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'file' | 'camera' | 'back' | 'plus' | 'retry' | 'next' | 'dots' | 'trash' | 'book' | 'bulb' | 'pencil' | 'chart' | 'check' | 'calendar' | 'search' | 'filter' | 'user' | 'chat' | 'logout' | 'shield' | 'close' | 'chevron' | 'sound'; size?: number }) {
   const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   const paths: Record<typeof name, ReactNode> = {
     mic: (
@@ -124,6 +124,8 @@ export function Icon({ name, size = 28 }: { name: 'mic' | 'stop' | 'paste' | 'fi
       </>
     ),
     close: <path d="M6 6l12 12M18 6L6 18" {...p} />,
+    chevron: <path d="M6 9l6 6 6-6" {...p} strokeWidth={3} />,
+    sound: <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" {...p} />,
     stop: <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" />,
     paste: (
       <>
