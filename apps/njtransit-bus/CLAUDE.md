@@ -25,7 +25,11 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   developer login (Secret Manager: `njtransit-bus-username`,
   `njtransit-bus-password`). `npm test` inside `api/`.
   - `njt.js` — NJ Transit API client: login tokens (one per API, BUSDV2 and
-    GTFSG2), `getGTFS` zip download, `getBusDV` live departures.
+    GTFSG2), `getGTFS` zip download, `getBusDV` live departures, and the
+    GTFS-realtime feeds (`realtimeFeeds`).
+  - `realtime.js` — hand-rolled decoder for GTFS-realtime trip updates and
+    vehicle positions; they add the GPS-tracked buses BUSDV2 leaves out
+    ([ADR 0004](docs/adr/0004-gtfs-realtime-fills-busdv-gaps.md)).
   - `gtfs.js` — timetable zip → compact in-memory indexes: stop search,
     nearest stops, and "which trips go from near A to near B, when".
   - `time.js` — New York time ↔ epoch ms, GTFS service days, BUSDV2 times.

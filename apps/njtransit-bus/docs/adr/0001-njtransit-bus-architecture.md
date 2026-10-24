@@ -69,7 +69,9 @@ Checked against the live API on 2026-10-24:
 - **Gate**: BUSDV2's `lanegate` when present, else the timetable's
   platform_code; shown as NJ Transit writes it ("200-1").
 - **GTFS-realtime feeds aren't used**: `getBusDV` already gives tracked
-  times per stop, as JSON, without a protobuf decoder.
+  times per stop, as JSON, without a protobuf decoder. *Superseded by
+  [ADR 0004](0004-gtfs-realtime-fills-busdv-gaps.md): BUSDV2 turned out to
+  leave tracked buses out.*
 - **Frontend**: Vite + React, no router, no sign-in. Stops and direction in
   `localStorage`. Polls `/departures` every 20 s while visible; countdowns
   tick locally from the bus's epoch time.

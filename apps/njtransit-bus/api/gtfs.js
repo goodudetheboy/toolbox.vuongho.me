@@ -262,6 +262,9 @@ export function loadGtfs(zipBytes) {
     tripCount: trips.length,
     stopTimeCount: n,
 
+    // A stop_id (one row of stops.txt, e.g. one Port Authority gate) → its stop number.
+    stopCode: (stopId) => rowStop.get(stopId)?.stop.code ?? null,
+
     getStop: (code) => {
       const s = stopByCode.get(String(code));
       return s ? stopSummary(s) : null;

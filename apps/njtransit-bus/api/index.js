@@ -8,7 +8,7 @@
 
 import http from 'node:http';
 import { loadGtfs } from './gtfs.js';
-import { downloadGtfs, liveDepartures } from './njt.js';
+import { downloadGtfs, liveDepartures, realtimeFeeds } from './njt.js';
 import { liveFirst } from './order.js';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -75,6 +75,29 @@ function liveAt(stopCode) {
   return value;
 }
 
+// One copy of the GTFS-realtime feeds for every request; they cover the whole system.
+let rt = null; // { at, value: Promise<{ updates, moving }> }
+
+function realtime() {
+  if (rt && Date.now() - rt.at < LIVE_CACHE_MS) return rt.value;
+  const value = realtimeFeeds();
+  rt = { at: Date.now(), value };
+  value.catch(() => {
+    if (rt?.value === value) rt = null;
+  });
+  return value;
+}
+
+// The trip's predicted time at a stop number: undefined if the feed has none,
+// null if the trip is cancelled.
+function predicted(updates, data, trip, stopCode) {
+  const stops = updates.get(trip);
+  if (stops === null) return null;
+  if (!stops) return undefined;
+  for (const [stopId, at] of stops) if (data.stopCode(stopId) === stopCode) return at;
+  return undefined;
+}
+
 async function departures(fromCode, toCode) {
   const data = await timetable();
   const now = Date.now();
@@ -88,8 +111,13 @@ async function departures(fromCode, toCode) {
   const liveStops = [...stopCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_LIVE_STOPS).map(([code]) => code);
   const live = new Map();
   let liveOk = true;
-  await Promise.all(
-    liveStops.map(async (code) => {
+  let updates = new Map();
+  let moving = new Set();
+  await Promise.all([
+    realtime()
+      .then((r) => ({ updates, moving } = r))
+      .catch((err) => console.error('GTFS-realtime failed:', err.message)),
+    ...liveStops.map(async (code) => {
       try {
         for (const [trip, v] of await liveAt(code)) live.set(`${code}:${trip}`, v);
       } catch (err) {
@@ -97,21 +125,36 @@ async function departures(fromCode, toCode) {
         console.error(`live departures at ${code} failed:`, err.message);
       }
     }),
-  );
+  ]);
 
   const buses = [];
   for (const d of sched.departures) {
     const v = live.get(`${d.stop.code}:${d.trip}`);
-    const at = v?.at ?? d.scheduled;
+    const p = predicted(updates, data, d.trip, d.stop.code);
+    if (p === null && !v?.live) continue; // cancelled
+    // BUSDV2's "in 7 mins" is whole minutes counted from when it was asked, so
+    // a tracked bus takes the trip-updates time when the two agree (they come
+    // from the same prediction; it keeps the clock time from drifting a minute).
+    // BUSDV2 also leaves out buses that are on the road, late ones included: one
+    // a bus is reporting its GPS position on counts as tracked, at its
+    // trip-updates time. Without a bus on it, a trip stays on the timetable.
+    let at = v?.at ?? d.scheduled;
+    let tracked = Boolean(v?.live);
+    if (tracked) {
+      if (p && Math.abs(p - v.at) < 2 * 60 * 1000) at = p;
+    } else if (p && moving.has(d.trip)) {
+      at = p;
+      tracked = true;
+    }
     // Gone, unless NJ Transit still has it coming.
-    if (at < now - 60 * 1000 || (!v && d.scheduled < now)) continue;
+    if (at < now - 60 * 1000 || (!v && !tracked && d.scheduled < now)) continue;
     buses.push({
       trip: d.trip,
       route: d.route,
       headsign: d.headsign,
       at,
       scheduled: d.scheduled,
-      live: Boolean(v?.live),
+      live: tracked,
       gate: v?.gate || d.gate,
       load: v?.live ? v.load : null,
       stop: d.stop,

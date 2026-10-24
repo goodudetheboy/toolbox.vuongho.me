@@ -2,6 +2,7 @@
 // form fields; BUSDV2 (live departures) and GTFSG2 (the timetable zip) each
 // hand out their own token, good for about a day.
 
+import { parseTripUpdates, parseVehicleTrips } from './realtime.js';
 import { parseDvClock, parseDvDateTime } from './time.js';
 
 const BASE = process.env.NJT_BASE_URL || 'https://pcsdata.njtransit.com/api';
@@ -61,6 +62,26 @@ export async function downloadGtfs() {
     if (!/token/i.test(text)) throw new Error(`getGTFS: ${text}`);
   }
   throw new Error('getGTFS: token refused');
+}
+
+async function feed(call) {
+  for (const fresh of [false, true]) {
+    const res = await post('GTFSG2', call, { token: await token('GTFSG2', fresh) }, 30000);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    // An error comes back as JSON text; a feed is protobuf (starts with field 1, the header).
+    if (bytes[0] === 0x0a) return bytes;
+    const text = new TextDecoder().decode(bytes.slice(0, 500));
+    if (!/token/i.test(text)) throw new Error(`${call}: ${text}`);
+  }
+  throw new Error(`${call}: token refused`);
+}
+
+// GTFS-realtime for the whole system (see realtime.js): predicted times by
+// trip and stop, and the trips a bus reported its GPS position on in the last
+// few minutes (those are being tracked).
+export async function realtimeFeeds() {
+  const [updates, vehicles] = await Promise.all([feed('getTripUpdates'), feed('getVehiclePositions')]);
+  return { updates: parseTripUpdates(updates), moving: parseVehicleTrips(vehicles, Date.now() - 3 * 60 * 1000) };
 }
 
 const empty = (v) => v === null || v === undefined || v === '' || v === 'EMPTY' || v === 'N/A';
