@@ -24,11 +24,10 @@ export const minutesUntil = (at: number, now: number) => Math.max(0, Math.floor(
 /** "200_1" → "200-1", the way NJ Transit writes Port Authority gates. */
 export const gateText = (gate: string) => gate.replace(/_/g, '-');
 
-/** "48TH ST AT BERGENLINE AVE" → "48TH ST" for the small header. */
-export const shortName = (name: string) => {
-  if (/PORT AUTHORITY BUS TERMINAL/.test(name)) return 'PORT AUTHORITY';
-  return name.split(/ AT | & /)[0];
-};
+/** Stop names stay whole, cross street included: two stops on the same street
+ * ("BOULEVARD EAST AT 48TH ST", "… AT 49TH ST") only differ after "AT". */
+export const shortName = (name: string) => (/PORT AUTHORITY BUS TERMINAL/.test(name) ? 'PORT AUTHORITY' : name);
 
-/** "PORT AUTHORITY BUS TERMINAL" → "PABT" in tight spots. */
-export const tinyName = (name: string) => (/PORT AUTHORITY/.test(name) ? 'PABT' : shortName(name));
+/** "48TH ST AT BERGENLINE AVE" → "48TH ST", "PORT AUTHORITY…" → "PABT": only
+ * for the one-line list heading, next to the full names above it. */
+export const tinyName = (name: string) => (/PORT AUTHORITY/.test(name) ? 'PABT' : name.split(/ AT | & /)[0]);

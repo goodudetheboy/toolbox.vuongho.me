@@ -127,10 +127,21 @@ a {
   min-width: 0;
   min-height: 84px;
   padding: 16px var(--pad);
-  font-size: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 18px;
   font-weight: 900;
   letter-spacing: -0.01em;
-  line-height: 1.1;
+  line-height: 1.15;
+}
+
+.saved-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
 }
 
 .saved-x {
@@ -264,9 +275,9 @@ a {
 }
 
 .where {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   line-height: 1.25;
   min-height: 44px;
 }

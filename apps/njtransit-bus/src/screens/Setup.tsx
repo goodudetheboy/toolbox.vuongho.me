@@ -36,9 +36,11 @@ export default function Setup({ initial, onGo }: Props) {
           <ul className="saved">
             {bookmarks.map((b, i) => (
               <li key={`${b.home.code}-${b.dest.code}`} className={i % 2 === 0 ? 'solid' : ''}>
+                {/* Full names: two stops on the same street only differ after "AT". */}
                 <button className="saved-go" onClick={() => onGo({ ...b, back: false })}>
-                  {shortName(b.home.name)}
-                  <br />→ {shortName(b.dest.name)}
+                  <span>{shortName(b.home.name)}</span>
+                  <span>→ {shortName(b.dest.name)}</span>
+                  <span className="saved-meta">FROM STOP {describe(b.home)}</span>
                 </button>
                 <button className="saved-x" onClick={() => remove(b)} aria-label={`Remove ${shortName(b.home.name)} to ${shortName(b.dest.name)}`}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" aria-hidden="true">
