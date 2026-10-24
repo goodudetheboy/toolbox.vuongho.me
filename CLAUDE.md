@@ -19,7 +19,8 @@ homepage.
   deals + planner + account tracker; its deal data is fetched from Doctor of
   Credit at build time), `njtransit-bus` (next NJ Transit bus between two
   stops, live; Cloud Run backend in `apps/njtransit-bus/api/` holding the
-  NJ Transit developer login, deployed by CI).
+  NJ Transit developer login, deployed by CI; plus a sideloaded Galaxy
+  Watch app in `apps/njtransit-bus/wear/`).
 - `scripts/combine-dist.mjs` — merges every app's `dist/` into one root
   `dist/` before deploy (homepage at root, each tool under `/<tool-name>/`)
 - `firebase.json` / `.firebaserc` — single Hosting site (`toolbox`) on the

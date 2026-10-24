@@ -31,6 +31,9 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   - `time.js` — New York time ↔ epoch ms, GTFS service days, BUSDV2 times.
   - `index.js` — HTTP: `GET /stops?q=` or `?lat=&lon=`, `GET /departures?from=&to=`,
     `GET /health` (not `/healthz`: Cloud Run swallows that path).
+- `wear/` — the Galaxy Watch (Wear OS) app: a tile + small app in Kotlin,
+  calling the same API. Own Gradle build, sideloaded APK, not built by CI.
+  See [ADR 0003](docs/adr/0003-wear-os-watch-app.md) and "Watch app" below.
 - `src/screens/Setup.tsx` — the two stop pickers (search or NEAR ME).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
@@ -54,6 +57,24 @@ npm run build -w apps/njtransit-bus
 The login is the user's NJ Transit developer account; read it from Secret
 Manager (`gcloud secrets versions access latest --secret njtransit-bus-password --project vuonghome`),
 never commit it.
+
+## Watch app (`wear/`)
+
+Needs JDK 17 and the Android SDK (platform 35, build-tools 35); there's no
+emulator in the dev container, so the first check is on the real watch.
+
+```bash
+cd apps/njtransit-bus/wear
+echo "sdk.dir=$HOME/android/sdk" > local.properties
+# release key, so updates install over the old version (never commit these)
+gcloud secrets versions access latest --secret njtransit-bus-wear-keystore --project vuonghome | base64 -d > release.jks
+PW=$(gcloud secrets versions access latest --secret njtransit-bus-wear-keystore-password --project vuonghome)
+printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=bus\nkeyPassword=%s\n' "$PW" "$PW" > keystore.properties
+./gradlew assembleRelease     # → app/build/outputs/apk/release/app-release.apk
+```
+
+Bump `versionCode` in `app/build.gradle.kts` for each APK handed out.
+`Api.kt`/`Format.kt`/`Store.kt` mirror `src/lib/`; change them together.
 
 ## Docs
 

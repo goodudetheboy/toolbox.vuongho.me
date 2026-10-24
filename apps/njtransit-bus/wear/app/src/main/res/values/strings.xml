@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NJT Bus</string>
+    <string name="tile_label">Next bus</string>
+    <string name="tile_description">When the next NJ Transit bus leaves on your trip</string>
+</resources>
