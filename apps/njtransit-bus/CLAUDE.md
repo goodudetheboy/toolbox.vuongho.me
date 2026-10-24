@@ -29,6 +29,7 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   - `gtfs.js` — timetable zip → compact in-memory indexes: stop search,
     nearest stops, and "which trips go from near A to near B, when".
   - `time.js` — New York time ↔ epoch ms, GTFS service days, BUSDV2 times.
+  - `order.js` — the order buses are shown in (tracked ones win over the timetable).
   - `index.js` — HTTP: `GET /stops?q=` or `?lat=&lon=`, `GET /departures?from=&to=`,
     `GET /health` (not `/healthz`: Cloud Run swallows that path).
 - `wear/` — the Galaxy Watch (Wear OS) app: a tile + small app in Kotlin,

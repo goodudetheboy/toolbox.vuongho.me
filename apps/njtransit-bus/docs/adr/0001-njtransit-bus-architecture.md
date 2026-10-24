@@ -60,7 +60,10 @@ Checked against the live API on 2026-10-24:
   from (at most 3, cached 15 s), matched by trip id. Tracked → NJ Transit's
   countdown (fetch time + N min), shown as minutes rounded to the nearest
   minute plus the clock time it lands on; not tracked → the timetable time, shown as a
-  clock time and marked SCHEDULED/SCHED. Buses scheduled up to 45 min ago
+  clock time and marked SCHEDULED/SCHED. Tracked buses win (amended
+  2026-10-24, `api/order.js`): timetable buses only show after the last
+  tracked one, since one listed before it is most likely that bus running late
+  or one that isn't coming. Buses scheduled up to 45 min ago
   stay if NJ Transit still has them coming. If BUSDV2 fails, the board still
   shows the timetable (`liveOk: false` changes the SCHEDULED note).
 - **Gate**: BUSDV2's `lanegate` when present, else the timetable's

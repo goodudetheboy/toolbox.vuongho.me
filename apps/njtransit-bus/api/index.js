@@ -9,6 +9,7 @@
 import http from 'node:http';
 import { loadGtfs } from './gtfs.js';
 import { downloadGtfs, liveDepartures } from './njt.js';
+import { liveFirst } from './order.js';
 
 const PORT = Number(process.env.PORT || 8080);
 const ALLOWED_ORIGINS = (
@@ -116,8 +117,7 @@ async function departures(fromCode, toCode) {
       stop: d.stop,
     });
   }
-  buses.sort((a, b) => a.at - b.at);
-  return { from: sched.from, to: sched.to, now, liveOk, buses: buses.slice(0, MAX_BUSES) };
+  return { from: sched.from, to: sched.to, now, liveOk, buses: liveFirst(buses).slice(0, MAX_BUSES) };
 }
 
 // ---------------------------------------------------------------- http
