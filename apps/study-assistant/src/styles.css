@@ -1325,7 +1325,8 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   transform: none;
 }
 
-.practice-pop {
+.menu-pop.practice-pop {
+  /* beats .menu-pop (defined later): open upward, the button sits at the bottom of the screen */
   top: auto;
   bottom: calc(100% + 10px);
   min-width: 230px;
