@@ -113,7 +113,7 @@ export default function Stats({ data, now, onClose }: { data: Departures | null;
           })}
 
           <button className="stats-copy" onClick={copy}>
-            {copied ? 'COPIED' : 'COPY FOR CLAUDE'}
+            {copied ? 'COPIED' : 'COPY'}
           </button>
         </>
       )}

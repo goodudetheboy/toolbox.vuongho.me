@@ -45,7 +45,7 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
 - `src/screens/Stats.tsx` — the stats sheet behind the nerd-face button at the
   bottom of the list: what each NJ Transit feed said about every bus (from the
-  API's `debug` fields), with COPY FOR CLAUDE for pasting into a debug session.
+  API's `debug` fields), with COPY (the whole response as text) for pasting into a debug session.
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
 - `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`.
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/njtransit-bus/`,
