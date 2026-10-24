@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { departures, type Bus, type Departures } from '../lib/api';
 import { clock, clockText, gateText, minutesUntil, shortName, tinyName } from '../lib/format';
-import type { Trip } from '../lib/saved';
+import { loadBookmarks, saveBookmarks, sameTrip, type Trip } from '../lib/saved';
 
 const REFRESH_MS = 20 * 1000;
 
@@ -67,6 +67,14 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const { data, error, loading, retry } = useDepartures(from.code, to.code);
   const now = useNow();
   const [wipe, setWipe] = useState<{ color: string; key: number } | null>(null);
+  const [saved, setSaved] = useState(() => loadBookmarks().some((b) => sameTrip(b, trip)));
+
+  function toggleSaved() {
+    const list = loadBookmarks();
+    const next = saved ? list.filter((b) => !sameTrip(b, trip)) : [...list, { home: trip.home, dest: trip.dest }];
+    saveBookmarks(next);
+    setSaved(!saved);
+  }
   const scroller = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLElement>(null);
 
@@ -91,11 +99,23 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
               {shortName(fromName)}
               <br />→ {shortName(toName)}
             </button>
-            <button className="flip" onClick={flip} aria-label="Flip direction">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square" aria-hidden="true">
-                <path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4" />
-              </svg>
-            </button>
+            <div className="top-buttons">
+              <button
+                className={`flip${saved ? ' on' : ''}`}
+                onClick={toggleSaved}
+                aria-label={saved ? 'Remove bookmark' : 'Bookmark this trip'}
+                aria-pressed={saved}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                  <path d="M6 3h12v18l-6-5-6 5z" />
+                </svg>
+              </button>
+              <button className="flip" onClick={flip} aria-label="Flip direction">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square" aria-hidden="true">
+                  <path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {first ? (

@@ -30,6 +30,32 @@ export function saveTrip(trip: Trip) {
   }
 }
 
+// Bookmarked trips: a pair of stops, either way round counts as the same trip.
+export type Bookmark = Pick<Trip, 'home' | 'dest'>;
+
+const BOOKMARKS_KEY = 'njtransit-bus:bookmarks';
+
+export function loadBookmarks(): Bookmark[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || '[]');
+    return Array.isArray(list) ? list.filter((b) => b?.home?.code && b?.dest?.code) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveBookmarks(list: Bookmark[]) {
+  try {
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
+  } catch {
+    // Private mode: bookmarks last until the page closes.
+  }
+}
+
+export const sameTrip = (a: Bookmark, b: Bookmark) =>
+  (a.home.code === b.home.code && a.dest.code === b.dest.code) ||
+  (a.home.code === b.dest.code && a.dest.code === b.home.code);
+
 export const toSaved = ({ code, name, routes, headsigns }: Stop | SavedStop): SavedStop => ({
   code,
   name,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nearestStops, searchStops, type Stop } from '../lib/api';
-import { toSaved, type SavedStop, type Trip } from '../lib/saved';
+import { shortName } from '../lib/format';
+import { loadBookmarks, saveBookmarks, sameTrip, toSaved, type Bookmark, type SavedStop, type Trip } from '../lib/saved';
 
 interface Props {
   initial: Trip | null;
@@ -10,6 +11,13 @@ interface Props {
 export default function Setup({ initial, onGo }: Props) {
   const [home, setHome] = useState<SavedStop | null>(initial?.home ?? null);
   const [dest, setDest] = useState<SavedStop | null>(initial?.dest ?? null);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>(loadBookmarks);
+
+  function remove(b: Bookmark) {
+    const next = bookmarks.filter((x) => !sameTrip(x, b));
+    setBookmarks(next);
+    saveBookmarks(next);
+  }
 
   return (
     <main className="screen setup">
@@ -19,6 +27,26 @@ export default function Setup({ initial, onGo }: Props) {
           TOOLBOX
         </a>
       </div>
+      {bookmarks.length > 0 && (
+        <section className="saved" aria-label="Saved trips">
+          <div className="label">SAVED</div>
+          <ul>
+            {bookmarks.map((b, i) => (
+              <li key={`${b.home.code}-${b.dest.code}`} className={i % 2 === 0 ? 'solid' : ''}>
+                <button className="saved-go" onClick={() => onGo({ ...b, back: false })}>
+                  {shortName(b.home.name)}
+                  <br />→ {shortName(b.dest.name)}
+                </button>
+                <button className="saved-x" onClick={() => remove(b)} aria-label={`Remove ${shortName(b.home.name)} to ${shortName(b.dest.name)}`}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <StopField id="home" label="HOME" value={home} onPick={setHome} />
       <StopField id="dest" label="TO" value={dest} onPick={setDest} />
       <button

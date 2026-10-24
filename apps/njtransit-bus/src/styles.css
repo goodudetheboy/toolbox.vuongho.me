@@ -91,6 +91,47 @@ a {
   text-decoration: none;
 }
 
+.saved {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.saved ul {
+  margin: 0 calc(-1 * var(--pad));
+  padding: 0;
+  list-style: none;
+}
+
+.saved li {
+  display: flex;
+  align-items: stretch;
+}
+
+.saved li.solid {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.saved-go {
+  flex: 1;
+  min-width: 0;
+  min-height: 84px;
+  padding: 16px var(--pad);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.saved-x {
+  flex: none;
+  width: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -221,6 +262,12 @@ a {
   min-height: 44px;
 }
 
+.top-buttons {
+  display: flex;
+  gap: 10px;
+  flex: none;
+}
+
 .flip {
   display: flex;
   align-items: center;
@@ -229,6 +276,11 @@ a {
   width: 52px;
   height: 52px;
   border: 3px solid var(--fg);
+}
+
+.flip.on {
+  background: var(--fg);
+  color: var(--bg);
 }
 
 .sched-box {
