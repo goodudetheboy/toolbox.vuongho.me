@@ -35,13 +35,16 @@ export default function Setup({ initial, onGo }: Props) {
   );
 }
 
-// "TO NEW YORK · 86 · 89 · 156": where buses from here go, so the two sides of
-// the same street can be told apart.
+// "#21689 · TO NEW YORK · 86 · 89 · 156": where buses from here go, so the two
+// sides of the same street can be told apart. A terminal like Port Authority
+// sees dozens of routes going everywhere, so it gets just its number.
 function describe(stop: SavedStop) {
-  // A terminal sees buses to everywhere; one headsign would mislead.
-  const head = stop.headsigns[0] && stop.routes.length <= 6 ? `TO ${stop.headsigns[0].replace(/ VIA .*/, '')}` : '';
-  const routes = stop.routes.slice(0, 6).join(' · ') + (stop.routes.length > 6 ? ' …' : '');
-  return [head, routes].filter(Boolean).join(' · ');
+  const parts = [`#${stop.code}`];
+  if (stop.routes.length <= 6) {
+    if (stop.headsigns[0]) parts.push(`TO ${stop.headsigns[0].replace(/ VIA .*/, '')}`);
+    parts.push(...stop.routes);
+  }
+  return parts.join(' · ');
 }
 
 function StopField({
@@ -135,7 +138,7 @@ function StopField({
         </div>
       ) : value && !results ? (
         <div className="small">
-          STOP #{value.code} · {describe(value)}
+          STOP {describe(value)}
         </div>
       ) : null}
       {results && results.length > 0 && (
@@ -145,7 +148,8 @@ function StopField({
               <button onClick={() => pick(s)}>
                 <span className="name">{s.name}</span>
                 <span className="small">
-                  {s.meters !== undefined ? `${s.meters} M · ` : ''}#{s.code} · {describe(s)}
+                  {s.meters !== undefined ? `${s.meters} M · ` : ''}
+                  {describe(s)}
                 </span>
               </button>
             </li>
