@@ -69,20 +69,21 @@ class NextBusTile : TileService() {
             .addContent(Spacer.Builder().setHeight(dp(2f)).build())
         if (first.live) {
             col.addContent(countdown(first, fg))
-            col.addContent(text("${first.route} · LEAVES ${clockText(first.at)}", 14f, fg, bold = true))
+            col.addContent(text("${first.route} · LEAVES ${clockText(first.at)}", 15f, fg, bold = true))
         } else {
             val (time, ampm) = clockText(first.at).split(' ')
             col.addContent(
                 Row.Builder()
                     .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_BOTTOM)
-                    .addContent(text(time, 40f, fg, bold = true))
-                    .addContent(text(" $ampm", 14f, fg, bold = true))
+                    .addContent(text(time, 48f, fg, bold = true))
+                    .addContent(Spacer.Builder().setWidth(dp(4f)).build())
+                    .addContent(text(ampm, 16f, fg, bold = true))
                     .build(),
             )
             col.addContent(text("${first.route} · SCHEDULED", 14f, fg, bold = true))
         }
         first.gate?.let { col.addContent(text("GATE ${gateText(it)}", 14f, fg, bold = true)) }
-        buses.getOrNull(1)?.let { col.addContent(text("THEN ${clockText(it.at)}", 12f, fg, bold = false)) }
+        buses.getOrNull(1)?.let { col.addContent(text("THEN ${clockText(it.at)}", 13f, fg, bold = false)) }
         return frame(bg, col.build())
     }
 
@@ -96,13 +97,15 @@ class NextBusTile : TileService() {
         val num = TypeBuilders.StringProp.Builder(if (mins == 0L) "NOW" else "$mins")
             .setDynamicValue(DynamicString.onCondition(due).use("NOW").elseUse(dynMins.format()))
             .build()
-        val unit = TypeBuilders.StringProp.Builder(if (mins == 0L) "" else " MIN")
-            .setDynamicValue(DynamicString.onCondition(due).use("").elseUse(" MIN"))
+        // No leading space in dynamic text: the watch drew " MIN" as blank.
+        val unit = TypeBuilders.StringProp.Builder(if (mins == 0L) "" else "MIN")
+            .setDynamicValue(DynamicString.onCondition(due).use("").elseUse("MIN"))
             .build()
         return Row.Builder()
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_BOTTOM)
-            .addContent(dynText(num, "NOW", 56f, fg))
-            .addContent(dynText(unit, " MIN", 16f, fg))
+            .addContent(dynText(num, "NOW", 72f, fg))
+            .addContent(Spacer.Builder().setWidth(dp(4f)).build())
+            .addContent(dynText(unit, "MIN", 20f, fg))
             .build()
     }
 

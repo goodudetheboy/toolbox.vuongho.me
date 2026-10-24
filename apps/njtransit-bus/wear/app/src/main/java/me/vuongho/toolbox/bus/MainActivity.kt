@@ -185,10 +185,10 @@ private fun Board(trip: Trip, needsPermission: Boolean, onAllowUpdates: () -> Un
                 )
             }
         } else {
-            item { Hero(first, now, fg, from = trip.from.code) }
+            item { Hero(first, now, fg, from = trip.from) }
             items(buses.drop(1)) { b ->
                 val solid = buses.indexOf(b) % 2 == 1
-                Tile(b, now, if (solid) bg else fg, if (solid) fg else bg, from = trip.from.code)
+                Tile(b, now, if (solid) bg else fg, if (solid) fg else bg, from = trip.from)
             }
             item {
                 Text(
@@ -218,7 +218,7 @@ private fun Board(trip: Trip, needsPermission: Boolean, onAllowUpdates: () -> Un
 }
 
 @Composable
-private fun Hero(bus: Bus, now: Long, fg: Color, from: String) {
+private fun Hero(bus: Bus, now: Long, fg: Color, from: Stop) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 4.dp)) {
         if (!bus.live) Text("SCHEDULED", color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
         BigTime(bus, now, fg)
@@ -231,7 +231,7 @@ private fun Hero(bus: Bus, now: Long, fg: Color, from: String) {
             overflow = TextOverflow.Ellipsis,
         )
         if (bus.live) Text("LEAVES ${clockText(bus.at)}", color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        if (bus.stopCode != from) Text("FROM ${shortName(bus.stopName)}", color = fg, fontSize = 10.sp, textAlign = TextAlign.Center)
+        if (bus.stopCode != from.code) Text(fromText(bus.stopName, from.name), color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         bus.gate?.let { Text("GATE ${gateText(it)}", color = fg, fontSize = 18.sp, fontWeight = FontWeight.Black) }
     }
 }
@@ -256,7 +256,7 @@ private fun BigTime(bus: Bus, now: Long, fg: Color) {
 }
 
 @Composable
-private fun Tile(bus: Bus, now: Long, fg: Color, bg: Color, from: String) {
+private fun Tile(bus: Bus, now: Long, fg: Color, bg: Color, from: Stop) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -273,7 +273,7 @@ private fun Tile(bus: Bus, now: Long, fg: Color, bg: Color, from: String) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(bus.route, color = fg, fontSize = 18.sp, fontWeight = FontWeight.Black)
-            val sub = bus.gate?.let { "GATE ${gateText(it)}" } ?: if (bus.stopCode != from) "FROM ${tinyName(bus.stopName)}" else bus.headsign
+            val sub = bus.gate?.let { "GATE ${gateText(it)}" } ?: if (bus.stopCode != from.code) fromText(bus.stopName, from.name) else bus.headsign
             Text(sub, color = fg, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

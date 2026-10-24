@@ -30,3 +30,12 @@ fun shortName(name: String) = if (name.contains("PORT AUTHORITY BUS TERMINAL")) 
 
 /** Buses still worth showing: gone a minute after they leave. */
 fun upcoming(d: Departures, now: Long) = d.buses.filter { it.at >= now - 60_000 }
+
+/** Where a bus leaves from when it isn't the picked stop, in few words: just
+ * the cross street when it's the same street ("FROM 62ND ST" next to
+ * "BOULEVARD EAST AT 60TH ST"), else the short name. */
+fun fromText(stopName: String, picked: String): String {
+    val street = stopName.split(" AT ", limit = 2)
+    val pickedStreet = picked.split(" AT ", limit = 2)[0]
+    return if (street.size == 2 && street[0] == pickedStreet) "FROM ${street[1]}" else "FROM ${tinyName(stopName)}"
+}
