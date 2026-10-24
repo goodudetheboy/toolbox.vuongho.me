@@ -79,7 +79,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const list = useRef<HTMLElement>(null);
 
   function flip() {
-    setWipe({ color: trip.back ? '#003da5' : '#ffffff', key: Date.now() });
+    setWipe({ color: trip.back ? '#005097' : '#ffffff', key: Date.now() });
     scroller.current?.scrollTo({ top: 0, behavior: 'instant' });
     onFlip();
   }

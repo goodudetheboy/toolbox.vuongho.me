@@ -577,7 +577,7 @@ export function buildProp(kind: ToolModel | 'screwdriver' | 'nut', m: Mats): Pro
       // A die-cast toy bus in NJ Transit blue, standing on its wheels. Long axis along X.
       const L = 0.075;
       const W = 0.026;
-      const blue = new THREE.MeshStandardMaterial({ color: 0x003da5, metalness: 0.35, roughness: 0.35 });
+      const blue = new THREE.MeshStandardMaterial({ color: 0x005097, metalness: 0.35, roughness: 0.35 });
       const white = new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 0.5 });
       const glass = new THREE.MeshStandardMaterial({ color: 0x10151c, metalness: 0.6, roughness: 0.15 });
       g.add(mesh(new RoundedBoxGeometry(L, 0.024, W, 3, 0.004), blue, 0, 0.003, 0));

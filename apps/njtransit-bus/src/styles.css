@@ -1,6 +1,6 @@
 /* Two colors only: white and NJ Transit blue. Heading back swaps them (.back). */
 :root {
-  --blue: #003da5;
+  --blue: #005097;
   --bg: #ffffff;
   --fg: var(--blue);
   --muted: #5e5e5e;

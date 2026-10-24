@@ -130,10 +130,10 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
 
       {model === 'bus' && (
         <g>
-          <rect x="6" y="18" width="52" height="26" rx="5" fill="#003da5" />
+          <rect x="6" y="18" width="52" height="26" rx="5" fill="#005097" />
           <rect x="9" y="22" width="44" height="9" rx="2" fill="#10151c" />
           {[20, 31, 42].map((x) => (
-            <rect key={x} x={x} y="22" width="1.6" height="9" fill="#003da5" />
+            <rect key={x} x={x} y="22" width="1.6" height="9" fill="#005097" />
           ))}
           <rect x="7" y="34" width="50" height="2.4" fill="#f2f2f0" />
           <circle cx="18" cy="45" r="6" fill="#151515" />

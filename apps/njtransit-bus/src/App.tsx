@@ -16,7 +16,7 @@ export default function App() {
   // Keep the page behind the app (overscroll, notch) the same color as the screen.
   const back = !editing && trip?.back;
   useEffect(() => {
-    const color = back ? '#003da5' : '#ffffff';
+    const color = back ? '#005097' : '#ffffff';
     document.documentElement.style.setProperty('--page-bg', color);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
   }, [back]);
