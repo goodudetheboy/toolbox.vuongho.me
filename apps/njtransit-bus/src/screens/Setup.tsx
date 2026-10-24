@@ -72,7 +72,7 @@ export default function Setup({ initial, onGo }: Props) {
           </button>
         </div>
       </div>
-      <StopField id="home" label="HOME" value={home} onPick={setHome} />
+      <StopField id="home" label="HOME" value={home} onPick={setHome} nearMe />
       <StopField id="dest" label="TO" value={dest} onPick={setDest} />
       <button
         className="go"
@@ -105,11 +105,14 @@ function StopField({
   label,
   value,
   onPick,
+  nearMe: showNearMe = false,
 }: {
   id: string;
   label: string;
   value: SavedStop | null;
   onPick: (s: SavedStop) => void;
+  /** Offer NEAR ME: only where you start, since you're standing there. */
+  nearMe?: boolean;
 }) {
   const [text, setText] = useState(value?.name ?? '');
   const [results, setResults] = useState<Stop[] | null>(null);
@@ -169,9 +172,11 @@ function StopField({
     <div className="field">
       <div className="field-head">
         <label htmlFor={id}>{label}</label>
-        <button className="near" onClick={nearMe}>
-          NEAR ME
-        </button>
+        {showNearMe && (
+          <button className="near" onClick={nearMe}>
+            NEAR ME
+          </button>
+        )}
       </div>
       <input
         id={id}
