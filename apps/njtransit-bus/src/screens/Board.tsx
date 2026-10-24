@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { departures, type Bus, type Departures } from '../lib/api';
 import { clock, clockText, gateText, minutesUntil, shortName, tinyName } from '../lib/format';
 import { loadBookmarks, saveBookmarks, sameTrip, type Trip } from '../lib/saved';
+import Stats, { NerdIcon } from './Stats';
 
 const REFRESH_MS = 20 * 1000;
 
@@ -68,6 +69,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const now = useNow();
   const [wipe, setWipe] = useState<{ color: string; key: number } | null>(null);
   const [saved, setSaved] = useState(() => loadBookmarks().some((b) => sameTrip(b, trip)));
+  const [stats, setStats] = useState(false);
 
   function toggleSaved() {
     const list = loadBookmarks();
@@ -209,10 +211,14 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
                 {data ? ` · UPDATED ${clockText(data.now)}` : ''}
                 {error ? ' · OFFLINE' : ''}
               </span>
+              <button className="flip nerd" onClick={() => setStats(true)} aria-label="Stats for nerds">
+                <NerdIcon />
+              </button>
             </div>
           </section>
         )}
       </div>
+      {stats && <Stats data={data} now={now} onClose={() => setStats(false)} />}
       {wipe && (
         <div key={wipe.key} className="wipe" style={{ background: wipe.color }} onAnimationEnd={() => setWipe(null)} aria-hidden="true" />
       )}

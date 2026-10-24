@@ -7,7 +7,7 @@
 // See apps/njtransit-bus/docs/adr/0001-njtransit-bus-architecture.md.
 
 import http from 'node:http';
-import { loadGtfs } from './gtfs.js';
+import { loadGtfs, meters } from './gtfs.js';
 import { downloadGtfs, liveDepartures, realtimeFeeds } from './njt.js';
 import { liveFirst } from './order.js';
 
@@ -76,7 +76,7 @@ function liveAt(stopCode) {
 }
 
 // One copy of the GTFS-realtime feeds for every request; they cover the whole system.
-let rt = null; // { at, value: Promise<{ updates, moving }> }
+let rt = null; // { at, value: Promise<{ at, updates, moving }> }
 
 function realtime() {
   if (rt && Date.now() - rt.at < LIVE_CACHE_MS) return rt.value;
@@ -112,11 +112,16 @@ async function departures(fromCode, toCode) {
   const live = new Map();
   let liveOk = true;
   let updates = new Map();
-  let moving = new Set();
+  let moving = new Map();
+  let rtAt = null;
+  let rtError = null;
   await Promise.all([
     realtime()
-      .then((r) => ({ updates, moving } = r))
-      .catch((err) => console.error('GTFS-realtime failed:', err.message)),
+      .then((r) => ({ updates, moving, at: rtAt } = r))
+      .catch((err) => {
+        rtError = err.message;
+        console.error('GTFS-realtime failed:', err.message);
+      }),
     ...liveStops.map(async (code) => {
       try {
         for (const [trip, v] of await liveAt(code)) live.set(`${code}:${trip}`, v);
@@ -140,11 +145,14 @@ async function departures(fromCode, toCode) {
     // trip-updates time. Without a bus on it, a trip stays on the timetable.
     let at = v?.at ?? d.scheduled;
     let tracked = Boolean(v?.live);
+    const gps = moving.get(d.trip);
+    let source = tracked ? 'busdv' : 'timetable';
     if (tracked) {
       if (p && Math.abs(p - v.at) < 2 * 60 * 1000) at = p;
-    } else if (p && moving.has(d.trip)) {
+    } else if (p && gps) {
       at = p;
       tracked = true;
+      source = 'gps';
     }
     // Gone, unless NJ Transit still has it coming.
     if (at < now - 60 * 1000 || (!v && !tracked && d.scheduled < now)) continue;
@@ -158,9 +166,34 @@ async function departures(fromCode, toCode) {
       gate: v?.gate || d.gate,
       load: v?.live ? v.load : null,
       stop: d.stop,
+      debug: busDebug(data, d, v, p, gps, source),
     });
   }
-  return { from: sched.from, to: sched.to, now, liveOk, buses: liveFirst(buses).slice(0, MAX_BUSES) };
+  return {
+    from: sched.from,
+    to: sched.to,
+    now,
+    liveOk,
+    buses: liveFirst(buses).slice(0, MAX_BUSES),
+    debug: { busdvStops: liveStops, realtimeAt: rtAt, realtimeError: rtError, gpsBuses: moving.size },
+  };
+}
+
+// What each feed said about one bus, for the board's stats sheet.
+function busDebug(data, d, v, p, gps, source) {
+  const stop = data.getStop(d.stop.code);
+  return {
+    source, // 'busdv' (NJ Transit's app tracks it), 'gps' (only GTFS-realtime does), 'timetable'
+    busdv: v ? { status: v.status, at: v.at, live: v.live, vehicle: v.vehicle } : null,
+    predicted: p ?? null, // trip-updates time at the boarding stop
+    gps: gps
+      ? {
+          vehicle: gps.vehicle,
+          at: gps.at,
+          meters: stop && gps.lat != null ? Math.round(meters(gps.lat, gps.lon, stop.lat, stop.lon)) : null,
+        }
+      : null,
+  };
 }
 
 // ---------------------------------------------------------------- http

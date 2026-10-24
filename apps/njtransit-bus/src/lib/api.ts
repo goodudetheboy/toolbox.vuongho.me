@@ -29,6 +29,17 @@ export interface Bus {
   load: string | null;
   /** The stop it leaves from (can be a nearby one, e.g. across the street). */
   stop: { code: string; name: string };
+  /** What each NJ Transit feed said about this bus (the stats sheet). */
+  debug?: BusDebug;
+}
+
+export interface BusDebug {
+  /** busdv: NJ Transit's own app tracks it; gps: only GTFS-realtime does; timetable: nobody. */
+  source: 'busdv' | 'gps' | 'timetable';
+  busdv: { status: string; at: number; live: boolean; vehicle: string | null } | null;
+  /** GTFS-realtime trip-updates time at the boarding stop. */
+  predicted: number | null;
+  gps: { vehicle: string | null; at: number; meters: number | null } | null;
 }
 
 export interface Departures {
@@ -37,6 +48,7 @@ export interface Departures {
   now: number;
   liveOk: boolean;
   buses: Bus[];
+  debug?: { busdvStops: string[]; realtimeAt: number | null; realtimeError: string | null; gpsBuses: number };
 }
 
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {

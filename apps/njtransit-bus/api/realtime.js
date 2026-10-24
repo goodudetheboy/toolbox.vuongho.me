@@ -8,7 +8,8 @@
 // Only the few fields needed are decoded, by hand, so no protobuf library:
 // FeedMessage.entity(2) → FeedEntity.trip_update(3) → TripUpdate.trip(1).trip_id(1)
 // and TripUpdate.stop_time_update(2) → stop_id(4), arrival(2)/departure(3) → time(2);
-// FeedEntity.vehicle(4) → VehiclePosition.trip(1).trip_id(1), timestamp(5).
+// FeedEntity.vehicle(4) → VehiclePosition.trip(1).trip_id(1), timestamp(5),
+// position(2) → latitude(1)/longitude(2), vehicle(8) → id(1).
 
 function reader(buf, start = 0, end = buf.length) {
   let i = start;
@@ -25,8 +26,8 @@ function reader(buf, start = 0, end = buf.length) {
     }
   };
   return {
-    // Calls onField(field, wireType, value) where value is a number (varint)
-    // or [start, end] (length-delimited); other wire types are skipped.
+    // Calls onField(field, wireType, value) where value is a number (varint
+    // or 32-bit float) or [start, end] (length-delimited); 64-bit fixed is skipped.
     each(onField) {
       while (i < end) {
         const key = varint();
@@ -38,7 +39,10 @@ function reader(buf, start = 0, end = buf.length) {
           onField(field, wire, [i, i + n]);
           i += n;
         } else if (wire === 1) i += 8;
-        else if (wire === 5) i += 4;
+        else if (wire === 5) {
+          onField(field, wire, new DataView(buf.buffer, buf.byteOffset + i, 4).getFloat32(0, true));
+          i += 4;
+        }
         else throw new Error(`protobuf: wire type ${wire}`);
       }
     },
@@ -94,23 +98,36 @@ export function parseTripUpdates(buf) {
   return out;
 }
 
-// protobuf bytes → Set of trip ids a bus reported its position on since `sinceMs`.
-export function parseVehicleTrips(buf, sinceMs) {
-  const out = new Set();
+// protobuf bytes → Map(trip id → { vehicle, lat, lon, at }) for buses that
+// reported their position since `sinceMs`.
+export function parseVehicles(buf, sinceMs) {
+  const out = new Map();
   reader(buf).each((f, w, entity) => {
     if (f !== 2 || w !== 2) return;
     reader(buf, ...entity).each((f, w, vp) => {
       if (f !== 4 || w !== 2) return;
       let trip = null;
+      let vehicle = null;
+      let lat = null;
+      let lon = null;
       let at = 0;
       reader(buf, ...vp).each((f, w, v) => {
         if (f === 1 && w === 2) {
           reader(buf, ...v).each((f, w, x) => {
             if (f === 1 && w === 2) trip = str(buf, x);
           });
+        } else if (f === 2 && w === 2) {
+          reader(buf, ...v).each((f, w, x) => {
+            if (f === 1 && w === 5) lat = x;
+            if (f === 2 && w === 5) lon = x;
+          });
+        } else if (f === 8 && w === 2) {
+          reader(buf, ...v).each((f, w, x) => {
+            if (f === 1 && w === 2) vehicle = str(buf, x);
+          });
         } else if (f === 5 && w === 0) at = v * 1000;
       });
-      if (trip && at >= sinceMs) out.add(trip);
+      if (trip && at >= sinceMs) out.set(trip, { vehicle, lat, lon, at });
     });
   });
   return out;

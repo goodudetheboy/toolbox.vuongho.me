@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTripUpdates, parseVehicleTrips } from './realtime.js';
+import { parseTripUpdates, parseVehicles } from './realtime.js';
 
 // A tiny protobuf writer, just enough to build a feed.
 const varint = (n) => {
@@ -36,8 +36,17 @@ test('a cancelled trip is null', () => {
   assert.equal(out.get('8').get('1'), 2000);
 });
 
-test('trips a bus reported on recently', () => {
-  const vehicle = (trip, ts) => bytes(2, [...str(1, 'v'), ...bytes(4, [...bytes(1, [...str(1, trip)]), ...num(5, ts)])]);
-  const out = parseVehicleTrips(feed(vehicle('1', 1000), vehicle('2', 800)), 900 * 1000);
-  assert.deepEqual([...out], ['1']);
+test('buses that reported recently, with their trip and position', () => {
+  const f32 = (field, x) => {
+    const b = new Uint8Array(4);
+    new DataView(b.buffer).setFloat32(0, x, true);
+    return [...varint(field * 8 + 5), ...b];
+  };
+  const vehicle = (trip, id, ts) =>
+    bytes(2, [
+      ...str(1, 'v'),
+      ...bytes(4, [...bytes(1, [...str(1, trip)]), ...bytes(2, [...f32(1, 40.5), ...f32(2, -74.25)]), ...num(5, ts), ...bytes(8, [...str(1, id)])]),
+    ]);
+  const out = parseVehicles(feed(vehicle('1', '21308', 1000), vehicle('2', '22038', 800)), 900 * 1000);
+  assert.deepEqual([...out], [['1', { vehicle: '21308', lat: 40.5, lon: -74.25, at: 1000000 }]]);
 });

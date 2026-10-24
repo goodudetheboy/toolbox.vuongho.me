@@ -69,7 +69,7 @@ function secs(hms) {
   return +h * 3600 + +m * 60 + +(s || 0);
 }
 
-function meters(aLat, aLon, bLat, bLon) {
+export function meters(aLat, aLon, bLat, bLon) {
   const rad = Math.PI / 180;
   const x = (bLon - aLon) * rad * Math.cos(((aLat + bLat) / 2) * rad);
   const y = (bLat - aLat) * rad;

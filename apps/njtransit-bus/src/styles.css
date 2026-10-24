@@ -616,6 +616,93 @@ a {
   letter-spacing: 0.16em;
 }
 
+/* Stats for nerds: the button ends the list, the sheet covers the board. */
+.flip.nerd {
+  margin-left: auto;
+  color: var(--fg);
+}
+
+.stats {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  max-width: 520px;
+  margin: 0 auto;
+  overflow-y: auto;
+  padding: 24px var(--pad) 48px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.stats dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.stats dt {
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.stats-feeds {
+  padding-bottom: 16px;
+  border-bottom: 3px solid var(--fg);
+}
+
+.stats-bus {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--muted);
+}
+
+.stats-bus-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.stats-bus-top strong {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.stats-bus-top span:not(.sched-tag) {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.stats-bus-top .sched-tag {
+  margin-left: auto;
+}
+
+.stats-copy {
+  margin-top: 24px;
+  min-height: 52px;
+  padding: 0 20px;
+  border: 3px solid var(--fg);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
 /* Flipping direction: the old color pulls away downward, revealing the new one. */
 .wipe {
   position: fixed;

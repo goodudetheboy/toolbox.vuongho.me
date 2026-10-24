@@ -18,6 +18,16 @@ export const clockText = (ms: number) => {
   return `${c.time} ${c.ampm}`;
 };
 
+const secFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  hour: 'numeric',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
+/** "6:41:38 PM", for the stats sheet. */
+export const clockSecText = (ms: number) => secFmt.format(new Date(ms)).toUpperCase();
+
 /** Minutes until `at`, to the nearest minute (as NJ Transit counts), never negative. */
 export const minutesUntil = (at: number, now: number) => Math.max(0, Math.round((at - now) / 60000));
 

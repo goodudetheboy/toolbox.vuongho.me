@@ -40,7 +40,12 @@ hour; the board added 4 more from the timetable. Checking:
   6:41 while the board showed 6:42).
 - A trip trip-updates marks cancelled is dropped unless BUSDV2 tracks it.
 - If the realtime feeds fail, the board works as before on BUSDV2 alone.
-- No change to the web or watch apps: they only see more buses with `live: true`.
+- No change to how the web or watch apps show buses: they only see more with
+  `live: true`. For debugging, `/departures` also returns `debug` per bus
+  (`source`: busdv / gps / timetable, BUSDV2's raw status and vehicle, the
+  trip-updates time, the GPS vehicle with its distance to the boarding stop and
+  age) and for the whole answer (feed health). The web board shows it in a stats
+  sheet behind a nerd-face button at the end of the list; the watch ignores it.
 
 ## Consequences
 
