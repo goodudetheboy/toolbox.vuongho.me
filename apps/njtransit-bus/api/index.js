@@ -7,6 +7,7 @@
 // See apps/njtransit-bus/docs/adr/0001-njtransit-bus-architecture.md.
 
 import http from 'node:http';
+import { gzipSync } from 'node:zlib';
 import { loadGtfs, meters } from './gtfs.js';
 import { downloadGtfs, liveDepartures, realtimeFeeds } from './njt.js';
 import { liveFirst } from './order.js';
@@ -98,7 +99,9 @@ function predicted(updates, data, trip, stopCode) {
   return undefined;
 }
 
-async function departures(fromCode, toCode) {
+// `debug` adds what each feed said about every bus (the board's stats sheet);
+// left out of normal polls to keep them small on mobile data.
+async function departures(fromCode, toCode, debug = false) {
   const data = await timetable();
   const now = Date.now();
   const sched = data.departures(fromCode, toCode, now - LATE_WINDOW_MS, now + 24 * 3600 * 1000);
@@ -166,7 +169,7 @@ async function departures(fromCode, toCode) {
       gate: v?.gate || d.gate,
       load: v?.live ? v.load : null,
       stop: d.stop,
-      debug: busDebug(data, d, v, p, gps, source),
+      ...(debug && { debug: busDebug(data, d, v, p, gps, source) }),
     });
   }
   return {
@@ -175,7 +178,7 @@ async function departures(fromCode, toCode) {
     now,
     liveOk,
     buses: liveFirst(buses).slice(0, MAX_BUSES),
-    debug: { busdvStops: liveStops, realtimeAt: rtAt, realtimeError: rtError, gpsBuses: moving.size },
+    ...(debug && { debug: { busdvStops: liveStops, realtimeAt: rtAt, realtimeError: rtError, gpsBuses: moving.size } }),
   };
 }
 
@@ -198,11 +201,20 @@ function busDebug(data, d, v, p, gps, source) {
 
 // ---------------------------------------------------------------- http
 
-function send(res, status, body, origin) {
-  const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', Vary: 'Origin' };
+// Gzipped when the client takes it (browsers and Android always do): bus
+// lists are repetitive JSON and shrink to about a fifth, which matters for a
+// board polled every 20 s on mobile data.
+function send(res, status, body, origin, req) {
+  const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', Vary: 'Origin, Accept-Encoding' };
   if (origin && ALLOWED_ORIGINS.includes(origin)) headers['Access-Control-Allow-Origin'] = origin;
+  let out = Buffer.from(JSON.stringify(body));
+  if (out.length > 512 && /\bgzip\b/.test(req?.headers['accept-encoding'] || '')) {
+    out = gzipSync(out);
+    headers['Content-Encoding'] = 'gzip';
+  }
+  headers['Content-Length'] = out.length;
   res.writeHead(status, headers);
-  res.end(JSON.stringify(body));
+  res.end(out);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -216,16 +228,16 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
     if (req.method !== 'GET') throw new HttpError(405, 'GET only');
-    if (url.pathname === '/health') return send(res, 200, { ok: true, gtfsAt: gtfs?.at ?? null }, origin);
+    if (url.pathname === '/health') return send(res, 200, { ok: true, gtfsAt: gtfs?.at ?? null }, origin, req);
 
     if (url.pathname === '/stops') {
       const data = await timetable();
       const q = url.searchParams.get('q');
       const lat = Number(url.searchParams.get('lat'));
       const lon = Number(url.searchParams.get('lon'));
-      if (q) return send(res, 200, { stops: data.searchStops(q.slice(0, 80)) }, origin);
+      if (q) return send(res, 200, { stops: data.searchStops(q.slice(0, 80)) }, origin, req);
       if (Number.isFinite(lat) && Number.isFinite(lon) && url.searchParams.has('lat')) {
-        return send(res, 200, { stops: data.nearestStops(lat, lon) }, origin);
+        return send(res, 200, { stops: data.nearestStops(lat, lon) }, origin, req);
       }
       throw new HttpError(400, 'Give q, or lat and lon');
     }
@@ -234,14 +246,14 @@ const server = http.createServer(async (req, res) => {
       const from = url.searchParams.get('from');
       const to = url.searchParams.get('to');
       if (!from || !to) throw new HttpError(400, 'Give from and to');
-      return send(res, 200, await departures(from, to), origin);
+      return send(res, 200, await departures(from, to, url.searchParams.get('debug') === '1'), origin, req);
     }
 
     throw new HttpError(404, 'Not found');
   } catch (err) {
     const status = err.status || 502;
     if (status >= 500) console.error(err);
-    send(res, status, { error: status >= 500 ? 'NJ Transit is not answering right now' : err.message }, origin);
+    send(res, status, { error: status >= 500 ? 'NJ Transit is not answering right now' : err.message }, origin, req);
   }
 });
 

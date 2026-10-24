@@ -29,7 +29,7 @@ export interface Bus {
   load: string | null;
   /** The stop it leaves from (can be a nearby one, e.g. across the street). */
   stop: { code: string; name: string };
-  /** What each NJ Transit feed said about this bus (the stats sheet). */
+  /** What each NJ Transit feed said about this bus (the stats sheet; only asked for while it's open). */
   debug?: BusDebug;
 }
 
@@ -64,5 +64,6 @@ export const searchStops = (q: string, signal?: AbortSignal) =>
 export const nearestStops = (lat: number, lon: number, signal?: AbortSignal) =>
   get<{ stops: Stop[] }>(`/stops?lat=${lat}&lon=${lon}`, signal).then((r) => r.stops);
 
-export const departures = (from: string, to: string, signal?: AbortSignal) =>
-  get<Departures>(`/departures?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, signal);
+/** `debug` adds the stats-sheet fields; normal polls leave them out to stay small. */
+export const departures = (from: string, to: string, signal?: AbortSignal, debug = false) =>
+  get<Departures>(`/departures?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${debug ? '&debug=1' : ''}`, signal);

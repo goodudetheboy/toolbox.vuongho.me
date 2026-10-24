@@ -34,8 +34,10 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
     nearest stops, and "which trips go from near A to near B, when".
   - `time.js` — New York time ↔ epoch ms, GTFS service days, BUSDV2 times.
   - `order.js` — the order buses are shown in (tracked ones win over the timetable).
-  - `index.js` — HTTP: `GET /stops?q=` or `?lat=&lon=`, `GET /departures?from=&to=`,
-    `GET /health` (not `/healthz`: Cloud Run swallows that path).
+  - `index.js` — HTTP: `GET /stops?q=` or `?lat=&lon=`, `GET /departures?from=&to=`
+    (`&debug=1` for the stats sheet's per-feed details), `GET /health` (not
+    `/healthz`: Cloud Run swallows that path). Answers are gzipped: the board
+    polls every 20 s on mobile data, so keep poll answers small.
 - `wear/` — the Galaxy Watch (Wear OS) app: a tile + small app in Kotlin,
   calling the same API. Own Gradle build; CI builds it when it changes and
   commits it to `public/watch.apk`/`watch.json`, and installed copies update

@@ -56,8 +56,8 @@ export default function Stats({ data, now, onClose }: { data: Departures | null;
         </button>
       </div>
 
-      {!data ? (
-        <p className="small">NOTHING LOADED YET.</p>
+      {!data?.debug ? (
+        <p className="small">ONE SEC…</p>
       ) : (
         <>
           <dl className="stats-feeds">

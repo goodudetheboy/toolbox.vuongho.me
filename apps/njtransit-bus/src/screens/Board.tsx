@@ -13,17 +13,20 @@ interface Props {
 }
 
 // Departures for the trip, refreshed every 20 s while the screen is visible.
-function useDepartures(from: string, to: string) {
+// With `debug` (the stats sheet is open) each poll also brings the per-feed details.
+function useDepartures(from: string, to: string, debug: boolean) {
   const [data, setData] = useState<Departures | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const ctrl = useRef<AbortController | null>(null);
+  const debugRef = useRef(debug);
+  debugRef.current = debug;
 
   const load = useCallback(() => {
     ctrl.current?.abort();
     const c = new AbortController();
     ctrl.current = c;
-    departures(from, to, c.signal)
+    departures(from, to, c.signal, debugRef.current)
       .then((d) => {
         setData(d);
         setError(null);
@@ -50,6 +53,11 @@ function useDepartures(from: string, to: string) {
     };
   }, [load]);
 
+  // Opening the sheet fetches its details right away instead of at the next poll.
+  useEffect(() => {
+    if (debug) load();
+  }, [debug, load]);
+
   return { data, error, loading, retry: load };
 }
 
@@ -65,11 +73,11 @@ function useNow(stepMs = 5000) {
 export default function Board({ trip, onEdit, onFlip }: Props) {
   const from = trip.back ? trip.dest : trip.home;
   const to = trip.back ? trip.home : trip.dest;
-  const { data, error, loading, retry } = useDepartures(from.code, to.code);
+  const [stats, setStats] = useState(false);
+  const { data, error, loading, retry } = useDepartures(from.code, to.code, stats);
   const now = useNow();
   const [wipe, setWipe] = useState<{ color: string; key: number } | null>(null);
   const [saved, setSaved] = useState(() => loadBookmarks().some((b) => sameTrip(b, trip)));
-  const [stats, setStats] = useState(false);
 
   function toggleSaved() {
     const list = loadBookmarks();
