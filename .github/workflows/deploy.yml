@@ -42,22 +42,19 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
 
       - name: Deploy study-assistant API (only when it changed, or doesn't exist yet)
-        env:
-          BEFORE: ${{ github.event.before }}
-          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           SERVICE=toolbox-study-assistant-api
           REGION=us-central1
+          # Compare with the commit the live service was deployed from (its
+          # deployed-commit label), not the previous push: a queued run that a
+          # newer push replaced never deploys, so its changes would be missed.
           deploy=true
-          if gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome >/dev/null 2>&1; then
-            # Scheduled/manual runs have no "before" commit; nothing in the API changed.
-            if [ "$EVENT" != push ]; then
-              deploy=false
-            elif git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
-              && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- apps/study-assistant/api .github/workflows/deploy.yml; then
-              deploy=false
-            fi
+          DEPLOYED=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome \
+            --format='value(metadata.labels.deployed-commit)' 2>/dev/null || true)
+          if [ -n "$DEPLOYED" ] && git cat-file -e "$DEPLOYED^{commit}" 2>/dev/null \
+            && git diff --quiet "$DEPLOYED" "$GITHUB_SHA" -- apps/study-assistant/api .github/workflows/deploy.yml; then
+            deploy=false
           fi
           if [ "$deploy" = true ]; then
             # Keep ALLOWED_EMAILS in sync with apps/study-assistant/firestore.rules.
@@ -68,6 +65,7 @@ jobs:
               --timeout 300 --memory 512Mi --max-instances 3 \
               --set-secrets GEMINI_API_KEY=study-assistant-gemini-key:latest \
               --set-env-vars "^;^ALLOWED_EMAILS=hochivuong2002@gmail.com,tling241004@gmail.com;ALLOWED_ORIGINS=https://toolbox.vuongho.me,http://localhost:5173" \
+              --update-labels deployed-commit="$GITHUB_SHA" \
               --quiet
           fi
           URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome --format='value(status.url)')
@@ -76,21 +74,19 @@ jobs:
       # njtransit-bus has a Cloud Run backend too (holds the NJ Transit developer
       # login, keeps the timetable in memory). 1 GiB: the timetable takes ~600 MB.
       - name: Deploy njtransit-bus API (only when it changed, or doesn't exist yet)
-        env:
-          BEFORE: ${{ github.event.before }}
-          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           SERVICE=toolbox-njtransit-bus-api
           REGION=us-central1
+          # Compare with the commit the live service was deployed from (its
+          # deployed-commit label), not the previous push: a queued run that a
+          # newer push replaced never deploys, so its changes would be missed.
           deploy=true
-          if gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome >/dev/null 2>&1; then
-            if [ "$EVENT" != push ]; then
-              deploy=false
-            elif git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
-              && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- apps/njtransit-bus/api .github/workflows/deploy.yml; then
-              deploy=false
-            fi
+          DEPLOYED=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome \
+            --format='value(metadata.labels.deployed-commit)' 2>/dev/null || true)
+          if [ -n "$DEPLOYED" ] && git cat-file -e "$DEPLOYED^{commit}" 2>/dev/null \
+            && git diff --quiet "$DEPLOYED" "$GITHUB_SHA" -- apps/njtransit-bus/api .github/workflows/deploy.yml; then
+            deploy=false
           fi
           if [ "$deploy" = true ]; then
             gcloud run deploy "$SERVICE" \
@@ -100,6 +96,7 @@ jobs:
               --timeout 120 --memory 1Gi --cpu 1 --cpu-boost --max-instances 2 \
               --set-secrets NJT_USERNAME=njtransit-bus-username:latest,NJT_PASSWORD=njtransit-bus-password:latest \
               --set-env-vars "^;^ALLOWED_ORIGINS=https://toolbox.vuongho.me,http://localhost:5173" \
+              --update-labels deployed-commit="$GITHUB_SHA" \
               --quiet
           fi
           URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project vuonghome --format='value(status.url)')
@@ -152,16 +149,17 @@ jobs:
 
       - name: Build njtransit-bus watch app (only when it changed)
         continue-on-error: true
-        env:
-          BEFORE: ${{ github.event.before }}
-          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           W=apps/njtransit-bus/wear
           P=apps/njtransit-bus/public
-          if [ "$EVENT" != push ] || { git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
-            && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- "$W"; }; then
-            echo "Watch app unchanged"; exit 0
+          # Compare with the commit the published build came from (watch.json's
+          # "commit"), not the previous push, so a replaced queued run's change
+          # still gets built.
+          BUILT=$(sed -n 's/.*"commit":"\([0-9a-f]*\)".*/\1/p' "$P/watch.json" 2>/dev/null || true)
+          if [ -n "$BUILT" ] && git cat-file -e "$BUILT^{commit}" 2>/dev/null \
+            && git diff --quiet "$BUILT" "$GITHUB_SHA" -- "$W"; then
+            echo "Watch app unchanged since build from $BUILT"; exit 0
           fi
           gcloud secrets versions access latest --secret njtransit-bus-wear-keystore --project vuonghome | base64 -d > "$W/release.jks"
           PW=$(gcloud secrets versions access latest --secret njtransit-bus-wear-keystore-password --project vuonghome)
@@ -172,7 +170,7 @@ jobs:
           (cd "$W" && ./gradlew assembleRelease -PversionCode="$CODE" --no-daemon -q)
           rm -f "$W/release.jks" "$W/keystore.properties"
           cp "$W/app/build/outputs/apk/release/app-release.apk" "$P/watch.apk"
-          printf '{"versionCode":%s,"sha256":"%s"}\n' "$CODE" "$(sha256sum "$P/watch.apk" | cut -d' ' -f1)" > "$P/watch.json"
+          printf '{"versionCode":%s,"sha256":"%s","commit":"%s"}\n' "$CODE" "$(sha256sum "$P/watch.apk" | cut -d' ' -f1)" "$GITHUB_SHA" > "$P/watch.json"
           # Commit from a fresh checkout of main, not this one: another run may
           # have pushed its own watch.apk meanwhile (a rebase would conflict on
           # it), and this working tree holds uncommitted build inputs.
