@@ -14,6 +14,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -125,6 +135,10 @@ private fun App(needsPermission: Boolean, onAllowUpdates: () -> Unit) {
 
 // ------------------------------------------------------------------ board
 
+// One bus per screen, like the web board's hero: the next bus first, then each
+// later one a swipe (or a turn of the bezel) down, snapping into place, in
+// alternating colors. The last page has the status line and FLIP.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Board(trip: Trip, needsPermission: Boolean, onAllowUpdates: () -> Unit, onEdit: () -> Unit, onFlip: () -> Unit) {
     val fg = if (trip.back) white else blue
@@ -157,85 +171,90 @@ private fun Board(trip: Trip, needsPermission: Boolean, onAllowUpdates: () -> Un
 
     val d = data
     val buses = d?.let { upcoming(it, now) } ?: emptyList()
-    ScalingLazyColumn(
-        // Double tap anywhere flips direction (the FLIP button at the bottom does the same).
-        modifier = Modifier.fillMaxSize().background(bg).pointerInput(onFlip) { detectTapGestures(onDoubleTap = { onFlip() }) },
-        horizontalAlignment = Alignment.CenterHorizontally,
+    val pages = buses.size + 1 // + the status/FLIP page
+    val pager = rememberPagerState(pageCount = { pages })
+    LaunchedEffect(trip) { pager.scrollToPage(0) }
+    val scope = rememberCoroutineScope()
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    val title = "${tinyName(d?.from?.name ?: trip.from.name)} → ${tinyName(d?.to?.name ?: trip.to.name)}"
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bg)
+            // Double tap anywhere flips direction (the FLIP button on the last page does the same).
+            .pointerInput(onFlip) { detectTapGestures(onDoubleTap = { onFlip() }) }
+            // Bezel / crown: one bus per click.
+            .onRotaryScrollEvent { e ->
+                val target = (pager.currentPage + if (e.verticalScrollPixels > 0) 1 else -1).coerceIn(0, pages - 1)
+                scope.launch { pager.animateScrollToPage(target) }
+                true
+            }
+            .focusRequester(focus)
+            .focusable(),
     ) {
-        item {
-            Text(
-                "${tinyName(d?.from?.name ?: trip.from.name)} → ${tinyName(d?.to?.name ?: trip.to.name)}",
-                color = fg,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.clickable(onClick = onEdit).padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
-        val first = buses.firstOrNull()
-        if (first == null) {
-            item {
-                Text(
-                    when {
-                        d == null && error == null -> "ONE SEC…"
-                        error != null -> "NO SIGNAL"
-                        else -> "NO BUSES"
-                    },
-                    color = fg,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.padding(vertical = 16.dp),
-                )
-            }
-        } else {
-            item { Hero(first, now, fg, from = trip.from) }
-            items(buses.drop(1)) { b ->
-                val solid = buses.indexOf(b) % 2 == 1
-                Tile(b, now, if (solid) bg else fg, if (solid) fg else bg, from = trip.from)
-            }
-            item {
-                Text(
-                    (if (buses.any { it.live }) "LIVE" else "TIMETABLE · NOT LIVE") +
-                        (d?.let { " · ${clockText(it.now)}" } ?: "") + (if (error != null) " · OFFLINE" else ""),
-                    color = fg,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
+        VerticalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+            // Page 0 in the trip's colors, then alternating, like the web tiles.
+            val solid = page % 2 == 1
+            val pfg = if (solid) bg else fg
+            val pbg = if (solid) fg else bg
+            Box(Modifier.fillMaxSize().background(pbg), contentAlignment = Alignment.Center) {
+                val bus = buses.getOrNull(page)
+                when {
+                    bus != null -> BusPage(bus, now, pfg, trip.from, if (page == 0) "NEXT BUS" else "THEN", title, onEdit)
+                    buses.isEmpty() -> Message(
+                        when {
+                            d == null && error == null -> "ONE SEC…"
+                            error != null -> "NO SIGNAL"
+                            else -> "NO BUSES"
+                        },
+                        title, pfg, onEdit,
+                    )
+                    else -> StatusPage(buses, d, error, pfg, pbg, needsPermission, onAllowUpdates, onFlip)
+                }
             }
         }
-        item { Button("⇅  FLIP", fg, bg, onFlip) }
-        if (needsPermission) {
-            item {
-                Text(
-                    "A NEW VERSION IS OUT",
-                    color = fg,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-            }
-            item { Button("ALLOW UPDATES", fg, bg, onAllowUpdates) }
-        }
+        if (pages > 1) PageDots(pages, pager.currentPage, if (pager.currentPage % 2 == 1) bg else fg)
     }
 }
 
 @Composable
-private fun Hero(bus: Bus, now: Long, fg: Color, from: Stop) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 4.dp)) {
-        if (!bus.live) Text("SCHEDULED", color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+private fun BusPage(bus: Bus, now: Long, fg: Color, from: Stop, label: String, title: String, onEdit: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 24.dp)) {
+        if (label == "NEXT BUS") {
+            Text(
+                title,
+                color = fg,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable(onClick = onEdit).padding(vertical = 4.dp),
+            )
+        }
+        Text(
+            if (bus.live) label else "$label · SCHEDULED",
+            color = fg,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 2.sp,
+        )
         BigTime(bus, now, fg)
         Text(
             "${bus.route} TO ${bus.headsign}",
             color = fg,
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Black,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        if (bus.live) Text("LEAVES ${clockText(bus.at)}", color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        if (bus.stopCode != from.code) Text(fromText(bus.stopName, from.name), color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        bus.gate?.let { Text("GATE ${gateText(it)}", color = fg, fontSize = 18.sp, fontWeight = FontWeight.Black) }
+        if (bus.live) Text("LEAVES ${clockText(bus.at)}", color = fg, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        if (bus.stopCode != from.code) {
+            Text(fromText(bus.stopName, from.name), color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        }
+        bus.gate?.let { Text("GATE ${gateText(it)}", color = fg, fontSize = 20.sp, fontWeight = FontWeight.Black) }
     }
 }
 
@@ -244,40 +263,64 @@ private fun BigTime(bus: Bus, now: Long, fg: Color) {
     Row(verticalAlignment = Alignment.Bottom) {
         if (!bus.live) {
             val (time, ampm) = clockText(bus.at).split(' ')
-            Text(time, color = fg, fontSize = 44.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
-            Text(" $ampm", color = fg, fontSize = 14.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 8.dp))
+            Text(time, color = fg, fontSize = 52.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
+            Text(" $ampm", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 10.dp))
         } else {
             val mins = minutesUntil(bus.at, now)
             if (mins == 0L) {
-                Text("NOW", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
+                Text("NOW", color = fg, fontSize = 60.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
             } else {
-                Text("$mins", color = fg, fontSize = 64.sp, fontWeight = FontWeight.Black, letterSpacing = (-3).sp)
-                Text(" MIN", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 10.dp))
+                Text("$mins", color = fg, fontSize = 84.sp, fontWeight = FontWeight.Black, letterSpacing = (-4).sp)
+                Text(" MIN", color = fg, fontSize = 18.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 14.dp))
             }
         }
     }
 }
 
 @Composable
-private fun Tile(bus: Bus, now: Long, fg: Color, bg: Color, from: Stop) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth().background(bg).padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        Column {
-            Text(
-                if (!bus.live) clockText(bus.at) else minutesUntil(bus.at, now).let { if (it == 0L) "NOW" else "$it MIN" },
-                color = fg,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black,
-            )
-            Text(if (bus.live) clockText(bus.at) else "SCHED", color = fg, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+private fun Message(text: String, title: String, fg: Color, onEdit: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = onEdit).padding(4.dp))
+        Text(text, color = fg, fontSize = 26.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+@Composable
+private fun StatusPage(
+    buses: List<Bus>,
+    d: Departures?,
+    error: String?,
+    fg: Color,
+    bg: Color,
+    needsPermission: Boolean,
+    onAllowUpdates: () -> Unit,
+    onFlip: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            (if (buses.any { it.live }) "LIVE" else "TIMETABLE · NOT LIVE") +
+                (d?.let { " · ${clockText(it.now)}" } ?: "") + (if (error != null) " · OFFLINE" else ""),
+            color = fg,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Button("⇅  FLIP", fg, bg, onFlip)
+        Text("OR DOUBLE TAP", color = fg, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+        if (needsPermission) {
+            Text("A NEW VERSION IS OUT", color = fg, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+            Button("ALLOW UPDATES", fg, bg, onAllowUpdates)
         }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(bus.route, color = fg, fontSize = 18.sp, fontWeight = FontWeight.Black)
-            val sub = bus.gate?.let { "GATE ${gateText(it)}" } ?: if (bus.stopCode != from.code) fromText(bus.stopName, from.name) else bus.headsign
-            Text(sub, color = fg, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+// Small dots down the right edge: which bus you're on.
+@Composable
+private fun PageDots(count: Int, current: Int, color: Color) {
+    Box(Modifier.fillMaxSize().padding(end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            repeat(count) { i ->
+                Box(Modifier.size(if (i == current) 6.dp else 4.dp).background(color.copy(alpha = if (i == current) 1f else 0.4f), CircleShape))
+            }
         }
     }
 }
