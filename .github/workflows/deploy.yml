@@ -173,13 +173,26 @@ jobs:
           rm -f "$W/release.jks" "$W/keystore.properties"
           cp "$W/app/build/outputs/apk/release/app-release.apk" "$P/watch.apk"
           printf '{"versionCode":%s,"sha256":"%s"}\n' "$CODE" "$(sha256sum "$P/watch.apk" | cut -d' ' -f1)" > "$P/watch.json"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$P/watch.apk" "$P/watch.json"
-          git commit -m "NJ Transit bus: watch app build $CODE"
+          # Commit from a fresh checkout of main, not this one: another run may
+          # have pushed its own watch.apk meanwhile (a rebase would conflict on
+          # it), and this working tree holds uncommitted build inputs.
           for i in 1 2 3; do
-            if git pull --rebase --autostash origin main && git push origin HEAD:main; then exit 0; fi
-            git rebase --abort 2>/dev/null || true
+            rm -rf /tmp/publish && git worktree prune
+            git fetch -q origin main
+            git worktree add -q --detach /tmp/publish origin/main
+            # A newer build already on main (a later run finished first) wins.
+            ON_MAIN=$(sed -n 's/.*"versionCode":\([0-9]*\).*/\1/p' "/tmp/publish/$P/watch.json" 2>/dev/null || true)
+            if [ -n "$ON_MAIN" ] && [ "$ON_MAIN" -ge "$CODE" ]; then
+              echo "main already has watch build $ON_MAIN"; exit 0
+            fi
+            cp "$P/watch.apk" "$P/watch.json" "/tmp/publish/$P/"
+            # set -e doesn't apply inside an && list, hence the explicit chain.
+            ( cd /tmp/publish \
+              && git config user.name "github-actions[bot]" \
+              && git config user.email "41898282+github-actions[bot]@users.noreply.github.com" \
+              && git add "$P/watch.apk" "$P/watch.json" \
+              && git commit -q -m "NJ Transit bus: watch app build $CODE" \
+              && git push -q origin HEAD:main ) && exit 0
             sleep 5
           done
           echo "::warning::Couldn't push the watch app build; this deploy still serves it"
