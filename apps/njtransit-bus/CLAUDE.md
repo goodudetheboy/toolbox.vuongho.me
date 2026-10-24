@@ -9,7 +9,7 @@ whole (repo map, running things, shared infra rules), see the root
 Pick a home stop and a destination stop once; after that the app opens
 straight on a board showing when the next NJ Transit bus between them
 leaves: one giant countdown, then scroll (snaps) for every bus as
-alternating blue/white tiles. The flip button swaps direction; heading back
+alternating blue/white tiles. The flip button (or a double tap anywhere) swaps direction; heading back
 inverts the colors (white on blue) with a full-screen color wipe. Leaving
 from the Port Authority Bus Terminal shows the gate. Buses NJ Transit isn't
 tracking yet are clearly marked as timetable times (dashed SCHEDULED box,

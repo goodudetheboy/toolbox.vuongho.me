@@ -51,6 +51,8 @@ a {
 }
 
 .screen {
+  /* No double-tap zoom: double tap flips (Board.tsx). */
+  touch-action: manipulation;
   overflow-x: clip;
   min-height: 100dvh;
   max-width: 520px;

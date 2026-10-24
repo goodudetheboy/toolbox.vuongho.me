@@ -77,6 +77,21 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   }
   const scroller = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLElement>(null);
+  const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
+
+  // Double tap anywhere (not on a button) flips, like the watch app. Detected
+  // by hand: phone browsers don't reliably fire dblclick on touch.
+  function onTap(e: React.PointerEvent) {
+    if ((e.target as HTMLElement).closest('button')) return;
+    const prev = lastTap.current;
+    const now = e.timeStamp;
+    if (prev && now - prev.t < 350 && Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < 40) {
+      lastTap.current = null;
+      flip();
+    } else {
+      lastTap.current = { t: now, x: e.clientX, y: e.clientY };
+    }
+  }
 
   function flip() {
     setWipe({ color: trip.back ? '#005097' : '#ffffff', key: Date.now() });
@@ -91,7 +106,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const toName = data?.to.name ?? to.name;
 
   return (
-    <div className={`screen${trip.back ? ' back' : ''}`}>
+    <div className={`screen${trip.back ? ' back' : ''}`} onPointerUp={onTap}>
       <div className="scroller" ref={scroller}>
         <section className="hero">
           <div className="top">
