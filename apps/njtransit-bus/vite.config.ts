@@ -35,6 +35,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png}'],
         navigateFallback: `${BASE}index.html`,
         navigateFallbackAllowlist: [new RegExp(`^${BASE}`)],
+        // The watch app download (wear/, ADR 0003) must reach the network, not the app shell.
+        navigateFallbackDenylist: [/\.apk$/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,

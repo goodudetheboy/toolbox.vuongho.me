@@ -29,7 +29,11 @@ A glance from the watch face needs a native tile.
   the watch can't read the phone browser's `localStorage`, and a phone→watch
   sync would need server-side storage for one person's two stops.
 - Same two colors as the web app (white, NJ Transit blue #005097).
-- Distributed as a signed APK, sideloaded (Wear Installer 2 / Bugjaeger from
+- Distributed as a signed APK, downloaded from
+  `toolbox.vuongho.me/njtransit-bus/watch.apk` (`public/watch.apk`, committed;
+  public, which is fine: it only shows public bus times; the service worker's
+  navigate fallback skips `.apk` so an installed web app doesn't answer with
+  the board), then sideloaded (Wear Installer 2 / Bugjaeger from
   the phone, or `adb` over wireless debugging); not on the Play Store, not
   built by CI. The release key lives in Secret Manager
   (`njtransit-bus-wear-keystore` = base64 of the .jks,

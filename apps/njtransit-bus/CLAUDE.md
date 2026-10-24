@@ -73,7 +73,9 @@ printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=bus\nkeyPassword=%s\n'
 ./gradlew assembleRelease     # → app/build/outputs/apk/release/app-release.apk
 ```
 
-Bump `versionCode` in `app/build.gradle.kts` for each APK handed out.
+Bump `versionCode` in `app/build.gradle.kts` for each APK handed out, and
+copy the APK to `public/watch.apk` so it's downloadable at
+`toolbox.vuongho.me/njtransit-bus/watch.apk` after the next deploy.
 `Api.kt`/`Format.kt`/`Store.kt` mirror `src/lib/`; change them together.
 
 ## Docs
