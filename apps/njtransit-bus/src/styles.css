@@ -91,13 +91,22 @@ a {
   text-decoration: none;
 }
 
-.saved {
+.setup-top-right {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  gap: 16px;
 }
 
-.saved ul {
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
+}
+
+.saved {
   margin: 0 calc(-1 * var(--pad));
   padding: 0;
   list-style: none;

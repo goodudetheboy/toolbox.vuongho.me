@@ -19,18 +19,21 @@ export default function Setup({ initial, onGo }: Props) {
     saveBookmarks(next);
   }
 
-  return (
-    <main className="screen setup">
-      <div className="setup-top">
-        <div className="label">BUS</div>
-        <a className="small" href="/">
-          TOOLBOX
-        </a>
-      </div>
-      {bookmarks.length > 0 && (
-        <section className="saved" aria-label="Saved trips">
+  const [showSaved, setShowSaved] = useState(false);
+
+  if (showSaved) {
+    return (
+      <main className="screen setup">
+        <div className="setup-top">
           <div className="label">SAVED</div>
-          <ul>
+          <button className="icon-btn" onClick={() => setShowSaved(false)} aria-label="Close saved trips">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+        {bookmarks.length > 0 ? (
+          <ul className="saved">
             {bookmarks.map((b, i) => (
               <li key={`${b.home.code}-${b.dest.code}`} className={i % 2 === 0 ? 'solid' : ''}>
                 <button className="saved-go" onClick={() => onGo({ ...b, back: false })}>
@@ -45,8 +48,28 @@ export default function Setup({ initial, onGo }: Props) {
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        ) : (
+          <div className="small">NOTHING SAVED YET. TAP THE BOOKMARK ON A TRIP’S BUS SCREEN TO SAVE IT.</div>
+        )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="screen setup">
+      <div className="setup-top">
+        <div className="label">BUS</div>
+        <div className="setup-top-right">
+          <a className="small" href="/">
+            TOOLBOX
+          </a>
+          <button className="icon-btn" onClick={() => setShowSaved(true)} aria-label={`Saved trips (${bookmarks.length})`}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+              <path d="M6 3h12v18l-6-5-6 5z" />
+            </svg>
+          </button>
+        </div>
+      </div>
       <StopField id="home" label="HOME" value={home} onPick={setHome} />
       <StopField id="dest" label="TO" value={dest} onPick={setDest} />
       <button
