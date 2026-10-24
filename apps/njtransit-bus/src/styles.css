@@ -250,8 +250,15 @@ a {
 /* ------------------------------------------------------------- board */
 
 .scroller {
-  height: 100dvh;
+  /* Pinned to the visible screen rather than 100dvh: on some phones 100dvh
+     came out taller, the page itself scrolled under it, and the end of the
+     list (the nerd button) sat off-screen. */
+  position: fixed;
+  inset: 0;
+  max-width: 520px;
+  margin: 0 auto;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -262,7 +269,7 @@ a {
 }
 
 .hero {
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   padding: max(32px, env(safe-area-inset-top)) var(--pad) max(16px, env(safe-area-inset-bottom));
@@ -465,7 +472,7 @@ a {
 }
 
 .list {
-  min-height: 100dvh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   scroll-snap-align: start;
@@ -574,6 +581,8 @@ a {
 }
 
 .foot {
+  /* An explicit snap point at the very end, so the bottom is always reachable. */
+  scroll-snap-align: end;
   display: flex;
   align-items: center;
   gap: 8px;

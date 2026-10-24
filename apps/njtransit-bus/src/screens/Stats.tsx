@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Bus, Departures } from '../lib/api';
 import { clockSecText, clockText } from '../lib/format';
 
-// The stats sheet behind the nerd button at the bottom of the board: what each
+// The stats-for-nerds sheet behind the nerd button at the bottom of the board: what each
 // NJ Transit feed said about every bus, so a bus that shows as tracked but
 // never comes can be traced to the feed that got it wrong (ADR 0004).
 
@@ -46,10 +46,10 @@ export default function Stats({ data, now, onClose }: { data: Departures | null;
   const d = data?.debug;
   return (
     // Taps in here never count toward the board's double-tap flip.
-    <div className="stats" role="dialog" aria-label="Stats" onPointerUp={(e) => e.stopPropagation()}>
+    <div className="stats" role="dialog" aria-label="Stats for nerds" onPointerUp={(e) => e.stopPropagation()}>
       <div className="stats-head">
-        <div className="label">STATS</div>
-        <button className="flip" onClick={onClose} aria-label="Close stats">
+        <div className="label">STATS FOR NERDS</div>
+        <button className="flip" onClick={onClose} aria-label="Close stats for nerds">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" aria-hidden="true">
             <path d="M5 5l14 14M19 5L5 19" />
           </svg>
