@@ -35,7 +35,7 @@ A glance from the watch face needs a native tile.
   navigate fallback skips `.apk` so an installed web app doesn't answer with
   the board), then sideloaded (Wear Installer 2 / Bugjaeger from
   the phone, or `adb` over wireless debugging); not on the Play Store, not
-  built by CI. The release key lives in Secret Manager
+  built by CI (amended below: CI builds it now). The release key lives in Secret Manager
   (`njtransit-bus-wear-keystore` = base64 of the .jks,
   `njtransit-bus-wear-keystore-password`), so later builds install over the
   first one. Lose it and the app has to be uninstalled before reinstalling.
@@ -48,3 +48,25 @@ A glance from the watch face needs a native tile.
   seen on the real watch.
 - No complication yet: Wear OS limits complication updates to every few
   minutes; the tile is the reliable glance.
+
+## Amendment (2026-10-24): self-update, built by CI
+
+The user wanted it to update itself. Not via Google Play (developer account,
+review per update); instead:
+
+- **CI builds it** (deploy.yml, only when `wear/` changed on a push):
+  `versionCode` = `git rev-list --count HEAD` (only grows on main), signed with
+  the Secret Manager key (`github-actions-deploy` can read those two secrets
+  only), and committed back to `public/watch.apk` + `public/watch.json`
+  (`{ versionCode, sha256 }`) so every deploy serves the latest build. The step
+  never fails the deploy.
+- **The app updates itself** (`Updater.kt`): on open and every ~24 h
+  (WorkManager), reads `watch.json`; if newer, downloads the APK, checks the
+  SHA-256, installs with PackageInstaller (`USER_ACTION_NOT_REQUIRED`). Needs
+  "install unknown apps" for itself, once (the board shows ALLOW UPDATES when
+  it's missing). The first update asks for a tap, since the sideloading tool
+  installed the current copy; after that the app is its own installer of
+  record and Android 12+ installs updates silently. Background checks skip
+  installs that would need a tap and leave them for the next open.
+- Don't hand-build APKs for distribution any more: a local build with the
+  default `versionCode` 1 would never be offered as an update.

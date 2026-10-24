@@ -30,7 +30,9 @@ homepage.
   `docs/adr/0007-daily-scheduled-deploy.md`); refreshes churn-machine's
   deals before building (once a month and on manual runs, Gemini reads
   changed deal terms and the step commits them back to main); also deploys the study-assistant and
-  njtransit-bus Cloud Run APIs (each only when its code changed) and publishes Firestore rules
+  njtransit-bus Cloud Run APIs (each only when its code changed), builds
+  njtransit-bus's watch app when it changed (committing the APK back to main),
+  and publishes Firestore rules
 - `docs/` — toolbox-wide only, see below
 
 ## Docs are split per-app — read the right `CLAUDE.md`/`docs/` for the job

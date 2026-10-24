@@ -24,7 +24,8 @@ android {
         applicationId = "me.vuongho.toolbox.bus"
         minSdk = 30
         targetSdk = 34
-        versionCode = 1
+        // CI passes -PversionCode (the commit count, so every build is newer); see deploy.yml.
+        versionCode = providers.gradleProperty("versionCode").orElse("1").get().toInt()
         versionName = "1.0"
         buildConfigField("String", "API_URL", "\"$apiUrl\"")
     }
@@ -76,4 +77,5 @@ dependencies {
     implementation("androidx.wear.protolayout:protolayout-expression:1.2.1")
     implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
 }

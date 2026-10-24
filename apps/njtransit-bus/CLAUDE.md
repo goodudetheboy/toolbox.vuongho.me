@@ -32,7 +32,9 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   - `index.js` — HTTP: `GET /stops?q=` or `?lat=&lon=`, `GET /departures?from=&to=`,
     `GET /health` (not `/healthz`: Cloud Run swallows that path).
 - `wear/` — the Galaxy Watch (Wear OS) app: a tile + small app in Kotlin,
-  calling the same API. Own Gradle build, sideloaded APK, not built by CI.
+  calling the same API. Own Gradle build; CI builds it when it changes and
+  commits it to `public/watch.apk`/`watch.json`, and installed copies update
+  themselves (`Updater.kt`).
   See [ADR 0003](docs/adr/0003-wear-os-watch-app.md) and "Watch app" below.
 - `src/screens/Setup.tsx` — the two stop pickers (search or NEAR ME).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
@@ -60,8 +62,10 @@ never commit it.
 
 ## Watch app (`wear/`)
 
-Needs JDK 17 and the Android SDK (platform 35, build-tools 35); there's no
-emulator in the dev container, so the first check is on the real watch.
+CI builds and publishes it (deploy.yml, only when `wear/` changed); just push.
+Building locally is for checking that it compiles: needs JDK 17 and the
+Android SDK (platform 35, build-tools 35); there's no emulator in the dev
+container, so the first check is on the real watch.
 
 ```bash
 cd apps/njtransit-bus/wear
@@ -73,9 +77,9 @@ printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=bus\nkeyPassword=%s\n'
 ./gradlew assembleRelease     # → app/build/outputs/apk/release/app-release.apk
 ```
 
-Bump `versionCode` in `app/build.gradle.kts` for each APK handed out, and
-copy the APK to `public/watch.apk` so it's downloadable at
-`toolbox.vuongho.me/njtransit-bus/watch.apk` after the next deploy.
+Don't copy local builds into `public/`: their `versionCode` is 1, so watches
+would never take them. CI's builds use the commit count. Download link for a
+first install: `toolbox.vuongho.me/njtransit-bus/watch.apk`.
 `Api.kt`/`Format.kt`/`Store.kt` mirror `src/lib/`; change them together.
 
 ## Docs

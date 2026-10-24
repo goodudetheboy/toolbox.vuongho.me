@@ -6,7 +6,10 @@ package me.vuongho.toolbox.bus
 // what was picked in the phone's browser.
 
 import android.app.RemoteInput
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
@@ -52,9 +56,27 @@ private val blue = Color(BLUE)
 private val white = Color(WHITE)
 
 class MainActivity : ComponentActivity() {
+    /** A newer build is out but this app isn't allowed to install it yet. */
+    private val needsPermission = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { App() }
+        Updater.schedule(this)
+        setContent { App(needsPermission.value, ::allowUpdates) }
+    }
+
+    // Each time the app comes up (also back from the permission screen).
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            needsPermission.value = Updater.check(this@MainActivity, interactive = true) == Updater.Result.NEEDS_PERMISSION
+        }
+    }
+
+    private fun allowUpdates() {
+        runCatching {
+            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+        }
     }
 }
 
@@ -65,7 +87,7 @@ private sealed interface Screen {
 }
 
 @Composable
-private fun App() {
+private fun App(needsPermission: Boolean, onAllowUpdates: () -> Unit) {
     val ctx = LocalContext.current
     var trip by remember { mutableStateOf(Store.trip(ctx)) }
     var screen by remember { mutableStateOf<Screen>(if (trip == null) Screen.Setup else Screen.Board) }
@@ -75,6 +97,8 @@ private fun App() {
         Screen.Board -> trip?.let { t ->
             Board(
                 trip = t,
+                needsPermission = needsPermission,
+                onAllowUpdates = onAllowUpdates,
                 onEdit = { screen = Screen.Setup },
                 onFlip = {
                     Store.setBack(ctx, !t.back)
@@ -100,7 +124,7 @@ private fun App() {
 // ------------------------------------------------------------------ board
 
 @Composable
-private fun Board(trip: Trip, onEdit: () -> Unit, onFlip: () -> Unit) {
+private fun Board(trip: Trip, needsPermission: Boolean, onAllowUpdates: () -> Unit, onEdit: () -> Unit, onFlip: () -> Unit) {
     val fg = if (trip.back) white else blue
     val bg = if (trip.back) blue else white
     var data by remember(trip) { mutableStateOf<Departures?>(null) }
@@ -178,6 +202,18 @@ private fun Board(trip: Trip, onEdit: () -> Unit, onFlip: () -> Unit) {
             }
         }
         item { Button("⇅  FLIP", fg, bg, onFlip) }
+        if (needsPermission) {
+            item {
+                Text(
+                    "A NEW VERSION IS OUT",
+                    color = fg,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+            item { Button("ALLOW UPDATES", fg, bg, onAllowUpdates) }
+        }
     }
 }
 

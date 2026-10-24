@@ -140,6 +140,50 @@ jobs:
           done
           echo "::warning::Couldn't push $FILE; the next deploy will read those deals again"
 
+      # njtransit-bus's Galaxy Watch app (apps/njtransit-bus/wear, its ADR 0003):
+      # rebuilt only when its code changed, signed with the key in Secret Manager,
+      # and committed to the app's public/ (watch.apk + watch.json) so the web
+      # build serves it; installed copies update themselves from watch.json.
+      # Never fails the deploy: on error the committed APK is kept.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build njtransit-bus watch app (only when it changed)
+        continue-on-error: true
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          W=apps/njtransit-bus/wear
+          P=apps/njtransit-bus/public
+          if [ "$EVENT" != push ] || { git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+            && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- "$W"; }; then
+            echo "Watch app unchanged"; exit 0
+          fi
+          gcloud secrets versions access latest --secret njtransit-bus-wear-keystore --project vuonghome | base64 -d > "$W/release.jks"
+          PW=$(gcloud secrets versions access latest --secret njtransit-bus-wear-keystore-password --project vuonghome)
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=bus\nkeyPassword=%s\n' "$PW" "$PW" > "$W/keystore.properties"
+          echo "sdk.dir=$ANDROID_HOME" > "$W/local.properties"
+          # The commit count only grows on main, so every build is "newer".
+          CODE=$(git rev-list --count HEAD)
+          (cd "$W" && ./gradlew assembleRelease -PversionCode="$CODE" --no-daemon -q)
+          rm -f "$W/release.jks" "$W/keystore.properties"
+          cp "$W/app/build/outputs/apk/release/app-release.apk" "$P/watch.apk"
+          printf '{"versionCode":%s,"sha256":"%s"}\n' "$CODE" "$(sha256sum "$P/watch.apk" | cut -d' ' -f1)" > "$P/watch.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$P/watch.apk" "$P/watch.json"
+          git commit -m "NJ Transit bus: watch app build $CODE"
+          for i in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          echo "::warning::Couldn't push the watch app build; this deploy still serves it"
+
       - run: npm run build
       - run: npm run combine
 
