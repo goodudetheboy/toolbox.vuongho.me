@@ -35,6 +35,10 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
 - `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`.
+- PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/njtransit-bus/`,
+  auto-update, bus times never cached), registered in `src/main.tsx`; icons in
+  `public/`. See [ADR 0002](docs/adr/0002-installable-pwa.md). Test service
+  worker changes on the production build (root `CLAUDE.md`).
 
 ## Running
 
