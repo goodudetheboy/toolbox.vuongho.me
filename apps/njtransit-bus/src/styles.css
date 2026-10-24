@@ -155,7 +155,7 @@ a {
 
 .saved-x {
   flex: none;
-  width: 64px;
+  width: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,8 +298,14 @@ a {
   min-height: 44px;
 }
 
+.where-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .where-title {
-  display: block;
   margin-bottom: 4px;
   font-size: 26px;
   font-weight: 900;

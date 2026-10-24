@@ -45,6 +45,8 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   See [ADR 0003](docs/adr/0003-wear-os-watch-app.md) and "Watch app" below.
 - `src/screens/Setup.tsx` — the two stop pickers (search or NEAR ME).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
+- `src/screens/NameSheet.tsx` — name / rename / remove a bookmark (from the
+  board's bookmark button or title, or the saved list's pencil).
 - `src/screens/Stats.tsx` — the stats sheet behind the nerd-face button at the
   bottom of the list: what each NJ Transit feed said about every bus (from the
   API's `debug` fields), with COPY (the whole response as text) for pasting into a debug session.

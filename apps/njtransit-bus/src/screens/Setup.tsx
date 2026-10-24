@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nearestStops, searchStops, type Stop } from '../lib/api';
 import { shortName } from '../lib/format';
+import NameSheet from './NameSheet';
 import { loadBookmarks, saveBookmarks, sameTrip, toSaved, type Bookmark, type SavedStop, type Trip } from '../lib/saved';
 
 interface Props {
@@ -20,6 +21,14 @@ export default function Setup({ initial, onGo }: Props) {
   }
 
   const [showSaved, setShowSaved] = useState(false);
+  const [editing, setEditing] = useState<Bookmark | null>(null);
+
+  function rename(b: Bookmark, title: string) {
+    const next = bookmarks.map((x) => (sameTrip(x, b) ? { home: x.home, dest: x.dest, ...(title && { title }) } : x));
+    setBookmarks(next);
+    saveBookmarks(next);
+    setEditing(null);
+  }
 
   if (showSaved) {
     return (
@@ -43,6 +52,11 @@ export default function Setup({ initial, onGo }: Props) {
                   <span>→ {shortName(b.dest.name)}</span>
                   <span className="saved-meta">FROM STOP {describe(b.home)}</span>
                 </button>
+                <button className="saved-x" onClick={() => setEditing(b)} aria-label={`Rename ${b.title || `${shortName(b.home.name)} to ${shortName(b.dest.name)}`}`}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 20h4L19 9l-4-4L4 16z" />
+                  </svg>
+                </button>
                 <button className="saved-x" onClick={() => remove(b)} aria-label={`Remove ${shortName(b.home.name)} to ${shortName(b.dest.name)}`}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" aria-hidden="true">
                     <path d="M6 6l12 12M18 6L6 18" />
@@ -53,6 +67,19 @@ export default function Setup({ initial, onGo }: Props) {
           </ul>
         ) : (
           <div className="small">NOTHING SAVED YET. TAP THE BOOKMARK ON A TRIP’S BUS SCREEN TO SAVE IT.</div>
+        )}
+        {editing && (
+          <NameSheet
+            bookmark={editing}
+            from={shortName(editing.home.name)}
+            to={shortName(editing.dest.name)}
+            onSave={(title) => rename(editing, title)}
+            onRemove={() => {
+              remove(editing);
+              setEditing(null);
+            }}
+            onClose={() => setEditing(null)}
+          />
         )}
       </main>
     );
