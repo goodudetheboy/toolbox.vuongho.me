@@ -29,7 +29,7 @@ function InfoIcon() {
 }
 
 const OPTIONS: { key: keyof SettingsT; title: string; text: string }[] = [
-  { key: 'crowd', title: 'HOW FULL', text: 'Two people: seats left. Three: full.' },
+  { key: 'crowd', title: 'FULL BUSES', text: 'Three people means the bus is full.' },
   { key: 'busId', title: 'TRACKING #', text: 'The number on the bus itself.' },
 ];
 
@@ -39,13 +39,11 @@ interface Props {
   /** The next real bus, so the preview looks like this trip. */
   sample?: Bus;
   from: string;
-  /** Heading back (white on blue), so the blue tile is the second one. */
-  back: boolean;
   now: number;
   onClose: () => void;
 }
 
-export default function Settings({ settings, onChange, sample, from, back, now, onClose }: Props) {
+export default function Settings({ settings, onChange, sample, from, now, onClose }: Props) {
   // Which option's explanation is showing (tap the info button to toggle).
   const [info, setInfo] = useState<keyof SettingsT | null>(null);
   const base: Bus = {
@@ -60,11 +58,7 @@ export default function Settings({ settings, onChange, sample, from, back, now, 
     vehicle: '6386',
     stop: { code: from, name: '' },
   };
-  // The blue tile gets the half-full bus, so its hollow person shows.
-  const later = { ...base, at: now + 18 * 60 * 1000, vehicle: '21221' };
-  const preview: Bus[] = back
-    ? [base, { ...later, load: 'HALF_EMPTY' }]
-    : [{ ...base, load: 'HALF_EMPTY' }, { ...later, load: 'FULL' }];
+  const preview: Bus[] = [base, { ...base, at: now + 18 * 60 * 1000, load: 'HALF_EMPTY', vehicle: '21221' }];
 
   return (
     // Taps in here never count toward the board's double-tap flip.

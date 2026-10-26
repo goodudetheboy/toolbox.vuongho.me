@@ -205,7 +205,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
                   <span>TO {first.headsign}</span>
                 </div>
                 {first.stop.code !== from.code && <div className="small from-other">FROM {first.stop.name}</div>}
-                {((settings.crowd && first.load) || (settings.busId && first.vehicle)) && (
+                {((settings.crowd && first.load === 'FULL') || (settings.busId && first.vehicle)) && (
                   <div className="hero-extras">
                     {settings.crowd && <Crowd load={first.load} />}
                     {settings.busId && first.vehicle && <span className="small">TRACKING #{first.vehicle}</span>}
@@ -280,7 +280,6 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
           settings={settings}
           onChange={changeSettings}
           sample={first}
-          back={trip.back}
           from={from.code}
           now={now}
           onClose={() => setSettingsOpen(false)}

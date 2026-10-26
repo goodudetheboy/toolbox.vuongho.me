@@ -4,30 +4,24 @@ import type { Settings } from '../lib/saved';
 
 // One bus in the board's list (and the settings sheet's preview).
 
-const CROWD: Record<string, { people: number; text: string }> = {
-  EMPTY: { people: 1, text: 'EMPTY' },
-  HALF_EMPTY: { people: 2, text: 'HALF FULL' },
-  FULL: { people: 3, text: 'FULL' },
-};
-
-function Person({ on }: { on: boolean }) {
+function Person() {
   return (
-    <svg width="16" height="22" viewBox="0 0 16 22" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <svg width="16" height="22" viewBox="0 0 16 22" fill="currentColor" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <circle cx="8" cy="5" r="4" />
       <path d="M1 21v-5a7 7 0 0 1 14 0v5z" strokeLinejoin="round" />
     </svg>
   );
 }
 
-/** How full the bus is: filled people out of three. Nothing when NJ Transit doesn't say. */
+/** Three people on a full bus, nothing otherwise. NJ Transit only ever says
+ * full or not (HALF_EMPTY is nearly every bus), so finer levels would mislead. */
 export function Crowd({ load }: { load: string | null }) {
-  const c = load ? CROWD[load] : undefined;
-  if (!c) return null;
+  if (load !== 'FULL') return null;
   return (
-    <div className="crowd" role="img" aria-label={c.text}>
-      {[1, 2, 3].map((n) => (
-        <Person key={n} on={n <= c.people} />
-      ))}
+    <div className="crowd" role="img" aria-label="FULL">
+      <Person />
+      <Person />
+      <Person />
     </div>
   );
 }

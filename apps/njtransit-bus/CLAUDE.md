@@ -51,8 +51,9 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   bottom of the list: what each NJ Transit feed said about every bus (from the
   API's `debug` fields), with COPY (the whole response as text) for pasting into a debug session.
 - `src/screens/Settings.tsx` — the settings sheet behind the gear next to the
-  nerd button: switches for what each bus also shows (how full, as a row of
-  people from BUSDV2's `passload`, else the GPS feed's occupancy; the tracking number), each explained behind an info button, with a preview of two
+  nerd button: switches for what each bus also shows (three people on a
+  full bus, from BUSDV2's `passload`, else the GPS feed's occupancy; NJ Transit
+  only says full or not, so nothing finer is shown; the tracking number), each explained behind an info button, with a preview of two
   tiles stuck to its bottom. Kept in `localStorage` (`saved.ts`); how full is on by default, tracking # off.
 - `src/screens/Tile.tsx` — one bus in the list (also the settings preview), plus `Crowd`.
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
