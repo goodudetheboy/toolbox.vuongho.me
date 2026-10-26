@@ -111,6 +111,10 @@ export default function EditPart({
   const imageInput = useRef<HTMLInputElement>(null);
   /** Where the caret was in the rich editor before the picture picker took focus. */
   const savedRange = useRef<Range | null>(null);
+  /** The picture the pointer is on (or she tapped) in the rich editor, which gets a red ✕. */
+  const [pointedImg, setPointedImg] = useState<HTMLImageElement | null>(null);
+  const [, relayout] = useState(0);
+  const richWrap = useRef<HTMLDivElement>(null);
 
   // Fill the rich editor whenever it's (re)shown; it's uncontrolled while she types.
   useEffect(() => {
@@ -198,6 +202,19 @@ export default function EditPart({
       void addImages(files);
     },
   };
+
+  // The ✕ sits over the picture's top-right corner, placed against the editor's wrapper.
+  const pointImg = (e: { target: EventTarget }) => setPointedImg(e.target instanceof HTMLImageElement ? e.target : null);
+  let removeAt: { top: number; left: number } | null = null;
+  if (pointedImg?.isConnected && richWrap.current) {
+    const img = pointedImg.getBoundingClientRect();
+    const wrap = richWrap.current.getBoundingClientRect();
+    removeAt = { top: img.top - wrap.top, left: img.right - wrap.left };
+  }
+  function removePointedImg() {
+    pointedImg?.remove(); // its stored copy goes on save, like any picture taken out of the text
+    setPointedImg(null);
+  }
 
   const currentMarkdown = () => (mode === 'rich' && richRef.current ? htmlToMarkdown(richRef.current.innerHTML) : markdown);
 
@@ -325,7 +342,33 @@ export default function EditPart({
               <Icon name="image" size={22} />
             </button>
           </div>
-          <div ref={richRef} className={`md rich-editor ${dropping ? 'dropping' : ''}`} onPaste={onPaste} {...dropProps} data-placeholder={isNew ? t.newPartPlaceholder : undefined} contentEditable suppressContentEditableWarning />
+          <div ref={richWrap} className="rich-wrap" onMouseLeave={() => setPointedImg(null)}>
+            <div
+              ref={richRef}
+              className={`md rich-editor ${dropping ? 'dropping' : ''}`}
+              onPaste={onPaste}
+              onMouseOver={pointImg}
+              onClick={pointImg}
+              onInput={() => relayout((n) => n + 1)}
+              {...dropProps}
+              data-placeholder={isNew ? t.newPartPlaceholder : undefined}
+              contentEditable
+              suppressContentEditableWarning
+            />
+            {removeAt && (
+              <button
+                type="button"
+                className="remove-picture"
+                style={removeAt}
+                title={t.removePicture}
+                aria-label={t.removePicture}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={removePointedImg}
+              >
+                <Icon name="close" size={18} />
+              </button>
+            )}
+          </div>
         </Paper>
       ) : (
         <>

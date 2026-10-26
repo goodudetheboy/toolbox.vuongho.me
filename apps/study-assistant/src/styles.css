@@ -3116,6 +3116,31 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   background: repeating-linear-gradient(45deg, #fff, #fff 10px, var(--paper-line) 10px, var(--paper-line) 20px);
 }
 
+/* Rich editor: a red ✕ on the picture under the pointer (or the one tapped, on phones). */
+.rich-wrap {
+  position: relative;
+}
+
+.remove-picture {
+  position: absolute;
+  transform: translate(-70%, -30%);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #e5484d;
+  color: #fff;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.remove-picture:hover {
+  background: #c93a3f;
+}
+
 .rich-toolbar .rich-image {
   margin-left: auto;
   display: grid;

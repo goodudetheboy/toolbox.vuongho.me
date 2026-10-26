@@ -108,6 +108,7 @@ export const t = {
   editParts: 'Edit parts',
   addPicture: 'Add picture',
   addingPicture: 'Adding picture…',
+  removePicture: 'Remove picture',
   editPartsHint: 'Tap a part to change its words',
   moveUp: 'Move up',
   moveDown: 'Move down',
