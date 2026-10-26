@@ -50,6 +50,11 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
 - `src/screens/Stats.tsx` — the stats sheet behind the nerd-face button at the
   bottom of the list: what each NJ Transit feed said about every bus (from the
   API's `debug` fields), with COPY (the whole response as text) for pasting into a debug session.
+- `src/screens/Settings.tsx` — the settings sheet behind the gear next to the
+  nerd button: switches for what each bus also shows (how full, as a row of
+  people from BUSDV2's `passload`; the bus number), with a preview of two
+  tiles stuck to its bottom. Kept in `localStorage` (`saved.ts`), both off by default.
+- `src/screens/Tile.tsx` — one bus in the list (also the settings preview), plus `Crowd`.
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
 - `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`.
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/njtransit-bus/`,

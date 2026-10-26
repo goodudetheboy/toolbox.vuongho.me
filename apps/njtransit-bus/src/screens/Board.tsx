@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { departures, type Bus, type Departures } from '../lib/api';
 import { clock, clockText, gateText, minutesUntil, shortName, tinyName } from '../lib/format';
-import { loadBookmarks, saveBookmarks, sameTrip, type Bookmark, type Trip } from '../lib/saved';
+import {
+  loadBookmarks,
+  loadSettings,
+  saveBookmarks,
+  saveSettings,
+  sameTrip,
+  type Bookmark,
+  type Settings as SettingsT,
+  type Trip,
+} from '../lib/saved';
 import NameSheet from './NameSheet';
+import Settings, { GearIcon } from './Settings';
 import Stats, { NerdIcon } from './Stats';
+import Tile, { Crowd } from './Tile';
 
 const REFRESH_MS = 20 * 1000;
 
@@ -80,6 +91,8 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const [wipe, setWipe] = useState<{ color: string; key: number } | null>(null);
   const [bookmark, setBookmark] = useState<Bookmark | null>(() => loadBookmarks().find((b) => sameTrip(b, trip)) ?? null);
   const [naming, setNaming] = useState(false);
+  const [settings, setSettings] = useState(loadSettings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const saved = bookmark !== null;
 
   // Saving keeps the bookmark's place in the list when it's only being renamed.
@@ -92,6 +105,11 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
     saveBookmarks(list);
     setBookmark(i >= 0 ? list[i] : b);
     setNaming(false);
+  }
+
+  function changeSettings(s: SettingsT) {
+    saveSettings(s);
+    setSettings(s);
   }
 
   function removeBookmark() {
@@ -187,6 +205,12 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
                   <span>TO {first.headsign}</span>
                 </div>
                 {first.stop.code !== from.code && <div className="small from-other">FROM {first.stop.name}</div>}
+                {((settings.crowd && first.load) || (settings.busId && first.vehicle)) && (
+                  <div className="hero-extras">
+                    {settings.crowd && <Crowd load={first.load} />}
+                    {settings.busId && first.vehicle && <span className="small">BUS #{first.vehicle}</span>}
+                  </div>
+                )}
                 {first.gate && (
                   <div className="gate">
                     <span>GATE</span>
@@ -231,7 +255,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
               </div>
             </div>
             {buses.map((b, i) => (
-              <Tile key={`${b.trip}-${b.scheduled}`} bus={b} now={now} solid={i % 2 === 0} next={i === 0} from={from.code} />
+              <Tile key={`${b.trip}-${b.scheduled}`} bus={b} now={now} solid={i % 2 === 0} next={i === 0} from={from.code} settings={settings} />
             ))}
             <div className="foot small">
               <span className={`dot${anyLive ? '' : ' hollow'}`} />
@@ -243,11 +267,24 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
               <button className="flip nerd" onClick={() => setStats(true)} aria-label="Stats for nerds">
                 <NerdIcon />
               </button>
+              <button className="flip nerd-next" onClick={() => setSettingsOpen(true)} aria-label="Settings">
+                <GearIcon />
+              </button>
             </div>
           </section>
         )}
       </div>
       {stats && <Stats data={data} now={now} onClose={() => setStats(false)} />}
+      {settingsOpen && (
+        <Settings
+          settings={settings}
+          onChange={changeSettings}
+          sample={first}
+          from={from.code}
+          now={now}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       {naming && (
         <NameSheet
           bookmark={bookmark}
@@ -287,38 +324,6 @@ function BigTime({ bus, now }: { bus: Bus; now: number }) {
     <div className={`big ${mins < 10 ? 'd1' : 'd2'}`}>
       <span className="num">{mins}</span>
       <span className="unit">MIN</span>
-    </div>
-  );
-}
-
-function Tile({ bus, now, solid, next, from }: { bus: Bus; now: number; solid: boolean; next: boolean; from: string }) {
-  const mins = minutesUntil(bus.at, now);
-  const c = clock(bus.at);
-  return (
-    <div className={`tile${solid ? ' solid' : ''}`}>
-      <div className="left">
-        {next && <div className="tag">NEXT</div>}
-        {bus.live ? (
-          <>
-            <div className="when">{mins === 0 ? 'NOW' : <>{mins}<small> MIN</small></>}</div>
-            <div className="sub">{clockText(bus.at)}</div>
-          </>
-        ) : (
-          <div className="when clock">
-            {c.time}
-            <small> {c.ampm}</small>
-          </div>
-        )}
-      </div>
-      <div className="right">
-        <div className="rt">{bus.route}</div>
-        {bus.gate ? (
-          <div className="sub gate-sub">GATE {gateText(bus.gate)}</div>
-        ) : (
-          <div className="sub head">{bus.stop.code !== from ? `FROM ${shortName(bus.stop.name)}` : bus.headsign}</div>
-        )}
-        {!bus.live && <div className="sched-tag">SCHED</div>}
-      </div>
     </div>
   );
 }

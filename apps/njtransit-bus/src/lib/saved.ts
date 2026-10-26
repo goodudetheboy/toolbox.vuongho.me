@@ -63,3 +63,30 @@ export const toSaved = ({ code, name, routes, headsigns }: Stop | SavedStop): Sa
   routes,
   headsigns,
 });
+
+// What the board's tiles show besides the time and route (the settings sheet).
+export interface Settings {
+  /** The bus's number, e.g. BUS #6386. */
+  busId: boolean;
+  /** How full it is, as a row of people. */
+  crowd: boolean;
+}
+
+const SETTINGS_KEY = 'njtransit-bus:settings';
+const DEFAULT_SETTINGS: Settings = { busId: false, crowd: false };
+
+export function loadSettings(): Settings {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export function saveSettings(s: Settings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    // Private mode: settings last until the page closes.
+  }
+}

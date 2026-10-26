@@ -734,6 +734,106 @@ a {
   letter-spacing: 0.16em;
 }
 
+/* Settings: the gear sits right of the nerd button; the sheet ends in a
+   preview of two tiles stuck to the bottom. */
+.flip.nerd-next {
+  color: var(--fg);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.settings-group {
+  margin: 8px 0 4px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 84px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--muted);
+}
+
+.toggle-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toggle-text strong {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.toggle-text span {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/* Square, like everything else here: a hollow box, filled when on. */
+.switch {
+  flex: none;
+  position: relative;
+  width: 60px;
+  height: 34px;
+  border: 3px solid var(--fg);
+}
+
+.switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: var(--fg);
+  transition: transform 0.15s;
+}
+
+.switch.on {
+  background: var(--fg);
+}
+
+.switch.on span {
+  background: var(--bg);
+  transform: translateX(26px);
+}
+
+.settings-preview {
+  position: sticky;
+  bottom: 0;
+  margin: auto calc(-1 * var(--pad)) 0;
+  padding-top: 24px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+
+.settings-preview > .small {
+  padding: 0 var(--pad) 10px;
+}
+
+.crowd {
+  display: flex;
+  gap: 3px;
+}
+
+.hero-extras {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
 .name-form {
   display: flex;
   flex-direction: column;

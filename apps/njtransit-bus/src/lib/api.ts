@@ -26,7 +26,10 @@ export interface Bus {
   live: boolean;
   /** Port Authority-style gate, e.g. "200_1". */
   gate: string | null;
+  /** How full it is: "EMPTY", "HALF_EMPTY" or "FULL" (NJ Transit's own app's buses only). */
   load: string | null;
+  /** The bus's number (painted on it), when NJ Transit knows which bus runs the trip. */
+  vehicle: string | null;
   /** The stop it leaves from (can be a nearby one, e.g. across the street). */
   stop: { code: string; name: string };
   /** What each NJ Transit feed said about this bus (the stats sheet; only asked for while it's open). */
