@@ -280,6 +280,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
           settings={settings}
           onChange={changeSettings}
           sample={first}
+          back={trip.back}
           from={from.code}
           now={now}
           onClose={() => setSettingsOpen(false)}
