@@ -135,10 +135,18 @@ async function departures(fromCode, toCode, debug = false) {
     }),
   ]);
 
+  // Trip ids repeat every day, and the window reaches into tomorrow: what the
+  // feeds say about a trip is about its next run only, never tomorrow's copy.
+  const nextRun = new Map();
+  for (const d of sched.departures) {
+    if (!(nextRun.get(d.trip) <= d.scheduled)) nextRun.set(d.trip, d.scheduled);
+  }
+
   const buses = [];
   for (const d of sched.departures) {
-    const v = live.get(`${d.stop.code}:${d.trip}`);
-    const p = predicted(updates, data, d.trip, d.stop.code);
+    const today = nextRun.get(d.trip) === d.scheduled;
+    const v = today ? live.get(`${d.stop.code}:${d.trip}`) : undefined;
+    const p = today ? predicted(updates, data, d.trip, d.stop.code) : undefined;
     if (p === null && !v?.live) continue; // cancelled
     // BUSDV2's "in 7 mins" is whole minutes counted from when it was asked, so
     // a tracked bus takes the trip-updates time when the two agree (they come
@@ -148,7 +156,7 @@ async function departures(fromCode, toCode, debug = false) {
     // trip-updates time. Without a bus on it, a trip stays on the timetable.
     let at = v?.at ?? d.scheduled;
     let tracked = Boolean(v?.live);
-    const gps = moving.get(d.trip);
+    const gps = today ? moving.get(d.trip) : undefined;
     let source = tracked ? 'busdv' : 'timetable';
     if (tracked) {
       if (p && Math.abs(p - v.at) < 2 * 60 * 1000) at = p;
