@@ -3081,11 +3081,6 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   margin-top: 0;
 }
 
-.empty-note-tip {
-  margin: 14px 4px 0;
-  font-weight: 700;
-}
-
 .no-parts {
   display: flex;
   align-items: center;

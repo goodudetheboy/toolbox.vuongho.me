@@ -210,7 +210,6 @@ export default function NewNote({
                 placeholder={t.noteSubjectPlaceholder}
                 onChange={(e) => setSubject(e.target.value)}
               />
-              <p className="muted empty-note-tip">{t.startEmptyTip}</p>
             </Paper>
           )}
 

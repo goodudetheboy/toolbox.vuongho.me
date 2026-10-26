@@ -44,7 +44,6 @@ export const t = {
   file: 'PDF / Word',
   photo: 'Take photos',
   startEmpty: 'Start empty',
-  startEmptyTip: 'You’ll add the parts yourself, one card at a time.',
   noteName: 'Name',
   noteNamePlaceholder: 'e.g. Cell structure',
   noteSubject: 'Subject (optional)',
