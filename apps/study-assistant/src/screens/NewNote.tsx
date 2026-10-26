@@ -3,6 +3,7 @@ import Biggu from '../components/Biggu';
 import { Icon, Paper } from '../components/Scrap';
 import TopBar from '../components/TopBar';
 import { api, ApiError, type PrepareInput } from '../lib/api';
+import { IMAGE_ACCEPT } from '../lib/decodeImage';
 import { ImportError, inputFromFiles } from '../lib/importNote';
 import { newPartId, notesStore } from '../lib/notes';
 import { tagInBackground } from '../lib/tags';
@@ -134,7 +135,7 @@ export default function NewNote({
         ref={photoInput}
         type="file"
         hidden
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         capture="environment"
         onChange={(e) => {
           const picked = [...(e.target.files ?? [])];

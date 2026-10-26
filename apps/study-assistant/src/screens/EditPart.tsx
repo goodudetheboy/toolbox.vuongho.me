@@ -3,6 +3,7 @@ import Markdown from '../components/Markdown';
 import PartTitle from '../components/PartTitle';
 import { Icon, Paper } from '../components/Scrap';
 import TopBar from '../components/TopBar';
+import { IMAGE_ACCEPT, isImageFile } from '../lib/decodeImage';
 import { deleteImages, imageIds, imageMarkdown, prepareImage, resolveImagesIn, saveImages } from '../lib/images';
 import { insertChunk, notesStore, partId } from '../lib/notes';
 import { textHash } from '../lib/marks';
@@ -127,7 +128,7 @@ export default function EditPart({
 
   /** Shrinks the pictures and drops them in where the caret is. Stored on save. */
   async function addImages(files: File[]) {
-    const images = files.filter((f) => f.type.startsWith('image/'));
+    const images = files.filter(isImageFile);
     if (!images.length) return;
     setAddingImage(true);
     try {
@@ -167,7 +168,7 @@ export default function EditPart({
   }
 
   function onPaste(e: ClipboardEvent) {
-    const files = [...e.clipboardData.files].filter((f) => f.type.startsWith('image/'));
+    const files = [...e.clipboardData.files].filter(isImageFile);
     if (!files.length) return;
     e.preventDefault();
     if (mode === 'rich') rememberCaret();
@@ -191,7 +192,7 @@ export default function EditPart({
       if (!hasFiles(e)) return;
       e.preventDefault();
       setDropping(false);
-      const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith('image/'));
+      const files = [...e.dataTransfer.files].filter(isImageFile);
       if (!files.length) return;
       if (mode === 'rich') savedRange.current = caretAt(e.clientX, e.clientY);
       void addImages(files);
@@ -351,7 +352,7 @@ export default function EditPart({
       <input
         ref={imageInput}
         type="file"
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         multiple
         hidden
         onChange={(e) => {

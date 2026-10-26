@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { deleteDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
+import { decodeImage } from './decodeImage';
 
 // Pictures inside a part. Markdown refers to one as `![](img:ID)`; the picture itself is a
 // shrunk WebP data URL in its own document at users/{uid}/notes/{noteId}/images/{ID} (so the
@@ -29,7 +30,7 @@ const unsaved = new Set<string>(); // prepared here, not in the store yet
 
 /** Shrinks a picture to a WebP data URL small enough for one document. */
 export async function prepareImage(file: Blob): Promise<{ id: string; dataUrl: string }> {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await decodeImage(file);
   let side = MAX_SIDE;
   let quality = 0.82;
   for (;;) {

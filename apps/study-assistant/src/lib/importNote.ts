@@ -1,4 +1,5 @@
 import type { PrepareInput } from './api';
+import { decodeImage, isImageFile } from './decodeImage';
 
 // Turns whatever she picked (pasted text, a Word file, PDFs, photos) into the
 // /prepare request. Word files are converted to HTML in the browser so their
@@ -22,7 +23,7 @@ async function fileToBase64(file: Blob): Promise<string> {
 
 async function shrinkPhoto(file: File): Promise<{ data: string; mimeType: string }> {
   try {
-    const bitmap = await createImageBitmap(file);
+    const bitmap = await decodeImage(file);
     const scale = Math.min(1, MAX_PHOTO_SIDE / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(bitmap.width * scale);
@@ -32,15 +33,14 @@ async function shrinkPhoto(file: File): Promise<{ data: string; mimeType: string
     const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
     if (blob) return { data: await fileToBase64(blob), mimeType: 'image/jpeg' };
   } catch {
-    // Browser can't decode it (e.g. HEIC on Chrome) — Gemini can, send the original.
+    // Couldn't decode it here — Gemini may still read it, send the original.
   }
-  return { data: await fileToBase64(file), mimeType: file.type || 'image/jpeg' };
+  return { data: await fileToBase64(file), mimeType: file.type || (/\.heif$/i.test(file.name) ? 'image/heif' : /\.heic$/i.test(file.name) ? 'image/heic' : 'image/jpeg') };
 }
 
 const isDocx = (f: File) => /\.docx$/i.test(f.name) || f.type.includes('wordprocessingml');
 const isPdf = (f: File) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
 const isText = (f: File) => /^text\//.test(f.type) || /\.(txt|md)$/i.test(f.name);
-const isImage = (f: File) => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name);
 
 export async function inputFromFiles(files: File[]): Promise<PrepareInput> {
   if (files.length === 0) throw new ImportError('no-files');
@@ -60,7 +60,7 @@ export async function inputFromFiles(files: File[]): Promise<PrepareInput> {
   const parts: { data: string; mimeType: string }[] = [];
   for (const f of files) {
     if (isPdf(f)) parts.push({ data: await fileToBase64(f), mimeType: 'application/pdf' });
-    else if (isImage(f)) parts.push(await shrinkPhoto(f));
+    else if (isImageFile(f)) parts.push(await shrinkPhoto(f));
     else throw new ImportError('unsupported');
   }
   const encoded = parts.reduce((n, p) => n + p.data.length * 0.75, 0);

@@ -95,7 +95,7 @@ export const t = {
   partTitle: 'Title',
   newPart: 'New part',
   newPartTitle: 'e.g. Cytoplasm',
-  newPartPlaceholder: 'Type or paste this part, word for word…',
+  newPartPlaceholder: 'Enter your notes here…',
   putIt: 'Put it',
   atStart: 'At the start',
   atEnd: 'At the end',
