@@ -17,10 +17,13 @@ export type Route =
   | { name: 'exam'; examId: string }
   | { name: 'editExam'; examId: string }
   | { name: 'admin'; tab: AdminTab }
-  | { name: 'note'; noteId: string }
+  // `editing`: the parts list in "Edit parts" mode, `?edit`.
+  | { name: 'note'; noteId: string; editing?: boolean }
   // `highlight`: inclusive word range to mark on arrival (from a cram-sheet card), `?hl=start-end`.
   | { name: 'chunk'; noteId: string; index: number; highlight?: [number, number] }
   | { name: 'edit'; noteId: string; index: number }
+  // A new part, to be put at position `at` (0 = first).
+  | { name: 'newPart'; noteId: string; at: number }
   | { name: 'progress'; noteId: string; index: number };
 
 const BASE = import.meta.env.BASE_URL; // "/study-assistant/"
@@ -46,11 +49,13 @@ export function routePath(route: Route): string {
     case 'admin':
       return route.tab === 'feedback' ? `${BASE}admin` : `${BASE}admin/${route.tab}`;
     case 'note':
-      return `${BASE}n/${encodeURIComponent(route.noteId)}`;
+      return `${BASE}n/${encodeURIComponent(route.noteId)}${route.editing ? '?edit' : ''}`;
     case 'chunk':
       return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}${route.highlight ? `?hl=${route.highlight[0]}-${route.highlight[1]}` : ''}`;
     case 'edit':
       return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}/edit`;
+    case 'newPart':
+      return `${BASE}n/${encodeURIComponent(route.noteId)}/new?at=${route.at}`;
     case 'progress':
       return `${BASE}n/${encodeURIComponent(route.noteId)}/${route.index + 1}/progress`;
   }
@@ -83,7 +88,11 @@ export function parseRoute(pathname: string, search = ''): Route {
     }
     if (parts.length === 4 && n > 0 && parts[3] === 'edit') return { name: 'edit', noteId, index: n - 1 };
     if (parts.length === 4 && n > 0 && parts[3] === 'progress') return { name: 'progress', noteId, index: n - 1 };
-    if (parts.length === 2) return { name: 'note', noteId };
+    if (parts.length === 3 && parts[2] === 'new') {
+      const at = Number.parseInt(new URLSearchParams(search).get('at') ?? '', 10);
+      return { name: 'newPart', noteId, at: at >= 0 ? at : Number.MAX_SAFE_INTEGER };
+    }
+    if (parts.length === 2) return new URLSearchParams(search).has('edit') ? { name: 'note', noteId, editing: true } : { name: 'note', noteId };
   }
   return { name: 'home' };
 }

@@ -39,7 +39,7 @@ export default function Study({
   highlight?: [number, number];
   navigate: (r: Route, opts?: { replace?: boolean }) => void;
   onBack: () => void;
-  /** Deletes this part (App leaves this screen first). Absent when it's the note's only part. */
+  /** Deletes this part (App leaves this screen first). Deleting the last one leaves an empty note. */
   onDeletePart?: () => void;
 }) {
   const chunk = note.chunks[index];
@@ -128,6 +128,11 @@ export default function Study({
                 icon: <Icon name="chart" size={20} />,
                 onSelect: () => navigate({ name: 'progress', noteId: note.id, index }),
               },
+              {
+                label: t.addPartAfter,
+                icon: <Icon name="plus" size={20} />,
+                onSelect: () => navigate({ name: 'newPart', noteId: note.id, at: index + 1 }),
+              },
               ...(onDeletePart
                 ? [{ label: t.deletePart, icon: <Icon name="trash" size={20} />, onSelect: () => setConfirmDelete(true), danger: true }]
                 : []),
@@ -156,31 +161,35 @@ export default function Study({
             <Markdown text={chunk.markdown} />
           </div>
         </Paper>
-        <div className="listen-row">
-          <button className={`btn btn-listen ${listen.playing ? 'on' : ''}`} onClick={listen.playing ? listen.stop : listen.start}>
-            {listen.playing ? <Icon name="stop" size={20} /> : <Icon name="sound" size={22} />}
-            {listen.playing ? t.stopListening : t.listen}
-            {listen.loading && (
-              <span className="dots-loader small" aria-hidden>
-                <span />
-                <span />
-                <span />
-              </span>
-            )}
-          </button>
-        </div>
+        {tokens.length > 0 && (
+          <div className="listen-row">
+            <button className={`btn btn-listen ${listen.playing ? 'on' : ''}`} onClick={listen.playing ? listen.stop : listen.start}>
+              {listen.playing ? <Icon name="stop" size={20} /> : <Icon name="sound" size={22} />}
+              {listen.playing ? t.stopListening : t.listen}
+              {listen.loading && (
+                <span className="dots-loader small" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              )}
+            </button>
+          </div>
+        )}
         {listen.failed && <p className="error-text">{t.listenFailed}</p>}
         {rec.error && <p className="error-text">{rec.error === 'mic' ? t.micDenied : t.error}</p>}
         <div className="bottom-action with-biggu">
           <PettableBiggu mood="read" size={84} className="corner-biggu" />
-          <PracticeButton
-            onStart={() => {
-              listen.stop(); // the mic mustn't hear Biggu reading
-              void rec.start();
-            }}
-            hintLimit={hintLimit}
-            onHintLimit={setHintLimit}
-          />
+          {tokens.length > 0 && (
+            <PracticeButton
+              onStart={() => {
+                listen.stop(); // the mic mustn't hear Biggu reading
+                void rec.start();
+              }}
+              hintLimit={hintLimit}
+              onHintLimit={setHintLimit}
+            />
+          )}
         </div>
         <ConfirmDialog
           open={confirmDelete}

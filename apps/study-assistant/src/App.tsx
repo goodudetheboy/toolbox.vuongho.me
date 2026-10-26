@@ -7,6 +7,7 @@ import { useAuth } from './lib/auth';
 import { dropPartFromExams, examsStore } from './lib/exams';
 import { isAdmin } from './lib/feedback';
 import { loadGuideSeen, markGuideSeen } from './lib/guide';
+import { ImageOwner } from './lib/images';
 import { hasLegacyHistory, notesStore, partId } from './lib/notes';
 import { useRoute } from './lib/router';
 import { touchProfile } from './lib/usage';
@@ -221,7 +222,7 @@ export default function App() {
     return <CramSheet key={exam.id} user={user} exam={exam} notes={notes} navigate={navigate} onBack={() => goBack(examsHome)} />;
   }
 
-  if (route.name === 'note' || route.name === 'chunk' || route.name === 'edit' || route.name === 'progress') {
+  if (route.name === 'note' || route.name === 'chunk' || route.name === 'edit' || route.name === 'progress' || route.name === 'newPart') {
     const note = notes?.find((n) => n.id === route.noteId);
     if (!notes) {
       return (
@@ -230,7 +231,7 @@ export default function App() {
         </main>
       );
     }
-    if (!note || (route.name !== 'note' && !note.chunks[route.index])) {
+    if (!note || (route.name !== 'note' && route.name !== 'newPart' && !note.chunks[route.index])) {
       return (
         <main className="screen center">
           <Biggu mood="think" size={160} />
@@ -241,24 +242,27 @@ export default function App() {
         </main>
       );
     }
-    if (route.name === 'edit') {
-      const back = { name: 'chunk', noteId: note.id, index: route.index } as const;
+    if (route.name === 'edit' || route.name === 'newPart') {
+      const back = route.name === 'edit' ? ({ name: 'chunk', noteId: note.id, index: route.index } as const) : ({ name: 'note', noteId: note.id } as const);
       return (
-        <Suspense
-          fallback={
-            <main className="screen center">
-              <Biggu mood="think" size={160} className="bob" />
-            </main>
-          }
-        >
-          <EditPart
-            key={`${note.id}-${route.index}`}
-            user={user}
-            note={note}
-            index={route.index}
-            onDone={() => goBack(back)}
-          />
-        </Suspense>
+        <ImageOwner.Provider value={{ uid: user.uid, noteId: note.id }}>
+          <Suspense
+            fallback={
+              <main className="screen center">
+                <Biggu mood="think" size={160} className="bob" />
+              </main>
+            }
+          >
+            <EditPart
+              key={route.name === 'edit' ? `${note.id}-${route.index}` : `${note.id}-new`}
+              user={user}
+              note={note}
+              index={route.name === 'edit' ? route.index : undefined}
+              at={route.name === 'newPart' ? route.at : undefined}
+              onDone={() => goBack(back)}
+            />
+          </Suspense>
+        </ImageOwner.Provider>
       );
     }
     if (route.name === 'progress') {
@@ -274,29 +278,27 @@ export default function App() {
     }
     if (route.name === 'chunk') {
       return (
-        <Study
-          key={`${note.id}-${route.index}`}
-          user={user}
-          note={note}
-          index={route.index}
-          highlight={route.highlight}
-          navigate={navigate}
-          onBack={() => goBack({ name: 'note', noteId: note.id })}
-          onDeletePart={
-            note.chunks.length > 1
-              ? () => {
-                  const index = route.index;
-                  const id = partId(note, index);
-                  // Leave first, so this screen never shows the part that slides into this slot.
-                  goBack({ name: 'note', noteId: note.id });
-                  void Promise.all([
-                    notesStore.deleteChunk(user.uid, note, index),
-                    dropPartFromExams(user.uid, exams ?? [], note.id, id),
-                  ]).catch(() => {});
-                }
-              : undefined
-          }
-        />
+        <ImageOwner.Provider value={{ uid: user.uid, noteId: note.id }}>
+          <Study
+            key={`${note.id}-${route.index}`}
+            user={user}
+            note={note}
+            index={route.index}
+            highlight={route.highlight}
+            navigate={navigate}
+            onBack={() => goBack({ name: 'note', noteId: note.id })}
+            onDeletePart={() => {
+              const index = route.index;
+              const id = partId(note, index);
+              // Leave first, so this screen never shows the part that slides into this slot.
+              goBack({ name: 'note', noteId: note.id });
+              void Promise.all([
+                notesStore.deleteChunk(user.uid, note, index),
+                dropPartFromExams(user.uid, exams ?? [], note.id, id),
+              ]).catch(() => {});
+            }}
+          />
+        </ImageOwner.Provider>
       );
     }
     return (
@@ -305,8 +307,9 @@ export default function App() {
         note={note}
         exams={exams ?? []}
         fidelityWarning={fidelityWarningFor === note.id}
+        editing={route.editing}
         navigate={navigate}
-        onBack={() => goBack(home)}
+        onBack={() => goBack(route.editing ? { name: 'note', noteId: note.id } : home)}
       />
     );
   }

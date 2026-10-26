@@ -186,7 +186,7 @@ export default function Home({
               </span>
               <div className={`polaroid-photo tint-${i % 5} ${score !== undefined ? 'has-score' : ''}`}>
                 <span className="polaroid-initial hand" aria-hidden>
-                  {[...n.subject.trim()][0]?.toUpperCase() ?? '?'}
+                  {[...(n.subject.trim() || n.title.trim())][0]?.toUpperCase() ?? '?'}
                 </span>
                 {score !== undefined && (
                   <span className="polaroid-stamp">
@@ -197,7 +197,7 @@ export default function Home({
               <div className="polaroid-body">
                 <div className="polaroid-caption hand">{n.title}</div>
                 <div className="polaroid-meta">
-                  <span className="subject-chip">{n.subject}</span>
+                  {n.subject && <span className="subject-chip">{n.subject}</span>}
                   <span className="parts-count">{t.parts(n.chunks.length)}</span>
                 </div>
               </div>

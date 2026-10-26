@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
+import { imageIdFromSrc } from './images';
 
 // Markdown ⇄ HTML for the rich-text editor. Markdown stays the stored format;
 // the rich editor is a contenteditable view of it, converted back on save.
@@ -11,12 +12,23 @@ const ALLOWED = new Set([
   'UL', 'OL', 'LI', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'CODE', 'HR', 'A', 'DIV', 'SPAN',
 ]);
 
-/** Keeps only formatting tags and drops every attribute (no scripts, handlers or styles). */
+/**
+ * Keeps only formatting tags and drops every attribute (no scripts, handlers or styles).
+ * Our own pictures survive as a bare `<img src="img:ID">` (the editor shows them with a
+ * data URL and keeps the id in data-img); any other image is dropped.
+ */
 function sanitize(html: string): string {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
   const walk = (el: Element) => {
     for (const child of [...el.children]) {
       walk(child);
+      if (child.tagName === 'IMG') {
+        const id = (child as HTMLElement).dataset.img ?? imageIdFromSrc(child.getAttribute('src'));
+        for (const attr of [...child.attributes]) child.removeAttribute(attr.name);
+        if (id) child.setAttribute('src', `img:${id}`);
+        else child.remove();
+        continue;
+      }
       if (!ALLOWED.has(child.tagName)) {
         if (['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT'].includes(child.tagName)) child.remove();
         else child.replaceWith(...child.childNodes);
@@ -35,6 +47,13 @@ export function markdownToHtml(md: string): string {
 
 const turndown = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', emDelimiter: '*', strongDelimiter: '**' });
 turndown.use(gfm);
+turndown.addRule('noteImage', {
+  filter: 'img',
+  replacement: (_content, node) => {
+    const id = imageIdFromSrc((node as HTMLElement).getAttribute('src'));
+    return id ? `![](img:${id})` : '';
+  },
+});
 
 export function htmlToMarkdown(html: string): string {
   return turndown

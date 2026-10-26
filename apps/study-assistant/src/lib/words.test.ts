@@ -67,3 +67,19 @@ test('tokenize flags bold words without changing the word list', () => {
     markdownLines(md.split('\n').slice(1).join('\n')).join(' ').split(/\s+/),
   );
 });
+
+test('pasted pictures are not words to recite', () => {
+  const withPics = 'Cells divide.\n\n![](img:abc123)\n\nThen they ![](img:x9) grow.';
+  assert.deepEqual(
+    tokenize(withPics).map((t) => t.display),
+    ['Cells', 'divide.', 'Then', 'they', 'grow.'],
+  );
+  assert.deepEqual(tokenize('![](img:only)'), []);
+});
+
+test('a heading plus only pictures recites the heading', () => {
+  assert.deepEqual(
+    tokenize('## Cell diagram\n\n![](img:abc)').map((t) => t.display),
+    ['Cell', 'diagram'],
+  );
+});

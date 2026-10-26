@@ -58,6 +58,19 @@ deviate. A cross-reference from an app-level ADR to a root one (or vice
 versa) is written out explicitly as "toolbox-wide" so it's clear when a
 reference crosses that boundary.
 
+## New features must fit the existing ones — raise conflicts, don't decide them
+
+When adding a feature to a tool, check how it interacts with everything that
+tool already does, not just the screen you're touching: trace every place the
+data it adds or changes flows (stored data and its keys, scoring/grading,
+caches and hashes, other screens that list or count the same things, deletes
+and cleanup, offline/mock modes). Fix the plain fits yourself and say what you
+checked. Where the new feature genuinely conflicts with existing behavior, or
+the fix means changing how something already works (e.g. relaxing an old
+invariant, invalidating stored data, a UX trade-off), **bring it up with the
+user** — what conflicts, the options, and your recommendation — and let them
+decide before building it. Don't quietly pick a resolution.
+
 ## Progress logging — one file per day, not per session
 
 `docs/progress/YYYYMMDD.md` — **one file per calendar day**, not one per

@@ -549,3 +549,34 @@ right.
   row is gone. The Practice button is split: the right end shows the limit
   ("5 💡 ⌄") and opens a menu of the limits upward (`PracticeButton.tsx`). Still a
   per-device localStorage setting.
+
+## Addendum 2026-10-26 — editing parts, empty notes, pictures in parts
+
+- **Edit parts.** The note's ⋯ menu has "Edit parts" (`/n/<id>?edit`, its own history
+  entry, so Back leaves it): each part card gets edit / delete, ▲▼ to move it, and a
+  small + between cards inserts a new part there. A dashed "Add a part" card ends the
+  list, and a part's own ⋯ menu has "Add a part after this". A new part uses the
+  existing editor (`EditPart` with no index, `/n/<id>/new?at=k`) plus a "Put it" picker.
+  Moving and inserting are plain rewrites of the chunks array (`insertChunk`,
+  `moveChunk` in `notes.ts`); nothing per-part moves because it's all keyed by part id
+  (the 2026-10-07 "part ids" addendum).
+- **Empty notes.** New note → "Start empty" asks only a name and optional subject and
+  skips Gemini; she adds the parts herself. A note may now have **zero parts** (so
+  deleting the last part is allowed too): the note shows a "No parts yet" card,
+  empty notes are left out of exam picking, and Home falls back to the title's
+  initial when there's no subject.
+- **Pictures in parts.** Paste, drag-and-drop, or the 🖼 toolbar button. Each picture
+  is shrunk on the device to a WebP data URL ≤ ~600 KB (`lib/images.ts`) and stored as
+  its own document at `users/{uid}/notes/{noteId}/images/{id}`; markdown refers to it
+  as `![](img:ID)`. Chosen over Firebase Storage because the existing
+  `notes/{noteId}/{path=**}` rule already covers it (no new rules, bucket or CI step),
+  and Firestore's offline cache keeps pictures on the device; inline data URLs in the
+  note document were ruled out by the 1 MiB document limit. Pictures are stored only
+  on save (cancel leaves nothing behind) and deleted with their part or note, or when
+  removed in the editor.
+- **Pictures are invisible to grading.** `tokenize()` turns an image into its alt text,
+  always empty, so `/score`, `/hint`, `/tag`, Listen and the live speech hints never see
+  one. `textHash()` ignores picture references (text without pictures hashes exactly
+  as before), so adding or removing a picture doesn't hide past tries' colored words
+  or re-tag the part. A heading plus only pictures recites the heading, like a
+  heading-only part; a part with no words at all hides Practice and Listen.

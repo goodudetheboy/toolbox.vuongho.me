@@ -40,7 +40,7 @@ export default function ExamForm({
 
   const q = query.trim().toLowerCase();
   const shown = useMemo(
-    () => notes.filter((n) => !q || `${n.title} ${n.subject}`.toLowerCase().includes(q)),
+    () => notes.filter((n) => n.chunks.length > 0 && (!q || `${n.title} ${n.subject}`.toLowerCase().includes(q))),
     [notes, q],
   );
   const pickOf = (id: string) => picks.find((p) => p.noteId === id);
@@ -139,7 +139,7 @@ export default function ExamForm({
                       <span className={`pick-circle ${on ? 'on' : ''}`}>{on && <Icon name="check" size={24} />}</span>
                       <span className="pick-text">
                         <span className="index-title">{n.title}</span>
-                        <span className="pick-subject">{n.subject}</span>
+                        {n.subject && <span className="pick-subject">{n.subject}</span>}
                       </span>
                     </button>
                     <button

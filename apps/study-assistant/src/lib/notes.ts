@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MOCK } from './mock';
+import { deleteImages, imageIds } from './images';
 import { deleteTags } from './tags';
 import type { Attempt, Chunk, NewNote, Note } from './types';
 
@@ -45,7 +46,7 @@ interface NotesStore {
   migrateLegacyHistory(uid: string, note: Note): Promise<void>;
   updateNote(uid: string, id: string, patch: Partial<Pick<Note, 'title' | 'chunks'>>): Promise<void>;
   deleteNote(uid: string, note: Note): Promise<void>;
-  /** Deletes part `index` (never the only one) with its attempts and exam tags. Nothing else moves. */
+  /** Deletes part `index` with its attempts, exam tags and pictures. Nothing else moves. */
   deleteChunk(uid: string, note: Note, index: number): Promise<void>;
 }
 
@@ -163,10 +164,11 @@ const firestoreStore: NotesStore = {
       }
     }
     await deleteTags(uid, note.id, note.chunks.map((_, i) => partId(note, i)));
+    await deleteImages(uid, note.id, note.chunks.flatMap((c) => imageIds(c.markdown)));
     await deleteDoc(doc(db, 'users', uid, 'notes', note.id));
   },
   async deleteChunk(uid, note, index) {
-    if (note.chunks.length < 2 || !note.chunks[index]) return;
+    if (!note.chunks[index]) return;
     const id = partId(note, index);
     // withIds first: the other old parts keep their position-based ids even though positions shift.
     await updateDoc(doc(db, 'users', uid, 'notes', note.id), {
@@ -180,6 +182,7 @@ const firestoreStore: NotesStore = {
       await batch.commit();
     }
     await deleteTags(uid, note.id, [id]);
+    await deleteImages(uid, note.id, imageIds(note.chunks[index].markdown));
   },
 };
 
@@ -203,7 +206,24 @@ function mockWrite(key: string, value: unknown) {
     // ignore
   }
 }
-const mockLoad = () => mockRead<Note[]>(MOCK_KEY, []);
+// A first visit gets one sample note, so the screens can be tried without making one.
+const MOCK_SAMPLE: Note[] = [
+  {
+    id: 'sample',
+    title: 'Cell structure',
+    subject: 'Biology',
+    glossary: [],
+    createdAt: 0,
+    updatedAt: 0,
+    chunks: [
+      { id: 'a', title: 'The cell membrane', markdown: 'The cell membrane is a **phospholipid bilayer** that controls what enters and leaves the cell.\n\nIt is **selectively permeable**: small, non-polar molecules pass through easily, while ions need **transport proteins**.', bestScore: 86, lastScore: 86, tries: 1 },
+      { id: 'b', title: 'Nucleus and DNA', markdown: 'The **nucleus** holds the cell\'s **DNA**, wrapped around proteins as **chromatin**.\n\nIts double membrane, the **nuclear envelope**, has **pores** that let RNA out.' },
+      { id: 'c', title: 'Mitochondria', markdown: '**Mitochondria** make most of the cell\'s **ATP** through **aerobic respiration**.\n\nThey have their own **circular DNA**.' },
+      { id: 'd', title: 'Ribosomes and the ER', markdown: '**Ribosomes** build proteins. On the **rough ER** they make proteins for export; the **smooth ER** makes **lipids**.' },
+    ],
+  },
+];
+const mockLoad = () => mockRead<Note[]>(MOCK_KEY, MOCK_SAMPLE);
 function mockSave(notes: Note[]) {
   mockWrite(MOCK_KEY, notes);
   listeners.forEach((l) => l());
@@ -263,17 +283,37 @@ const mockStore: NotesStore = {
     for (const key of Object.keys(all)) if (key.startsWith(`${note.id}/`)) delete all[key];
     mockWrite(MOCK_ATTEMPTS_KEY, all);
     await deleteTags(_uid, note.id, note.chunks.map((_, i) => partId(note, i)));
+    await deleteImages(_uid, note.id, note.chunks.flatMap((c) => imageIds(c.markdown)));
     mockSave(mockLoad().filter((n) => n.id !== note.id));
   },
   async deleteChunk(uid, note, index) {
-    if (note.chunks.length < 2 || !note.chunks[index]) return;
+    if (!note.chunks[index]) return;
     const id = partId(note, index);
     mockUpdate(note.id, (n) => ({ ...n, chunks: withIds(n.chunks).filter((_, i) => i !== index), updatedAt: Date.now() }));
     const all = mockRead<MockAttempts>(MOCK_ATTEMPTS_KEY, {});
     delete all[`${note.id}/${id}`];
     mockWrite(MOCK_ATTEMPTS_KEY, all);
     await deleteTags(uid, note.id, [id]);
+    await deleteImages(uid, note.id, imageIds(note.chunks[index].markdown));
   },
 };
 
 export const notesStore: NotesStore = MOCK ? mockStore : firestoreStore;
+
+/** Adds a new part at position `at` (0 = first); the parts after it shift down one. */
+export async function insertChunk(uid: string, note: Note, at: number, chunk: Pick<Chunk, 'title' | 'markdown'>): Promise<string> {
+  const id = newPartId();
+  const chunks = withIds(note.chunks);
+  chunks.splice(Math.max(0, Math.min(at, chunks.length)), 0, { ...chunk, id });
+  await notesStore.updateNote(uid, note.id, { chunks });
+  return id;
+}
+
+/** Moves part `from` to position `to`. Its tries and tags follow it (they're keyed by id). */
+export async function moveChunk(uid: string, note: Note, from: number, to: number): Promise<void> {
+  if (from === to || !note.chunks[from] || to < 0 || to >= note.chunks.length) return;
+  const chunks = withIds(note.chunks);
+  const [moved] = chunks.splice(from, 1);
+  chunks.splice(to, 0, moved);
+  await notesStore.updateNote(uid, note.id, { chunks });
+}

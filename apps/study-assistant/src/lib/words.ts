@@ -58,7 +58,8 @@ export function tokenize(md: string): Token[] {
     .filter((l) => !/^\s{0,3}#{1,6}\s/.test(l))
     .join('\n');
   const tokens: Token[] = [];
-  markdownLines(body.trim() ? body : md, true).forEach((line, lineIndex) => {
+  // A pasted picture (`![](img:ID)`) isn't content: a heading plus only pictures recites the heading.
+  markdownLines(body.replace(/!\[[^\]]*\]\([^)]*\)/g, '').trim() ? body : md, true).forEach((line, lineIndex) => {
     let bold = false; // bold doesn't carry across lines
     for (const piece of line.split(/\s+/)) {
       const marks = piece.split(BOLD).length - 1;
