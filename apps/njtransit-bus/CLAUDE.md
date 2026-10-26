@@ -52,7 +52,7 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   API's `debug` fields), with COPY (the whole response as text) for pasting into a debug session.
 - `src/screens/Settings.tsx` — the settings sheet behind the gear next to the
   nerd button: switches for what each bus also shows (how full, as a row of
-  people from BUSDV2's `passload`; the tracking number), each explained behind an info button, with a preview of two
+  people from BUSDV2's `passload`, else the GPS feed's occupancy; the tracking number), each explained behind an info button, with a preview of two
   tiles stuck to its bottom. Kept in `localStorage` (`saved.ts`), both off by default.
 - `src/screens/Tile.tsx` — one bus in the list (also the settings preview), plus `Crowd`.
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).

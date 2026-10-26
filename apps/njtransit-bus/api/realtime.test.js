@@ -42,11 +42,18 @@ test('buses that reported recently, with their trip and position', () => {
     new DataView(b.buffer).setFloat32(0, x, true);
     return [...varint(field * 8 + 5), ...b];
   };
-  const vehicle = (trip, id, ts) =>
+  const vehicle = (trip, id, ts, occ = []) =>
     bytes(2, [
       ...str(1, 'v'),
-      ...bytes(4, [...bytes(1, [...str(1, trip)]), ...bytes(2, [...f32(1, 40.5), ...f32(2, -74.25)]), ...num(5, ts), ...bytes(8, [...str(1, id)])]),
+      ...bytes(4, [...bytes(1, [...str(1, trip)]), ...bytes(2, [...f32(1, 40.5), ...f32(2, -74.25)]), ...num(5, ts), ...bytes(8, [...str(1, id)]), ...occ]),
     ]);
-  const out = parseVehicles(feed(vehicle('1', '21308', 1000), vehicle('2', '22038', 800)), 900 * 1000);
-  assert.deepEqual([...out], [['1', { vehicle: '21308', lat: 40.5, lon: -74.25, at: 1000000 }]]);
+  const out = parseVehicles(
+    feed(vehicle('1', '21308', 1000, num(9, 5)), vehicle('2', '22038', 800), vehicle('3', '7294', 1000, num(9, 7)), vehicle('4', '33', 1000, num(9, 2))),
+    900 * 1000,
+  );
+  assert.deepEqual([...out], [
+    ['1', { vehicle: '21308', lat: 40.5, lon: -74.25, at: 1000000, load: 'FULL' }],
+    ['3', { vehicle: '7294', lat: 40.5, lon: -74.25, at: 1000000, load: null }],
+    ['4', { vehicle: '33', lat: 40.5, lon: -74.25, at: 1000000, load: 'HALF_EMPTY' }],
+  ]);
 });

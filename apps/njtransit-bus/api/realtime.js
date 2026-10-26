@@ -98,8 +98,13 @@ export function parseTripUpdates(buf) {
   return out;
 }
 
-// protobuf bytes → Map(trip id → { vehicle, lat, lon, at }) for buses that
-// reported their position since `sinceMs`.
+// GTFS-realtime occupancy_status → BUSDV2's passload words. NJ Transit only
+// sends FEW_SEATS_AVAILABLE and FULL; on the buses both feeds cover they match
+// BUSDV2's HALF_EMPTY and FULL every time.
+const OCCUPANCY = ['EMPTY', 'EMPTY', 'HALF_EMPTY', 'FULL', 'FULL', 'FULL'];
+
+// protobuf bytes → Map(trip id → { vehicle, lat, lon, at, load }) for buses
+// that reported their position since `sinceMs`.
 export function parseVehicles(buf, sinceMs) {
   const out = new Map();
   reader(buf).each((f, w, entity) => {
@@ -111,6 +116,7 @@ export function parseVehicles(buf, sinceMs) {
       let lat = null;
       let lon = null;
       let at = 0;
+      let load = null;
       reader(buf, ...vp).each((f, w, v) => {
         if (f === 1 && w === 2) {
           reader(buf, ...v).each((f, w, x) => {
@@ -126,8 +132,9 @@ export function parseVehicles(buf, sinceMs) {
             if (f === 1 && w === 2) vehicle = str(buf, x);
           });
         } else if (f === 5 && w === 0) at = v * 1000;
+        else if (f === 9 && w === 0) load = OCCUPANCY[v] ?? null;
       });
-      if (trip && at >= sinceMs) out.set(trip, { vehicle, lat, lon, at });
+      if (trip && at >= sinceMs) out.set(trip, { vehicle, lat, lon, at, load });
     });
   });
   return out;

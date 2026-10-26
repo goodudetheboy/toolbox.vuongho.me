@@ -175,8 +175,9 @@ async function departures(fromCode, toCode, debug = false) {
       scheduled: d.scheduled,
       live: tracked,
       gate: v?.gate || d.gate,
-      // EMPTY / HALF_EMPTY / FULL; BUSDV2 says "no data" when it has none.
-      load: v?.live && /^[A-Z_]+$/.test(v.load || '') ? v.load : null,
+      // EMPTY / HALF_EMPTY / FULL from BUSDV2 ("no data" when it has none),
+      // else from the bus's GPS report, which carries it for nearly every bus.
+      load: (v?.live && /^[A-Z_]+$/.test(v.load || '') ? v.load : null) ?? (tracked ? gps?.load : null) ?? null,
       vehicle: v?.vehicle ?? gps?.vehicle ?? null,
       stop: d.stop,
       ...(debug && { debug: busDebug(data, d, v, p, gps, source) }),

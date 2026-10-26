@@ -52,7 +52,9 @@ hour; the board added 4 more from the timetable. Checking:
 
 - ~2 MB downloaded and parsed per 15 s while anyone is looking, instead of
   only per-stop BUSDV2 calls.
-- Buses added this way have no load (fullness) or BUSDV2 gate; gates fall back
-  to the timetable's.
+- Buses added this way have no BUSDV2 gate; gates fall back to the
+  timetable's. (Addendum 2026-10-26: they do have a load after all: vehicle
+  positions carry `occupancy_status` for nearly every bus, FEW_SEATS_AVAILABLE
+  and FULL matching BUSDV2's HALF_EMPTY and FULL; see `realtime.js`.)
 - The board can list more tracked buses than NJ Transit's own app does; that's
   the point, and the extra ones are backed by GPS.
