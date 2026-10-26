@@ -157,10 +157,7 @@ export default function NoteView({
       {note.chunks.length === 0 && (
         <Paper tilt={-0.6} tape="lilac" className="no-parts">
           <Biggu mood="think" size={96} />
-          <div>
-            <p className="hand no-parts-title">{t.noParts}</p>
-            <p className="muted no-parts-body">{t.noPartsBody}</p>
-          </div>
+          <p className="hand no-parts-title">{t.noParts}</p>
         </Paper>
       )}
 

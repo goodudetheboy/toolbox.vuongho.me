@@ -3095,11 +3095,6 @@ html[data-nav='back']::view-transition-new(screen) { animation-name: screen-in-l
   color: var(--sky-ink);
 }
 
-.no-parts-body {
-  margin: 4px 0 0;
-  font-weight: 700;
-}
-
 /* ---------- pictures in parts (lib/images.ts): little photo prints */
 
 .md img,

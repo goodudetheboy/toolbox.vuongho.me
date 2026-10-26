@@ -50,7 +50,6 @@ export const t = {
   noteSubjectPlaceholder: 'e.g. Biology',
   createNote: 'Create note',
   noParts: 'No parts yet',
-  noPartsBody: 'Add your first part: type it or paste it in, pictures too.',
   pastePlaceholder: 'Paste your note here…',
   pickedFiles: (n: number) => (n === 1 ? '1 file' : `${n} files`),
   addPhoto: 'Add photo',
