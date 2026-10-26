@@ -73,7 +73,7 @@ export interface Settings {
 }
 
 const SETTINGS_KEY = 'njtransit-bus:settings';
-const DEFAULT_SETTINGS: Settings = { busId: false, crowd: false };
+const DEFAULT_SETTINGS: Settings = { busId: false, crowd: true };
 
 export function loadSettings(): Settings {
   try {
