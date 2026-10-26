@@ -68,7 +68,7 @@ export const toSaved = ({ code, name, routes, headsigns }: Stop | SavedStop): Sa
 export interface Settings {
   /** The bus's tracking number, e.g. TRACKING #6386. */
   busId: boolean;
-  /** Three people on a full bus. */
+  /** How full it is, as a row of people. */
   crowd: boolean;
 }
 
