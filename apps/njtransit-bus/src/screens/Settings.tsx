@@ -29,8 +29,8 @@ function InfoIcon() {
 }
 
 const OPTIONS: { key: keyof SettingsT; title: string; text: string }[] = [
-  { key: 'crowd', title: 'HOW FULL', text: 'One person empty, two half full, three full. Only on buses NJ Transit tracks.' },
-  { key: 'busId', title: 'TRACKING #', text: 'The number on the bus itself, when NJ Transit knows which one it is.' },
+  { key: 'crowd', title: 'HOW FULL', text: 'Two people: seats left. Three: full.' },
+  { key: 'busId', title: 'TRACKING #', text: 'The number on the bus itself.' },
 ];
 
 interface Props {
