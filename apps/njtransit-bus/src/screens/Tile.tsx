@@ -68,7 +68,7 @@ export default function Tile({ bus, now, solid, next, from, settings }: Props) {
           <div className="sub head">{bus.stop.code !== from ? `FROM ${shortName(bus.stop.name)}` : bus.headsign}</div>
         )}
         {settings.crowd && <Crowd load={bus.load} />}
-        {settings.busId && bus.vehicle && <div className="sub">BUS #{bus.vehicle}</div>}
+        {settings.busId && bus.vehicle && <div className="sub">TRACKING #{bus.vehicle}</div>}
         {!bus.live && <div className="sched-tag">SCHED</div>}
       </div>
     </div>

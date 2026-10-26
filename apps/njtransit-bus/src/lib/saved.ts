@@ -66,7 +66,7 @@ export const toSaved = ({ code, name, routes, headsigns }: Stop | SavedStop): Sa
 
 // What the board's tiles show besides the time and route (the settings sheet).
 export interface Settings {
-  /** The bus's number, e.g. BUS #6386. */
+  /** The bus's tracking number, e.g. TRACKING #6386. */
   busId: boolean;
   /** How full it is, as a row of people. */
   crowd: boolean;

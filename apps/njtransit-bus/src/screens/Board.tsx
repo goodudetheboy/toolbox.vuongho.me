@@ -208,7 +208,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
                 {((settings.crowd && first.load) || (settings.busId && first.vehicle)) && (
                   <div className="hero-extras">
                     {settings.crowd && <Crowd load={first.load} />}
-                    {settings.busId && first.vehicle && <span className="small">BUS #{first.vehicle}</span>}
+                    {settings.busId && first.vehicle && <span className="small">TRACKING #{first.vehicle}</span>}
                   </div>
                 )}
                 {first.gate && (

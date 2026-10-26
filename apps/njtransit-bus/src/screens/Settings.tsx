@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Bus } from '../lib/api';
 import type { Settings as SettingsT } from '../lib/saved';
 import Tile from './Tile';
@@ -17,9 +18,19 @@ export function GearIcon() {
   );
 }
 
+function InfoIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 11v6" strokeLinecap="square" />
+      <circle cx="12" cy="7.2" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 const OPTIONS: { key: keyof SettingsT; title: string; text: string }[] = [
-  { key: 'crowd', title: 'HOW FULL', text: 'A row of people: one empty, two half full, three full. Only for buses NJ Transit’s app tracks.' },
-  { key: 'busId', title: 'BUS NUMBER', text: 'The number painted on the bus, when NJ Transit knows which bus it is.' },
+  { key: 'crowd', title: 'HOW FULL', text: 'One person empty, two half full, three full. Only on buses NJ Transit tracks.' },
+  { key: 'busId', title: 'TRACKING #', text: 'The number on the bus itself, when NJ Transit knows which one it is.' },
 ];
 
 interface Props {
@@ -33,6 +44,8 @@ interface Props {
 }
 
 export default function Settings({ settings, onChange, sample, from, now, onClose }: Props) {
+  // Which option's explanation is showing (tap the info button to toggle).
+  const [info, setInfo] = useState<keyof SettingsT | null>(null);
   const base: Bus = {
     trip: 'preview',
     route: sample?.route ?? '125',
@@ -61,15 +74,31 @@ export default function Settings({ settings, onChange, sample, from, now, onClos
 
       <div className="small settings-group">ON EVERY BUS</div>
       {OPTIONS.map((o) => (
-        <button key={o.key} className="toggle" role="switch" aria-checked={settings[o.key]} onClick={() => onChange({ ...settings, [o.key]: !settings[o.key] })}>
-          <span className="toggle-text">
-            <strong>{o.title}</strong>
-            <span>{o.text}</span>
-          </span>
-          <span className={`switch${settings[o.key] ? ' on' : ''}`} aria-hidden="true">
+        <div key={o.key} className="toggle">
+          <div className="toggle-text">
+            <div className="toggle-title">
+              <strong>{o.title}</strong>
+              <button
+                className="info"
+                onClick={() => setInfo(info === o.key ? null : o.key)}
+                aria-label={`What is ${o.title}?`}
+                aria-expanded={info === o.key}
+              >
+                <InfoIcon />
+              </button>
+            </div>
+            {info === o.key && <div className="tip">{o.text}</div>}
+          </div>
+          <button
+            className={`switch${settings[o.key] ? ' on' : ''}`}
+            role="switch"
+            aria-checked={settings[o.key]}
+            aria-label={o.title}
+            onClick={() => onChange({ ...settings, [o.key]: !settings[o.key] })}
+          >
             <span />
-          </span>
-        </button>
+          </button>
+        </div>
       ))}
 
       <div className="settings-preview">
