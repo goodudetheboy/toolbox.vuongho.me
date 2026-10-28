@@ -89,10 +89,18 @@ const normalize = (s) =>
 
 // "156 ENGLEWOOD CLIFFS VIA PARK AVE" → "ENGLEWOOD CLIFFS VIA PARK AVE"
 export function cleanHeadsign(headsign, route) {
+  return splitHeadsign(headsign, route).headsign;
+}
+
+// The route as riders know it: a lettered variant leading the headsign ("159X
+// NEW YORK 60TH STREET EXPRESS") is its own bus, though GTFS files it under 159.
+export function splitHeadsign(headsign, route) {
   const h = (headsign || '').trim().replace(/\s+/g, ' ');
   const lead = h.split(' ')[0];
-  if (route && (lead === route || lead.replace(/[A-Z]+$/, '') === route)) return h.slice(lead.length).trim() || h;
-  return h;
+  if (route && (lead === route || lead.replace(/[A-Z]+$/, '') === route)) {
+    return { route: lead, headsign: h.slice(lead.length).trim() || h };
+  }
+  return { route, headsign: h };
 }
 
 export function loadGtfs(zipBytes) {
@@ -132,12 +140,15 @@ export function loadGtfs(zipBytes) {
     routeName.set(f[c.route_id], (f[c.route_short_name] || f[c.route_long_name] || f[c.route_id]).trim());
   });
 
-  const trips = []; // { id, route, headsign, service }
+  // `route` is what's shown (159X); `line` is GTFS's route (159), for telling
+  // which stops nearby share a route.
+  const trips = []; // { id, route, line, headsign, service }
   const tripIndex = new Map();
   eachRow(text('trips.txt'), (f, c) => {
     tripIndex.set(f[c.trip_id], trips.length);
-    const route = routeName.get(f[c.route_id]) || f[c.route_id];
-    trips.push({ id: f[c.trip_id], route, headsign: cleanHeadsign(f[c.trip_headsign], route), service: f[c.service_id] });
+    const line = routeName.get(f[c.route_id]) || f[c.route_id];
+    const { route, headsign } = splitHeadsign(f[c.trip_headsign], line);
+    trips.push({ id: f[c.trip_id], route, line, headsign, service: f[c.service_id] });
   });
 
   // stop_times, as parallel typed arrays sorted by (trip, sequence).
@@ -202,7 +213,7 @@ export function loadGtfs(zipBytes) {
   const fill = stopPosStart.slice(0, stops.length);
   for (let i = 0; i < n; i++) {
     stopPos[fill[sStop[i]]++] = i;
-    stops[sStop[i]].served.add(trips[sTrip[i]].route);
+    stops[sStop[i]].served.add(trips[sTrip[i]].line);
     const last = i + 1 === n || sTrip[i + 1] !== sTrip[i];
     if (last) continue;
     const trip = trips[sTrip[i]];

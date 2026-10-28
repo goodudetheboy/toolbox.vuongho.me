@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { strToU8, zipSync } from 'fflate';
-import { cleanHeadsign, loadGtfs } from './gtfs.js';
+import { cleanHeadsign, loadGtfs, splitHeadsign } from './gtfs.js';
 import { nyDate, nyTime, parseDvClock, parseDvDateTime, serviceDayStart } from './time.js';
 
 const csv = (rows) => strToU8(rows.join('\n') + '\n');
@@ -78,6 +78,8 @@ test('headsigns drop the leading route number', () => {
   assert.equal(cleanHeadsign('156 ENGLEWOOD CLIFFS VIA PARK AVE', '156'), 'ENGLEWOOD CLIFFS VIA PARK AVE');
   assert.equal(cleanHeadsign('159R NEW YORK', '159'), 'NEW YORK');
   assert.equal(cleanHeadsign('NEW YORK', '159'), 'NEW YORK');
+  assert.deepEqual(splitHeadsign('159X NEW YORK 60TH STREET EXPRESS', '159'), { route: '159X', headsign: 'NEW YORK 60TH STREET EXPRESS' });
+  assert.deepEqual(splitHeadsign('NEW YORK', '159'), { route: '159', headsign: 'NEW YORK' });
 });
 
 test('stop search matches words in any order and abbreviations', () => {
