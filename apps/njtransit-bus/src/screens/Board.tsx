@@ -11,6 +11,7 @@ import {
   type Settings as SettingsT,
   type Trip,
 } from '../lib/saved';
+import Alerts, { AlertBanner } from './Alerts';
 import NameSheet from './NameSheet';
 import Settings, { GearIcon } from './Settings';
 import Stats, { NerdIcon } from './Stats';
@@ -93,6 +94,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const [naming, setNaming] = useState(false);
   const [settings, setSettings] = useState(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const saved = bookmark !== null;
 
   // Saving keeps the bookmark's place in the list when it's only being renamed.
@@ -144,13 +146,15 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const buses = (data?.buses ?? []).filter((b) => b.at >= now - 60 * 1000);
   const first = buses[0];
   const anyLive = buses.some((b) => b.live);
+  const alerts = data?.alerts ?? [];
   const fromName = data?.from.name ?? from.name;
   const toName = data?.to.name ?? to.name;
 
   return (
     <div className={`screen${trip.back ? ' back' : ''}`} onPointerUp={onTap}>
       <div className="scroller" ref={scroller}>
-        <section className="hero">
+        <section className={`hero${alerts.length ? ' with-alerts' : ''}`}>
+          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => setAlertsOpen(true)} />}
           <div className="top">
             <div className="where-wrap">
               {bookmark?.title && (
@@ -274,6 +278,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
           </section>
         )}
       </div>
+      {alertsOpen && <Alerts alerts={alerts} updated={data?.now ?? null} onClose={() => setAlertsOpen(false)} />}
       {stats && <Stats data={data} now={now} onClose={() => setStats(false)} />}
       {settingsOpen && (
         <Settings

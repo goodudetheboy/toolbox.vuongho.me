@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTripUpdates, parseVehicles } from './realtime.js';
+import { parseAlerts, parseTripUpdates, parseVehicles } from './realtime.js';
 
 // A tiny protobuf writer, just enough to build a feed.
 const varint = (n) => {
@@ -55,5 +55,22 @@ test('buses that reported recently, with their trip and position', () => {
     ['1', { vehicle: '21308', lat: 40.5, lon: -74.25, at: 1000000, load: 'FULL' }],
     ['3', { vehicle: '7294', lat: 40.5, lon: -74.25, at: 1000000, load: null }],
     ['4', { vehicle: '33', lat: 40.5, lon: -74.25, at: 1000000, load: 'HALF_EMPTY' }],
+  ]);
+});
+
+test('alerts with their routes, stops and words, repeats once', () => {
+  const text = (field, s) => bytes(field, bytes(1, str(1, s)));
+  const alert = (id, informed, desc) =>
+    bytes(2, [...str(1, id), ...bytes(5, [...bytes(1, [...num(1, 100), ...num(2, 200)]), ...informed.flat(), ...text(10, 'H'), ...text(11, desc)])]);
+  const out = parseAlerts(
+    feed(
+      alert('56514', [bytes(5, str(2, '165'))], 'Bus route 165 will not operate.'),
+      alert('56514', [bytes(5, str(2, '165'))], 'Bus route 165 will not operate.'),
+      alert('HACK', [bytes(5, [...str(1, 'NJB'), ...str(5, '12129-..')]), bytes(5, str(5, '12129-2'))], 'Have a nice day'),
+    ),
+  );
+  assert.deepEqual(out, [
+    { id: '56514', routes: new Set(['165']), stops: new Set(), agency: false, header: 'H', text: 'Bus route 165 will not operate.', start: 100000, end: 200000 },
+    { id: 'HACK', routes: new Set(), stops: new Set(['12129']), agency: true, header: 'H', text: 'Have a nice day', start: 100000, end: 200000 },
   ]);
 });

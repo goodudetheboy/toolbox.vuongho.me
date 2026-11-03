@@ -45,13 +45,33 @@ export interface BusDebug {
   gps: { vehicle: string | null; at: number; meters: number | null } | null;
 }
 
+/** An NJ Transit service alert about this board's buses or stop. */
+export interface Alert {
+  id: string;
+  /** The board's routes it names (or every route it names, for a stop alert). */
+  routes: string[];
+  /** NJ Transit's words, e.g. "Bus route 165, the 7:36 AM departure … will not operate …". */
+  text: string;
+  /** The trips it names that still have to pass the stop (a cancelled departure). */
+  trips: string[];
+  /** When the soonest of those was due at the stop, epoch ms. */
+  at: number | null;
+}
+
 export interface Departures {
   from: Stop;
   to: Stop;
   now: number;
   liveOk: boolean;
   buses: Bus[];
-  debug?: { busdvStops: string[]; realtimeAt: number | null; realtimeError: string | null; gpsBuses: number };
+  alerts?: Alert[];
+  debug?: {
+    busdvStops: string[];
+    realtimeAt: number | null;
+    realtimeError: string | null;
+    gpsBuses: number;
+    alertsError?: string | null;
+  };
 }
 
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {

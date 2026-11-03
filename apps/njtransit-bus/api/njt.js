@@ -2,7 +2,7 @@
 // form fields; BUSDV2 (live departures) and GTFSG2 (the timetable zip) each
 // hand out their own token, good for about a day.
 
-import { parseTripUpdates, parseVehicles } from './realtime.js';
+import { parseAlerts, parseTripUpdates, parseVehicles } from './realtime.js';
 import { parseDvClock, parseDvDateTime } from './time.js';
 
 const BASE = process.env.NJT_BASE_URL || 'https://pcsdata.njtransit.com/api';
@@ -83,6 +83,11 @@ export async function realtimeFeeds() {
   const [updates, vehicles] = await Promise.all([feed('getTripUpdates'), feed('getVehiclePositions')]);
   const at = Date.now();
   return { at, updates: parseTripUpdates(updates), moving: parseVehicles(vehicles, at - 3 * 60 * 1000) };
+}
+
+// Service alerts for the whole system (see realtime.js and alerts.js).
+export async function serviceAlerts() {
+  return parseAlerts(await feed('getAlerts'));
 }
 
 const empty = (v) => v === null || v === undefined || v === '' || v === 'EMPTY' || v === 'N/A';

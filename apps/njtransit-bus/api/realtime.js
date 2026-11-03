@@ -139,3 +139,54 @@ export function parseVehicles(buf, sinceMs) {
   });
   return out;
 }
+
+// Text of a TranslatedString: its first translation (NJ Transit only sends English).
+function translated(buf, span) {
+  let text = null;
+  reader(buf, ...span).each((f, w, t) => {
+    if (f !== 1 || w !== 2 || text !== null) return;
+    reader(buf, ...t).each((f, w, x) => {
+      if (f === 1 && w === 2) text = str(buf, x).trim();
+    });
+  });
+  return text;
+}
+
+// Service alerts (getAlerts): FeedEntity.alert(5) → active_period(1) start(1)/end(2),
+// informed_entity(5) → agency_id(1)/route_id(2)/stop_id(5), header_text(10),
+// description_text(11). protobuf bytes → [{ id, routes, stops, header, text,
+// start, end }], each alert once (NJ Transit repeats some up to five times).
+// Stop ids carry a gate ("12129-2", "12129-..") like trip updates do; `stops`
+// keeps just the stop number.
+export function parseAlerts(buf) {
+  const out = new Map();
+  reader(buf).each((f, w, entity) => {
+    if (f !== 2 || w !== 2) return;
+    let id = null;
+    let alert = null;
+    reader(buf, ...entity).each((f, w, v) => {
+      if (f === 1 && w === 2) id = str(buf, v);
+      if (f === 5 && w === 2) alert = v;
+    });
+    if (!alert) return;
+    const a = { id, routes: new Set(), stops: new Set(), agency: false, header: null, text: null, start: null, end: null };
+    reader(buf, ...alert).each((f, w, v) => {
+      if (f === 1 && w === 2) {
+        reader(buf, ...v).each((f, w, x) => {
+          if (f === 1 && w === 0 && x) a.start = Math.min(a.start ?? Infinity, x * 1000);
+          if (f === 2 && w === 0 && x) a.end = Math.max(a.end ?? 0, x * 1000);
+        });
+      } else if (f === 5 && w === 2) {
+        reader(buf, ...v).each((f, w, x) => {
+          if (f === 1 && w === 2) a.agency = true;
+          if (f === 2 && w === 2) a.routes.add(str(buf, x));
+          if (f === 5 && w === 2) a.stops.add(str(buf, x).split('-')[0]);
+        });
+      } else if (f === 10 && w === 2) a.header = translated(buf, v);
+      else if (f === 11 && w === 2) a.text = translated(buf, v);
+    });
+    const key = `${id}\n${a.text}`;
+    if (!out.has(key)) out.set(key, a);
+  });
+  return [...out.values()];
+}

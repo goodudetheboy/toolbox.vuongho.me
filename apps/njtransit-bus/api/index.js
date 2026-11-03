@@ -8,8 +8,9 @@
 
 import http from 'node:http';
 import { gzipSync } from 'node:zlib';
+import { boardAlerts } from './alerts.js';
 import { loadGtfs, meters } from './gtfs.js';
-import { downloadGtfs, liveDepartures, realtimeFeeds } from './njt.js';
+import { downloadGtfs, liveDepartures, realtimeFeeds, serviceAlerts } from './njt.js';
 import { liveFirst } from './order.js';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -18,6 +19,8 @@ const ALLOWED_ORIGINS = (
 ).split(',');
 const GTFS_MAX_AGE_MS = 20 * 3600 * 1000;
 const LIVE_CACHE_MS = 15 * 1000;
+// Alerts change a few times a day; one copy a minute is plenty.
+const ALERTS_CACHE_MS = 60 * 1000;
 // Buses scheduled this long ago can still be coming if they're running late.
 const LATE_WINDOW_MS = 45 * 60 * 1000;
 // BUSDV2 only knows about roughly the next hour.
@@ -89,6 +92,18 @@ function realtime() {
   return value;
 }
 
+let alertsCache = null; // { at, value: Promise<alert[]> }
+
+function alertsNow() {
+  if (alertsCache && Date.now() - alertsCache.at < ALERTS_CACHE_MS) return alertsCache.value;
+  const value = serviceAlerts();
+  alertsCache = { at: Date.now(), value };
+  value.catch(() => {
+    if (alertsCache?.value === value) alertsCache = null;
+  });
+  return value;
+}
+
 // The trip's predicted time at a stop number: undefined if the feed has none,
 // null if the trip is cancelled.
 function predicted(updates, data, trip, stopCode) {
@@ -118,7 +133,15 @@ async function departures(fromCode, toCode, debug = false) {
   let moving = new Map();
   let rtAt = null;
   let rtError = null;
+  let alerts = [];
+  let alertsError = null;
   await Promise.all([
+    alertsNow()
+      .then((a) => (alerts = a))
+      .catch((err) => {
+        alertsError = err.message;
+        console.error('service alerts failed:', err.message);
+      }),
     realtime()
       .then((r) => ({ updates, moving, at: rtAt } = r))
       .catch((err) => {
@@ -183,13 +206,27 @@ async function departures(fromCode, toCode, debug = false) {
       ...(debug && { debug: busDebug(data, d, v, p, gps, source) }),
     });
   }
+  const shown = liveFirst(buses).slice(0, MAX_BUSES);
+  // Alerts about the buses shown, or about where they leave from. Trips the
+  // alerts name are looked for among every next run from here to there, since
+  // a trip cancelled in trip updates is already off the list.
+  const lineOf = new Map(sched.departures.map((d) => [d.trip, d.line]));
+  const board = {
+    now,
+    lines: new Set(shown.map((b) => lineOf.get(b.trip))),
+    stops: new Set([fromCode, ...shown.map((b) => b.stop.code)]),
+    trips: sched.departures.filter((d) => nextRun.get(d.trip) === d.scheduled),
+  };
   return {
     from: sched.from,
     to: sched.to,
     now,
     liveOk,
-    buses: liveFirst(buses).slice(0, MAX_BUSES),
-    ...(debug && { debug: { busdvStops: liveStops, realtimeAt: rtAt, realtimeError: rtError, gpsBuses: moving.size } }),
+    buses: shown,
+    alerts: boardAlerts(alerts, board),
+    ...(debug && {
+      debug: { busdvStops: liveStops, realtimeAt: rtAt, realtimeError: rtError, gpsBuses: moving.size, alertsError },
+    }),
   };
 }
 

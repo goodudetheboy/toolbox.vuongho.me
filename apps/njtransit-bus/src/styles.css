@@ -1,6 +1,8 @@
 /* Two colors only: white and NJ Transit blue. Heading back swaps them (.back). */
 :root {
   --blue: #005097;
+  /* Only for service alerts: the banner and its sheet. */
+  --red: #d81e2c;
   --bg: #ffffff;
   --fg: var(--blue);
   --muted: #5e5e5e;
@@ -874,6 +876,133 @@ a {
   margin-top: 0;
 }
 
+/* Service alerts: a red strip across the top of the board, the alerts running
+   through it; tapping it opens a red sheet (the stats sheet's frame, recolored). */
+.hero.with-alerts {
+  padding-top: 0;
+}
+
+.alert-banner {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+  width: calc(100% + 2 * var(--pad));
+  min-height: calc(56px + env(safe-area-inset-top));
+  margin: 0 calc(-1 * var(--pad)) 20px;
+  padding-top: env(safe-area-inset-top);
+  background: var(--red);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.alert-banner-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 0 14px 0 var(--pad);
+  background: #ffffff;
+  color: var(--red);
+  font-size: 22px;
+}
+
+.alert-banner-run {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.alert-banner-track {
+  display: flex;
+  flex: none;
+  white-space: nowrap;
+  animation: marquee linear infinite;
+}
+
+.alert-banner-track span {
+  padding-left: 14px;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.alerts {
+  --bg: var(--red);
+  --fg: #ffffff;
+  --muted: #ffd6d9;
+}
+
+.alerts-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0 28px;
+}
+
+.alerts-hero svg {
+  flex: none;
+  width: min(13vw, 60px);
+  height: min(13vw, 60px);
+}
+
+.alerts-hero strong {
+  font-size: min(15vw, 72px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.alerts-item {
+  margin: 0 calc(-1 * var(--pad));
+  padding: 22px var(--pad);
+}
+
+.alerts-item.solid {
+  background: var(--fg);
+  color: var(--bg);
+  --muted: var(--red);
+}
+
+.alerts-item-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.alerts-item-top strong {
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.alerts-tag {
+  padding: 5px 9px;
+  border: 3px solid currentColor;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.alerts-text {
+  margin: 12px 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.alerts-foot {
+  margin-top: 28px;
+}
+
 /* Flipping direction: the old color pulls away downward, revealing the new one. */
 .wipe {
   position: fixed;
@@ -922,6 +1051,20 @@ a {
     animation: none;
   }
   .wipe {
+    display: none;
+  }
+  /* No running text: the first alert, cut off; the sheet has them all. */
+  .alert-banner-track {
+    animation: none;
+    min-width: 0;
+    flex: 1;
+  }
+  .alert-banner-track span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .alert-banner-track span + span {
     display: none;
   }
   .scroller {

@@ -73,6 +73,10 @@ export default function Stats({ data, now, onClose }: { data: Departures | null;
                   ? `OK · ${ago(d.realtimeAt, now)} · ${d.gpsBuses} BUSES ON GPS`
                   : '—'}
             </dd>
+            <dt>ALERTS</dt>
+            <dd>
+              {d?.alertsError ? `FAILED: ${d.alertsError.toUpperCase()}` : `OK · ${data.alerts?.length ?? 0} FOR THIS BOARD`}
+            </dd>
           </dl>
 
           {data.buses.map((b) => {

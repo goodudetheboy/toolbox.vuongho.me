@@ -351,6 +351,10 @@ export function loadGtfs(zipBytes) {
           out.push({
             trip: trip.id,
             route: trip.route,
+            line: trip.line,
+            // When the trip leaves its first stop, in minutes after midnight
+            // (how service alerts name a trip: "the 7:36 AM departure").
+            startMinute: Math.floor(sDep[tripStart[t]] / 60) % 1440,
             headsign: trip.headsign,
             scheduled: at,
             gate: sGate.get(p) || null,

@@ -25,11 +25,16 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   developer login (Secret Manager: `njtransit-bus-username`,
   `njtransit-bus-password`). `npm test` inside `api/`.
   - `njt.js` — NJ Transit API client: login tokens (one per API, BUSDV2 and
-    GTFSG2), `getGTFS` zip download, `getBusDV` live departures, and the
-    GTFS-realtime feeds (`realtimeFeeds`).
+    GTFSG2), `getGTFS` zip download, `getBusDV` live departures, the
+    GTFS-realtime feeds (`realtimeFeeds`) and service alerts (`serviceAlerts`).
   - `realtime.js` — hand-rolled decoder for GTFS-realtime trip updates and
     vehicle positions; they add the GPS-tracked buses BUSDV2 leaves out
-    ([ADR 0004](docs/adr/0004-gtfs-realtime-fills-busdv-gaps.md)).
+    ([ADR 0004](docs/adr/0004-gtfs-realtime-fills-busdv-gaps.md)); also
+    service alerts (`parseAlerts`).
+  - `alerts.js` — which service alerts belong on a board: alerts naming a
+    route shown or a boarding stop; a cancelled departure only while it still
+    has to pass the stop (matched from the alert's words). See
+    [ADR 0005](docs/adr/0005-service-alerts-banner.md).
   - `gtfs.js` — timetable zip → compact in-memory indexes: stop search,
     nearest stops, and "which trips go from near A to near B, when".
   - `time.js` — New York time ↔ epoch ms, GTFS service days, BUSDV2 times.
@@ -45,6 +50,8 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   See [ADR 0003](docs/adr/0003-wear-os-watch-app.md) and "Watch app" below.
 - `src/screens/Setup.tsx` — the two stop pickers (search or NEAR ME).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
+- `src/screens/Alerts.tsx` — the red alert banner across the top of the board
+  (alerts run through it) and the red sheet it opens with each alert in full.
 - `src/screens/NameSheet.tsx` — name / rename / remove a bookmark (from the
   board's bookmark button or title, or the saved list's pencil).
 - `src/screens/Stats.tsx` — the stats sheet behind the nerd-face button at the
@@ -56,7 +63,8 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   tiles stuck to its bottom. Kept in `localStorage` (`saved.ts`); how full is on by default, tracking # off.
 - `src/screens/Tile.tsx` — one bus in the list (also the settings preview), plus `Crowd`.
 - `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
-- `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`.
+- `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`
+  (plus `--red`, only for service alerts).
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/njtransit-bus/`,
   auto-update, bus times never cached), registered in `src/main.tsx`; icons in
   `public/`. See [ADR 0002](docs/adr/0002-installable-pwa.md). Test service
