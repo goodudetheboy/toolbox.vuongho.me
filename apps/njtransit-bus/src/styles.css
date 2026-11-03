@@ -939,6 +939,49 @@ a {
   --muted: #ffd6d9;
 }
 
+/* The sheet lives above the board: opening it pulls the view up to it (the
+   board drops away below as the sheet comes down from the top), closing
+   pushes it back. Same easing as the flip's wipe. */
+.alerts {
+  animation: alerts-down 0.55s cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+.alerts.leaving {
+  animation-name: alerts-up;
+}
+
+.screen.alerts-in .scroller {
+  animation: board-down 0.55s cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+.screen.alerts-out .scroller {
+  animation: board-up 0.55s cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+@keyframes alerts-down {
+  from {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes alerts-up {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes board-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes board-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
 .alerts-hero {
   display: flex;
   align-items: center;
@@ -1052,6 +1095,11 @@ a {
   }
   .wipe {
     display: none;
+  }
+  .alerts,
+  .screen.alerts-in .scroller,
+  .screen.alerts-out .scroller {
+    animation: none;
   }
   /* No running text: the first alert, cut off; the sheet has them all. */
   .alert-banner-track {

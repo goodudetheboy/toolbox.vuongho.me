@@ -37,10 +37,27 @@ export function AlertBanner({ alerts, onOpen }: { alerts: Alert[]; onOpen: () =>
   );
 }
 
-export default function Alerts({ alerts, updated, onClose }: { alerts: Alert[]; updated: number | null; onClose: () => void }) {
+interface Props {
+  alerts: Alert[];
+  updated: number | null;
+  /** Sliding back up (the board's close animation); `onGone` once it's off screen. */
+  leaving: boolean;
+  onClose: () => void;
+  onGone: () => void;
+}
+
+// The sheet sits above the board: it slides down from the top while the board
+// moves down out of the way, as if the screen scrolled up to it (styles.css).
+export default function Alerts({ alerts, updated, leaving, onClose, onGone }: Props) {
   return (
     // Taps in here never count toward the board's double-tap flip.
-    <div className="stats alerts" role="dialog" aria-label="Service alerts" onPointerUp={(e) => e.stopPropagation()}>
+    <div
+      className={`stats alerts${leaving ? ' leaving' : ''}`}
+      role="dialog"
+      aria-label="Service alerts"
+      onPointerUp={(e) => e.stopPropagation()}
+      onAnimationEnd={(e) => leaving && e.target === e.currentTarget && onGone()}
+    >
       <div className="stats-head">
         <div className="label">SERVICE ALERTS</div>
         <button className="flip" onClick={onClose} aria-label="Close service alerts">

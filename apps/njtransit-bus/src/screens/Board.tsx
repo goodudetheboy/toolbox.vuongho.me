@@ -94,7 +94,8 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const [naming, setNaming] = useState(false);
   const [settings, setSettings] = useState(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [alertsOpen, setAlertsOpen] = useState(false);
+  // 'in' while the alerts sheet is open, 'out' while it slides back up.
+  const [alertsView, setAlertsView] = useState<'in' | 'out' | null>(null);
   const saved = bookmark !== null;
 
   // Saving keeps the bookmark's place in the list when it's only being renamed.
@@ -107,6 +108,11 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
     saveBookmarks(list);
     setBookmark(i >= 0 ? list[i] : b);
     setNaming(false);
+  }
+
+  // With reduced motion nothing slides, so no animation end to wait for.
+  function closeAlerts() {
+    setAlertsView(matchMedia('(prefers-reduced-motion: reduce)').matches ? null : 'out');
   }
 
   function changeSettings(s: SettingsT) {
@@ -151,10 +157,10 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const toName = data?.to.name ?? to.name;
 
   return (
-    <div className={`screen${trip.back ? ' back' : ''}`} onPointerUp={onTap}>
+    <div className={`screen${trip.back ? ' back' : ''}${alertsView ? ` alerts-${alertsView}` : ''}`} onPointerUp={onTap}>
       <div className="scroller" ref={scroller}>
         <section className={`hero${alerts.length ? ' with-alerts' : ''}`}>
-          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => setAlertsOpen(true)} />}
+          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => setAlertsView('in')} />}
           <div className="top">
             <div className="where-wrap">
               {bookmark?.title && (
@@ -278,7 +284,15 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
           </section>
         )}
       </div>
-      {alertsOpen && <Alerts alerts={alerts} updated={data?.now ?? null} onClose={() => setAlertsOpen(false)} />}
+      {alertsView && (
+        <Alerts
+          alerts={alerts}
+          updated={data?.now ?? null}
+          leaving={alertsView === 'out'}
+          onClose={closeAlerts}
+          onGone={() => setAlertsView(null)}
+        />
+      )}
       {stats && <Stats data={data} now={now} onClose={() => setStats(false)} />}
       {settingsOpen && (
         <Settings
