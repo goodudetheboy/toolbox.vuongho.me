@@ -41,5 +41,7 @@ weekday morning:
   changes, timed alerts stop matching and fall back to nothing (an untimed
   route alert still shows). Tests in `alerts.test.js` pin the wording seen.
 - Bus tiles don't change: a trip an alert cancels but trip updates don't can
-  still be listed as a SCHED bus. Whether to mark or drop it is open.
+  still be listed as a SCHED bus (even as NEXT BUS). The user chose to leave
+  it (2026-11-03): the banner is the warning; tiles never change from parsed
+  alert text.
 - The watch app ignores `alerts` for now.
