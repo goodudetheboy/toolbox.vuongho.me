@@ -4,11 +4,11 @@
 // said only in words: "Bus route 165, the 7:36 AM departure from Westwood to
 // NY PABT, will not operate due to operator availability." So:
 //
-// - an alert naming a route of a bus on the board counts;
-// - when its words give a departure time, it counts only if a trip on that
-//   route starting at that time still has to pass the boarding stop (the
+// - when its words give a departure time, it counts if a trip on that route
+//   starting at that time still has to pass the boarding stop, shown or not (the
 //   6:41 AM 166 that "did not operate" is old news by 8 AM, and a 165 from
 //   another branch that never comes here isn't this board's business);
+// - any other alert naming a route of a bus shown counts;
 // - an alert naming a boarding stop counts;
 // - the terminals' screen messages ("Have a nice day", ids like HACK, tied to
 //   a terminal's gates) never count.
@@ -36,17 +36,22 @@ export function boardAlerts(alerts, { now, lines, stops, trips }) {
     if ((a.start && a.start > now) || (a.end && a.end <= now)) continue;
     const text = a.text || a.header;
     if (!text) continue;
-    const routes = [...a.routes].filter((r) => lines.has(r));
     const atStop = [...a.stops].some((s) => stops.has(s));
-    if (!routes.length && !atStop) continue;
-
+    // A named departure counts when that trip still has to pass here, whether
+    // or not a bus of its route is among those shown (twelve 128s can push the
+    // only 165 off the list). Anything else counts by the routes shown.
+    const minute = a.routes.size ? departureMinute(text) : null;
     let hit = [];
-    const minute = routes.length ? departureMinute(text) : null;
+    let routes;
     if (minute !== null) {
       hit = trips.filter(
-        (t) => routes.includes(t.line) && t.startMinute === minute && t.scheduled >= now - 60 * 1000 && (!a.end || t.scheduled < a.end),
+        (t) => a.routes.has(t.line) && t.startMinute === minute && t.scheduled >= now - 60 * 1000 && (!a.end || t.scheduled < a.end),
       );
       if (!hit.length && !atStop) continue;
+      routes = [...new Set(hit.map((t) => t.line))];
+    } else {
+      routes = [...a.routes].filter((r) => lines.has(r));
+      if (!routes.length && !atStop) continue;
     }
     out.push({
       id: a.id,

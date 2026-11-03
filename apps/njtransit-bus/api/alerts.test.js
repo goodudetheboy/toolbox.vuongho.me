@@ -15,7 +15,7 @@ const H = 3600 * 1000;
 const alert = (id, routes, text, stops = []) => ({ id, routes: new Set(routes), stops: new Set(stops), text, header: routes[0], start: 0, end: 30 * H });
 const board = {
   now: 8 * H,
-  lines: new Set(['165', '166']),
+  lines: new Set(['166']),
   stops: new Set(['21892']),
   trips: [
     { trip: 'a', line: '165', startMinute: 7 * 60 + 36, scheduled: 8 * H + 10 * 60000 },
@@ -24,7 +24,7 @@ const board = {
   ],
 };
 
-test('a cancelled trip still to come counts; one already gone or elsewhere does not', () => {
+test('a cancelled trip still to come counts (even with no bus of its route shown); one already gone or elsewhere does not', () => {
   const out = boardAlerts(
     [
       alert('1', ['166'], 'Bus route 166, the 7:50 AM departure from Cresskill to PABT, will not operate.'),
