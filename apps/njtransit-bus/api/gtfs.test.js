@@ -8,7 +8,7 @@ const csv = (rows) => strToU8(rows.join('\n') + '\n');
 
 // Home (A) and its across-the-street twin (A2, ~30 m away) on one route; the
 // terminal (T) has gates. Route 1 runs A → T; route 1 back runs T → A2.
-function fixture() {
+function fixture(stopTimes = (rows) => csv(rows), zipOptions = {}) {
   return zipSync({
     'stops.txt': csv([
       'stop_id,stop_code,stop_name,stop_lat,stop_lon,location_type,parent_station,platform_code',
@@ -34,7 +34,7 @@ function fixture() {
       '14,R1,SAT,1 BIG TERMINAL,0',
       '15,R9,WK,9 RIVER RD,0',
     ]),
-    'stop_times.txt': csv([
+    'stop_times.txt': stopTimes([
       'trip_id,arrival_time,departure_time,stop_id,stop_sequence',
       '11,08:00:00,08:00:00,A,1',
       '11,08:10:00,08:10:00,M,2',
@@ -58,7 +58,7 @@ function fixture() {
       'SAT,0,0,0,0,0,1,0,20261001,20261231',
     ]),
     'calendar_dates.txt': csv(['service_id,date,exception_type', 'WK,20261028,2']),
-  });
+  }, zipOptions);
 }
 
 test('New York time conversions', () => {
@@ -128,4 +128,25 @@ test('a nearby stop only counts if it shares a route with the chosen one', () =>
   assert.deepEqual(trips, ['11']);
   // Asking for CLIFF BOTTOM RD itself still finds route 9.
   assert.deepEqual(g.departures('100', '400', monday, monday + 6 * 3600 * 1000).departures.map((d) => d.trip), ['15']);
+});
+
+test('stop_times loads the same with CRLF lines, quoted fields, split trips and stored zip entries', () => {
+  const week = (g) => {
+    const monday = nyTime(2026, 10, 26, 0, 0);
+    return ['100', '300', '400'].flatMap((a) =>
+      ['100', '300', '400'].map((b) => g.departures(a, b, monday, monday + 7 * 24 * 3600 * 1000)?.departures),
+    );
+  };
+  const plain = week(loadGtfs(fixture()));
+  const messy = (rows) =>
+    strToU8(
+      [
+        rows[0],
+        // trip 11's first row moved after other trips' rows, and quoted
+        ...rows.slice(2),
+        `"11","08:00:00","08:00:00","A","1"`,
+      ].join('\r\n') + '\r\n',
+    );
+  assert.deepEqual(week(loadGtfs(fixture(messy))), plain);
+  assert.deepEqual(week(loadGtfs(fixture(undefined, { level: 0 }))), plain);
 });

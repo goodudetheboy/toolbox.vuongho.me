@@ -73,7 +73,7 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
 ## Running
 
 ```bash
-# API (needs the NJ Transit login; takes ~6 s to load the timetable)
+# API (needs the NJ Transit login; takes ~5 s to load the timetable)
 cd apps/njtransit-bus/api && npm install
 NJT_USERNAME=… NJT_PASSWORD=… node index.js      # http://localhost:8080
 # App, from the repo root (talks to localhost:8080 in dev)

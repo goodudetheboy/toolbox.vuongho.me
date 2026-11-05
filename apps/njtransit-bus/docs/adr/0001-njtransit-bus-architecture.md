@@ -40,7 +40,8 @@ Checked against the live API on 2026-10-24:
 
 ## Decision
 
-- **Backend** (plain Node, one dependency, `fflate`, to unzip): downloads
+- **Backend** (plain Node, no runtime dependencies; amended 2026-11-05, was
+  `fflate` to unzip, now Node's own zlib): downloads
   and parses the GTFS zip at startup (~6 s on Cloud Run, ~600 MB RSS, so
   1 GiB memory) into typed arrays: trips' stop sequences, each stop's
   positions, routes and headsigns per stop, service calendars. It reloads
@@ -78,7 +79,14 @@ Checked against the live API on 2026-10-24:
 
 ## Consequences
 
-- One cold start costs ~6 s plus the zip download from NJ Transit; the
+- One cold start costs ~6 s plus the zip download from NJ Transit (amended
+  2026-11-05: Cloud Run logs showed 11–14.5 s per cold request, about 12 a
+  day, the timetable load alone 8.5–13 s. Locally that load was ~2.9 s of
+  download and ~3.6 s of parsing; the parse is now ~1.6 s: native inflate
+  instead of fflate's JavaScript one, a stop_times.txt loop that only cuts out
+  the columns it uses, and a counting sort by trip instead of a comparator
+  sort of 1.8 M rows. Same indexes, checked byte for byte on a real
+  timetable. The download from NJ Transit is now the larger part); the
   instance then serves stop search and departures from memory in
   milliseconds. Each cold start downloads ~50 MB from NJ Transit.
 - The 200 m radius can pull in a stop a short walk away on the same line;

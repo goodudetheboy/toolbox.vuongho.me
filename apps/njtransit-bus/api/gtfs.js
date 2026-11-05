@@ -14,12 +14,43 @@
 // Trip ids here are the same numbers BUSDV2 calls internal_trip_number, which
 // is how live departures get matched to these trips.
 
-import { unzipSync, strFromU8 } from 'fflate';
+import { inflateRawSync } from 'node:zlib';
 import { addDays, nyDate, serviceDayStart, weekday } from './time.js';
 
 export const WALK_METERS = 200;
 
 const FILES = ['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt', 'calendar_dates.txt'];
+
+// The named files of a zip, as text. Node's own inflate is native, several
+// times faster than a JavaScript one on the 85 MB stop_times.txt; the zip
+// itself is read from its central directory (sizes there are always right,
+// unlike the local headers of a streamed zip).
+export function unzipText(bytes, names) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocd = bytes.length - 22;
+  while (eocd >= 0 && view.getUint32(eocd, true) !== 0x06054b50) eocd--;
+  if (eocd < 0) throw new Error('not a zip');
+  const count = view.getUint16(eocd + 10, true);
+  let p = view.getUint32(eocd + 16, true);
+  const decoder = new TextDecoder();
+  const out = {};
+  for (let i = 0; i < count; i++) {
+    if (view.getUint32(p, true) !== 0x02014b50) throw new Error('bad zip directory');
+    const method = view.getUint16(p + 10, true);
+    const size = view.getUint32(p + 20, true);
+    const nameLen = view.getUint16(p + 28, true);
+    const skip = nameLen + view.getUint16(p + 30, true) + view.getUint16(p + 32, true);
+    const local = view.getUint32(p + 42, true);
+    const name = decoder.decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    p += 46 + skip;
+    if (!names.includes(name)) continue;
+    const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+    const raw = bytes.subarray(start, start + size);
+    if (method !== 0 && method !== 8) throw new Error(`${name}: unsupported zip method ${method}`);
+    out[name] = decoder.decode(method === 0 ? raw : inflateRawSync(raw));
+  }
+  return out;
+}
 
 function splitCsvLine(line) {
   if (!line.includes('"')) return line.split(',');
@@ -64,9 +95,64 @@ function eachRow(text, onRow) {
   }
 }
 
+// stop_times.txt is most of the load time (~1.8 M rows), so it gets its own
+// loop: only the four columns used are cut out of each line, with no array
+// per row. A line with quotes (none in NJ Transit's) goes the slow, exact way.
+// Calls onRow(tripId, stopId, stopSequence, departure or arrival time).
+function eachStopTime(text, onRow) {
+  let start = text.charCodeAt(0) === 0xfeff ? 1 : 0;
+  let headerEnd = text.indexOf('\n', start);
+  if (headerEnd === -1) headerEnd = text.length;
+  const header = splitCsvLine(text.slice(start, headerEnd).replace(/\r$/, '')).map((h) => h.trim());
+  const cTrip = header.indexOf('trip_id');
+  const cStop = header.indexOf('stop_id');
+  const cSeq = header.indexOf('stop_sequence');
+  const cDep = header.indexOf('departure_time');
+  const cArr = header.indexOf('arrival_time');
+  const want = Math.max(cTrip, cStop, cSeq, cDep, cArr) + 1;
+  const cut = new Array(want);
+  start = headerEnd + 1;
+  let quote = 0; // where the next quote is (-1: none left); searched again only once passed
+  while (start < text.length) {
+    let end = text.indexOf('\n', start);
+    if (end === -1) end = text.length;
+    let lineEnd = end;
+    if (text.charCodeAt(lineEnd - 1) === 13) lineEnd--;
+    if (lineEnd > start) {
+      if (quote !== -1 && quote < start) quote = text.indexOf('"', start);
+      if (quote !== -1 && quote < lineEnd) {
+        const f = splitCsvLine(text.slice(start, lineEnd));
+        for (let k = 0; k < want; k++) cut[k] = f[k] ?? '';
+      } else {
+        let from = start;
+        for (let k = 0; k < want; k++) {
+          let comma = text.indexOf(',', from);
+          if (comma === -1 || comma > lineEnd) comma = lineEnd;
+          cut[k] = k === cTrip || k === cStop || k === cSeq || k === cDep || k === cArr ? text.slice(from, comma) : '';
+          from = comma < lineEnd ? comma + 1 : lineEnd;
+        }
+      }
+      onRow(cut[cTrip], cut[cStop], +cut[cSeq], (cDep >= 0 && cut[cDep]) || (cArr >= 0 && cut[cArr]) || '');
+    }
+    start = end + 1;
+  }
+}
+
+// "25:07:30" → seconds after the service day's start (hours can pass 24).
 function secs(hms) {
-  const [h, m, s] = hms.split(':');
-  return +h * 3600 + +m * 60 + +(s || 0);
+  let total = 0;
+  let part = 0;
+  let colons = 0;
+  for (let i = 0; i < hms.length; i++) {
+    const c = hms.charCodeAt(i);
+    if (c === 58) {
+      total = (total + part) * 60;
+      part = 0;
+      colons++;
+    } else if (c >= 48 && c <= 57) part = part * 10 + c - 48;
+  }
+  total += part;
+  return colons === 1 ? total * 60 : total; // "7:24" with no seconds
 }
 
 export function meters(aLat, aLon, bLat, bLon) {
@@ -104,8 +190,8 @@ export function splitHeadsign(headsign, route) {
 }
 
 export function loadGtfs(zipBytes) {
-  const files = unzipSync(zipBytes, { filter: (f) => FILES.includes(f.name) });
-  const text = (name) => (files[name] ? strFromU8(files[name]) : '');
+  const files = unzipText(zipBytes, FILES);
+  const text = (name) => files[name] || '';
 
   // Stops, one entry per public stop number. A stop number can have several
   // rows (Port Authority has one per gate); stopRow keeps each row's gate.
@@ -159,9 +245,9 @@ export function loadGtfs(zipBytes) {
   let tStop = new Int32Array(cap);
   let tDep = new Int32Array(cap);
   const gates = new Map(); // row index → gate, Port Authority-style stops only
-  eachRow(text('stop_times.txt'), (f, c) => {
-    const trip = tripIndex.get(f[c.trip_id]);
-    const row = rowStop.get(f[c.stop_id]);
+  eachStopTime(text('stop_times.txt'), (tripId, stopId, seq, time) => {
+    const trip = tripIndex.get(tripId);
+    const row = rowStop.get(stopId);
     if (trip === undefined || !row) return;
     if (n === cap) {
       cap *= 2;
@@ -176,16 +262,31 @@ export function loadGtfs(zipBytes) {
       tDep = grow(tDep);
     }
     tTrip[n] = trip;
-    tSeq[n] = +f[c.stop_sequence];
+    tSeq[n] = seq;
     tStop[n] = row.stop.i;
-    tDep[n] = secs(f[c.departure_time] || f[c.arrival_time]);
+    tDep[n] = secs(time);
     if (row.gate) gates.set(n, row.gate);
     n++;
   });
 
+  // Sorted by (trip, sequence): grouped by trip with a counting sort, which keeps
+  // the file's order within a trip, already by sequence in NJ Transit's file
+  // (a trip that isn't gets sorted on its own). A comparator sort of all 1.8 M
+  // rows took ~0.5 s.
+  const tripStart = new Int32Array(trips.length + 1);
+  for (let i = 0; i < n; i++) tripStart[tTrip[i] + 1]++;
+  for (let t = 0; t < trips.length; t++) tripStart[t + 1] += tripStart[t];
   const order = new Int32Array(n);
-  for (let i = 0; i < n; i++) order[i] = i;
-  order.sort((a, b) => tTrip[a] - tTrip[b] || tSeq[a] - tSeq[b]);
+  const next = tripStart.slice(0, trips.length);
+  for (let i = 0; i < n; i++) order[next[tTrip[i]]++] = i;
+  for (let t = 0; t < trips.length; t++) {
+    for (let k = tripStart[t] + 1; k < tripStart[t + 1]; k++) {
+      if (tSeq[order[k]] < tSeq[order[k - 1]]) {
+        order.subarray(tripStart[t], tripStart[t + 1]).sort((a, b) => tSeq[a] - tSeq[b]);
+        break;
+      }
+    }
+  }
   const sTrip = new Int32Array(n);
   const sStop = new Int32Array(n);
   const sDep = new Int32Array(n);
@@ -198,10 +299,6 @@ export function loadGtfs(zipBytes) {
     const g = gates.get(o);
     if (g) sGate.set(i, g);
   }
-  const tripStart = new Int32Array(trips.length + 1).fill(-1);
-  for (let i = n - 1; i >= 0; i--) tripStart[sTrip[i]] = i;
-  tripStart[trips.length] = n;
-  for (let t = trips.length - 1; t >= 0; t--) if (tripStart[t] === -1) tripStart[t] = tripStart[t + 1];
 
   // Where each stop appears, plus the routes and headsigns it sees (not counting
   // the last stop of a trip, where nobody boards).
