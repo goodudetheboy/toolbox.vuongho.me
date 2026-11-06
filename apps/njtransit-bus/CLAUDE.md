@@ -51,7 +51,9 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
 - `src/screens/Setup.tsx` — the two stop pickers (search or NEAR ME).
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
 - `src/screens/Alerts.tsx` — the red alert banner across the top of the board
-  (alerts run through it) and the red sheet it opens with each alert in full.
+  (alerts run through it) and the red page it opens with each alert in full:
+  a page of the board's scroll above the countdown, there only while open
+  (Board.tsx adds it, scrolls up to it, and removes it once the countdown settles).
 - `src/screens/NameSheet.tsx` — name / rename / remove a bookmark (from the
   board's bookmark button or title, or the saved list's pencil).
 - `src/screens/Stats.tsx` — the stats sheet behind the nerd-face button at the
@@ -62,8 +64,7 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   people from BUSDV2's `passload`, else the GPS feed's occupancy; the tracking number), each explained behind an info button, with a preview of two
   tiles stuck to its bottom. Kept in `localStorage` (`saved.ts`); how full is on by default, tracking # off.
 - `src/screens/Tile.tsx` — one bus in the list (also the settings preview), plus `Crowd`.
-- `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text),
-  `pull.ts` (pulling past the alerts sheet's end closes it).
+- `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
 - `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`
   (plus `--red`, only for service alerts).
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/njtransit-bus/`,

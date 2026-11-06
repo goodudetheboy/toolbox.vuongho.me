@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { departures, type Bus, type Departures } from '../lib/api';
 import { clock, clockText, gateText, minutesUntil, shortName, tinyName } from '../lib/format';
 import {
@@ -11,7 +12,7 @@ import {
   type Settings as SettingsT,
   type Trip,
 } from '../lib/saved';
-import Alerts, { AlertBanner } from './Alerts';
+import { AlertBanner, AlertsPage } from './Alerts';
 import NameSheet from './NameSheet';
 import Settings, { GearIcon } from './Settings';
 import Stats, { NerdIcon } from './Stats';
@@ -94,8 +95,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const [naming, setNaming] = useState(false);
   const [settings, setSettings] = useState(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // 'in' while the alerts sheet is open, 'out' while it slides back up.
-  const [alertsView, setAlertsView] = useState<'in' | 'out' | null>(null);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const saved = bookmark !== null;
 
   // Saving keeps the bookmark's place in the list when it's only being renamed.
@@ -108,11 +108,6 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
     saveBookmarks(list);
     setBookmark(i >= 0 ? list[i] : b);
     setNaming(false);
-  }
-
-  // With reduced motion nothing slides, so no animation end to wait for.
-  function closeAlerts() {
-    setAlertsView(matchMedia('(prefers-reduced-motion: reduce)').matches ? null : 'out');
   }
 
   function changeSettings(s: SettingsT) {
@@ -128,6 +123,40 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLElement>(null);
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
+  const alertsPage = useRef<HTMLElement>(null);
+  const settle = useRef<number>();
+  useEffect(() => () => clearTimeout(settle.current), []);
+  const glide = (): ScrollBehavior => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth');
+
+  // The alerts page is added above the countdown with the view kept where it
+  // was, then scrolled up to, like scrolling up from the countdown.
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    const page = alertsPage.current;
+    if (!alertsOpen || !el || !page) return;
+    el.scrollTo({ top: el.scrollTop + page.offsetHeight, behavior: 'instant' });
+    el.scrollTo({ top: 0, behavior: glide() });
+  }, [alertsOpen]);
+
+  // Once the scroll comes to rest at the countdown (or further down), the
+  // alerts page goes away, with the view kept where it is.
+  function onScroll() {
+    if (!alertsOpen) return;
+    clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => {
+      const el = scroller.current;
+      const page = alertsPage.current;
+      if (!el || !page || el.scrollTop < page.offsetHeight - 1) return;
+      const h = page.offsetHeight;
+      flushSync(() => setAlertsOpen(false));
+      el.scrollTo({ top: el.scrollTop - h, behavior: 'instant' });
+    }, 150);
+  }
+
+  function closeAlerts() {
+    const page = alertsPage.current;
+    if (page) scroller.current?.scrollTo({ top: page.offsetHeight, behavior: glide() });
+  }
 
   // Double tap anywhere (not on a button) flips, like the watch app. Detected
   // by hand: phone browsers don't reliably fire dblclick on touch.
@@ -145,6 +174,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
 
   function flip() {
     setWipe({ color: trip.back ? '#005097' : '#ffffff', key: Date.now() });
+    flushSync(() => setAlertsOpen(false));
     scroller.current?.scrollTo({ top: 0, behavior: 'instant' });
     onFlip();
   }
@@ -157,10 +187,11 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const toName = data?.to.name ?? to.name;
 
   return (
-    <div className={`screen${trip.back ? ' back' : ''}${alertsView ? ` alerts-${alertsView}` : ''}`} onPointerUp={onTap}>
-      <div className="scroller" ref={scroller}>
+    <div className={`screen${trip.back ? ' back' : ''}`} onPointerUp={onTap}>
+      <div className="scroller" ref={scroller} onScroll={onScroll}>
+        {alertsOpen && <AlertsPage ref={alertsPage} alerts={alerts} updated={data?.now ?? null} onClose={closeAlerts} />}
         <section className={`hero${alerts.length ? ' with-alerts' : ''}`}>
-          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => setAlertsView('in')} />}
+          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => (alertsOpen ? scroller.current?.scrollTo({ top: 0, behavior: glide() }) : setAlertsOpen(true))} />}
           <div className="top">
             <div className="where-wrap">
               {bookmark?.title && (
@@ -284,15 +315,6 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
           </section>
         )}
       </div>
-      {alertsView && (
-        <Alerts
-          alerts={alerts}
-          updated={data?.now ?? null}
-          leaving={alertsView === 'out'}
-          onClose={closeAlerts}
-          onGone={() => setAlertsView(null)}
-        />
-      )}
       {stats && <Stats data={data} now={now} onClose={() => setStats(false)} />}
       {settingsOpen && (
         <Settings

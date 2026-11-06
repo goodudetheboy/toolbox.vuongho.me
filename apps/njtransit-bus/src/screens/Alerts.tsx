@@ -1,10 +1,10 @@
+import { forwardRef } from 'react';
 import type { Alert } from '../lib/api';
 import { clockText } from '../lib/format';
-import { usePullPast } from '../lib/pull';
 
 // NJ Transit's service alerts about the board's buses: a red strip across the
 // top of the board with the alerts running through it, and behind it a red
-// sheet with each one in full. Which alerts belong to a board is the API's
+// page with each one in full. Which alerts belong to a board is the API's
 // call (api/alerts.js).
 
 const cancelled = (a: Alert) => a.trips.length > 0 && /not operate|cancel/i.test(a.text);
@@ -41,29 +41,17 @@ export function AlertBanner({ alerts, onOpen }: { alerts: Alert[]; onOpen: () =>
 interface Props {
   alerts: Alert[];
   updated: number | null;
-  /** Sliding back up (the board's close animation); `onGone` once it's off screen. */
-  leaving: boolean;
   onClose: () => void;
-  onGone: () => void;
 }
 
-// The sheet sits above the board: it slides down from the top while the board
-// moves down out of the way, as if the screen scrolled up to it (styles.css).
-// Pulling on past the last alert goes back down to the board, the same slide
-// as the close button.
-export default function Alerts({ alerts, updated, leaving, onClose, onGone }: Props) {
-  const pull = usePullPast('end', onClose, !leaving);
-
+// A page of the board's own scroll, above the countdown, there only while it's
+// open: scrolling down from it snaps to the countdown the way the countdown
+// snaps to the list, and once the countdown settles the page goes away again,
+// so pulling down at the board's top stays free (Board.tsx).
+export const AlertsPage = forwardRef<HTMLElement, Props>(function AlertsPage({ alerts, updated, onClose }, ref) {
   return (
     // Taps in here never count toward the board's double-tap flip.
-    <div
-      className={`stats alerts${leaving ? ' leaving' : ''}`}
-      role="dialog"
-      aria-label="Service alerts"
-      {...pull}
-      onPointerUp={(e) => e.stopPropagation()}
-      onAnimationEnd={(e) => leaving && e.target === e.currentTarget && onGone()}
-    >
+    <section ref={ref} className="alerts alerts-page" aria-label="Service alerts" onPointerUp={(e) => e.stopPropagation()}>
       <div className="stats-head">
         <div className="label">SERVICE ALERTS</div>
         <button className="flip" onClick={onClose} aria-label="Close service alerts">
@@ -92,6 +80,6 @@ export default function Alerts({ alerts, updated, leaving, onClose, onGone }: Pr
       ))}
 
       <div className="small alerts-foot">FROM NJ TRANSIT{updated ? ` · UPDATED ${clockText(updated)}` : ''}</div>
-    </div>
+    </section>
   );
-}
+});

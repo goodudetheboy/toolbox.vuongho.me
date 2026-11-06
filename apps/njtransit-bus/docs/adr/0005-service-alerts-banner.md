@@ -32,7 +32,11 @@ weekday morning:
   alerts feed fails, the board is unchanged (`debug.alertsError` says so).
 - The web board shows a red strip across the top with the alerts running
   through it (static, cut off, with reduced motion); tapping it opens a red
-  sheet with each alert in full. Red is used only here; the board stays two
+  sheet with each alert in full (amended 2026-11-06: not an overlay but a page
+  of the board's own scroll, added above the countdown and scrolled up to;
+  scrolling down snaps back to the countdown like the countdown to the list,
+  and the page is removed once the countdown settles, so pulling down at the
+  board's top stays free for loading). Red is used only here; the board stays two
   colors otherwise.
 
 ## Consequences

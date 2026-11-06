@@ -1,7 +1,7 @@
 /* Two colors only: white and NJ Transit blue. Heading back swaps them (.back). */
 :root {
   --blue: #005097;
-  /* Only for service alerts: the banner and its sheet. */
+  /* Only for service alerts: the banner and its page. */
   --red: #d81e2c;
   --bg: #ffffff;
   --fg: var(--blue);
@@ -270,6 +270,9 @@ a {
   overscroll-behavior: contain;
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
+  /* The alerts page comes and goes above the countdown; Board.tsx keeps the
+     view in place itself, so the browser mustn't shift it too. */
+  overflow-anchor: none;
   scrollbar-width: none;
 }
 
@@ -877,7 +880,7 @@ a {
 }
 
 /* Service alerts: a red strip across the top of the board, the alerts running
-   through it; tapping it opens a red sheet (the stats sheet's frame, recolored). */
+   through it; tapping it opens a red page above the countdown. */
 .hero.with-alerts {
   padding-top: 0;
 }
@@ -939,47 +942,14 @@ a {
   --muted: #ffd6d9;
 }
 
-/* The sheet lives above the board: opening it pulls the view up to it (the
-   board drops away below as the sheet comes down from the top), closing
-   pushes it back. Same easing as the flip's wipe. */
-.alerts {
-  animation: alerts-down 0.55s cubic-bezier(0.7, 0, 0.2, 1) both;
-}
-
-.alerts.leaving {
-  animation-name: alerts-up;
-}
-
-.screen.alerts-in .scroller {
-  animation: board-down 0.55s cubic-bezier(0.7, 0, 0.2, 1) both;
-}
-
-.screen.alerts-out .scroller {
-  animation: board-up 0.55s cubic-bezier(0.7, 0, 0.2, 1) both;
-}
-
-@keyframes alerts-down {
-  from {
-    transform: translateY(-100%);
-  }
-}
-
-@keyframes alerts-up {
-  to {
-    transform: translateY(-100%);
-  }
-}
-
-@keyframes board-down {
-  to {
-    transform: translateY(100%);
-  }
-}
-
-@keyframes board-up {
-  from {
-    transform: translateY(100%);
-  }
+/* A page of the board's scroll, above the countdown, only while it's open
+   (Board.tsx); like the list, it can be taller than the screen. */
+.alerts-page {
+  min-height: 100%;
+  padding: max(24px, env(safe-area-inset-top)) var(--pad) 48px;
+  background: var(--bg);
+  color: var(--fg);
+  scroll-snap-align: start;
 }
 
 .alerts-hero {
@@ -1095,11 +1065,6 @@ a {
   }
   .wipe {
     display: none;
-  }
-  .alerts,
-  .screen.alerts-in .scroller,
-  .screen.alerts-out .scroller {
-    animation: none;
   }
   /* No running text: the first alert, cut off; the sheet has them all. */
   .alert-banner-track {
