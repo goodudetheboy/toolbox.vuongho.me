@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { departures, type Bus, type Departures } from '../lib/api';
 import { clock, clockText, gateText, minutesUntil, shortName, tinyName } from '../lib/format';
-import { usePullPast } from '../lib/pull';
 import {
   loadBookmarks,
   loadSettings,
@@ -154,14 +153,12 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const first = buses[0];
   const anyLive = buses.some((b) => b.live);
   const alerts = data?.alerts ?? [];
-  // Pulling down past the top of the board opens the alerts, which sit above it.
-  const pullToAlerts = usePullPast('top', () => setAlertsView('in'), alerts.length > 0 && !alertsView);
   const fromName = data?.from.name ?? from.name;
   const toName = data?.to.name ?? to.name;
 
   return (
     <div className={`screen${trip.back ? ' back' : ''}${alertsView ? ` alerts-${alertsView}` : ''}`} onPointerUp={onTap}>
-      <div className="scroller" ref={scroller} {...pullToAlerts}>
+      <div className="scroller" ref={scroller}>
         <section className={`hero${alerts.length ? ' with-alerts' : ''}`}>
           {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => setAlertsView('in')} />}
           <div className="top">

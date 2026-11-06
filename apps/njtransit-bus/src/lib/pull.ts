@@ -4,8 +4,8 @@ import { useRef } from 'react';
 // trackpad, whose steps are bigger).
 const PULL_PX = 80;
 
-// Pulling on past a scroller's top or end: the board's top opens the service
-// alerts above it, the alerts' end goes back down to the board. A pull only
+// Pulling on past a scroller's top or end (the alerts sheet's end goes back
+// down to the board; the board's top is left for loading). A pull only
 // counts when it starts with the scroller already at that edge, so a scroll (or
 // a fling) that just reaches the edge doesn't trigger it too. Spread the
 // returned handlers on the scrolling element.
