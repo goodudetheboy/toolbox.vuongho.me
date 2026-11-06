@@ -124,17 +124,27 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
   const list = useRef<HTMLElement>(null);
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
   const alertsPage = useRef<HTMLElement>(null);
+  const openedAt = useRef(0); // the board's scroll position when the alerts were opened
   const settle = useRef<number>();
   useEffect(() => () => clearTimeout(settle.current), []);
   const glide = (): ScrollBehavior => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth');
 
   // The alerts page is added above the countdown with the view kept where it
-  // was, then scrolled up to, like scrolling up from the countdown.
+  // was, then scrolled up to, like scrolling up from the countdown. Positions
+  // are set outright, not shifted by the page's height: Chrome already keeps
+  // the snapped countdown in view when the page appears, and shifting again
+  // started the scroll up from the bottom of the list.
+  function openAlerts() {
+    if (alertsOpen) return scroller.current?.scrollTo({ top: 0, behavior: glide() });
+    openedAt.current = scroller.current?.scrollTop ?? 0;
+    setAlertsOpen(true);
+  }
+
   useLayoutEffect(() => {
     const el = scroller.current;
     const page = alertsPage.current;
     if (!alertsOpen || !el || !page) return;
-    el.scrollTo({ top: el.scrollTop + page.offsetHeight, behavior: 'instant' });
+    el.scrollTo({ top: page.offsetHeight + openedAt.current, behavior: 'instant' });
     el.scrollTo({ top: 0, behavior: glide() });
   }, [alertsOpen]);
 
@@ -147,9 +157,9 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
       const el = scroller.current;
       const page = alertsPage.current;
       if (!el || !page || el.scrollTop < page.offsetHeight - 1) return;
-      const h = page.offsetHeight;
+      const below = el.scrollTop - page.offsetHeight; // how far past the countdown's top
       flushSync(() => setAlertsOpen(false));
-      el.scrollTo({ top: el.scrollTop - h, behavior: 'instant' });
+      el.scrollTo({ top: below, behavior: 'instant' });
     }, 150);
   }
 
@@ -191,7 +201,7 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
       <div className="scroller" ref={scroller} onScroll={onScroll}>
         {alertsOpen && <AlertsPage ref={alertsPage} alerts={alerts} updated={data?.now ?? null} onClose={closeAlerts} />}
         <section className={`hero${alerts.length ? ' with-alerts' : ''}`}>
-          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={() => (alertsOpen ? scroller.current?.scrollTo({ top: 0, behavior: glide() }) : setAlertsOpen(true))} />}
+          {alerts.length > 0 && <AlertBanner alerts={alerts} onOpen={openAlerts} />}
           <div className="top">
             <div className="where-wrap">
               {bookmark?.title && (
