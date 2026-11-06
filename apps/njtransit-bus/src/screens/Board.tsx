@@ -144,8 +144,17 @@ export default function Board({ trip, onEdit, onFlip }: Props) {
     const el = scroller.current;
     const page = alertsPage.current;
     if (!alertsOpen || !el || !page) return;
-    el.scrollTo({ top: page.offsetHeight + openedAt.current, behavior: 'instant' });
-    el.scrollTo({ top: 0, behavior: glide() });
+    // Starting the scroll in the same frame the page appears made it move
+    // unlike the board's other scrolls (the browser was still placing the new
+    // page). So: hold the view on the countdown for two frames, then scroll up
+    // the same way ALL BUSES scrolls down.
+    const hold = () => el.scrollTo({ top: page.offsetHeight + openedAt.current, behavior: 'instant' });
+    hold();
+    let frame = requestAnimationFrame(() => {
+      hold();
+      frame = requestAnimationFrame(() => page.scrollIntoView({ behavior: glide() }));
+    });
+    return () => cancelAnimationFrame(frame);
   }, [alertsOpen]);
 
   // Once the scroll comes to rest at the countdown (or further down), the
