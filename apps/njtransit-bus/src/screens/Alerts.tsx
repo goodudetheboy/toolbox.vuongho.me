@@ -1,6 +1,6 @@
-import { useRef } from 'react';
 import type { Alert } from '../lib/api';
 import { clockText } from '../lib/format';
+import { usePullPast } from '../lib/pull';
 
 // NJ Transit's service alerts about the board's buses: a red strip across the
 // top of the board with the alerts running through it, and behind it a red
@@ -38,10 +38,6 @@ export function AlertBanner({ alerts, onOpen }: { alerts: Alert[]; onOpen: () =>
   );
 }
 
-// How far past the end a pull has to go to get back to the board (twice this
-// for a mouse wheel or trackpad, whose steps are bigger).
-const PULL_PX = 80;
-
 interface Props {
   alerts: Alert[];
   updated: number | null;
@@ -56,16 +52,7 @@ interface Props {
 // Pulling on past the last alert goes back down to the board, the same slide
 // as the close button.
 export default function Alerts({ alerts, updated, leaving, onClose, onGone }: Props) {
-  // A pull only counts when it starts with the sheet already at its end, so a
-  // scroll (or a fling) that just reaches the end doesn't close it too.
-  const touchFrom = useRef<number | null>(null); // finger's y when the pull began
-  const wheel = useRef<{ sum: number; at: number } | null>(null);
-  const atEnd = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
-  const close = () => {
-    touchFrom.current = null;
-    wheel.current = null;
-    if (!leaving) onClose();
-  };
+  const pull = usePullPast('end', onClose, !leaving);
 
   return (
     // Taps in here never count toward the board's double-tap flip.
@@ -73,17 +60,7 @@ export default function Alerts({ alerts, updated, leaving, onClose, onGone }: Pr
       className={`stats alerts${leaving ? ' leaving' : ''}`}
       role="dialog"
       aria-label="Service alerts"
-      onTouchStart={(e) => (touchFrom.current = atEnd(e.currentTarget) ? e.touches[0].clientY : null)}
-      onTouchMove={(e) => touchFrom.current !== null && touchFrom.current - e.touches[0].clientY > PULL_PX && close()}
-      onWheel={(e) => {
-        // A wheel or trackpad gesture is a run of events; a pause starts a new one.
-        const w = wheel.current;
-        const fresh = !w || e.timeStamp - w.at > 250;
-        if (fresh && !atEnd(e.currentTarget)) return void (wheel.current = { sum: -Infinity, at: e.timeStamp });
-        const sum = (fresh ? 0 : w.sum) + Math.max(0, e.deltaY);
-        wheel.current = { sum, at: e.timeStamp };
-        if (sum > PULL_PX * 2) close();
-      }}
+      {...pull}
       onPointerUp={(e) => e.stopPropagation()}
       onAnimationEnd={(e) => leaving && e.target === e.currentTarget && onGone()}
     >

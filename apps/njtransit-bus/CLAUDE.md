@@ -62,7 +62,8 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   people from BUSDV2's `passload`, else the GPS feed's occupancy; the tracking number), each explained behind an info button, with a preview of two
   tiles stuck to its bottom. Kept in `localStorage` (`saved.ts`); how full is on by default, tracking # off.
 - `src/screens/Tile.tsx` — one bus in the list (also the settings preview), plus `Crowd`.
-- `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text).
+- `src/lib/api.ts`, `saved.ts` (localStorage), `format.ts` (NY clock, gate text),
+  `pull.ts` (pulling past the board's top opens the alerts; past their end closes them).
 - `src/styles.css` — all styling; two colors, `--bg`/`--fg` swapped by `.back`
   (plus `--red`, only for service alerts).
 - PWA: `vite-plugin-pwa` config in `vite.config.ts` (scope `/njtransit-bus/`,
