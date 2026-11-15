@@ -24,7 +24,7 @@ export default function QrSheet({ onClose }: { onClose: () => void }) {
       <div className="qr">
         <svg viewBox={`-4 -4 ${n + 8} ${n + 8}`} shapeRendering="crispEdges" role="img" aria-label={`QR code for ${URL}`}>
           <rect x="-4" y="-4" width={n + 8} height={n + 8} fill="#fff" />
-          <path d={d} fill="#000" />
+          <path d={d} fill="#005097" />
         </svg>
         <div className="small">SCAN TO OPEN BUS ON ANOTHER PHONE</div>
         <div className="small">TOOLBOX.VUONGHO.ME/NJTRANSIT-BUS</div>
