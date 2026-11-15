@@ -1016,6 +1016,24 @@ a {
   margin-top: 28px;
 }
 
+.icon-btn.qr-btn {
+  margin-right: -6px;
+}
+
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.qr svg {
+  width: min(100%, 360px);
+  height: auto;
+  margin-bottom: 12px;
+}
+
 /* Flipping direction: the old color pulls away downward, revealing the new one. */
 .wipe {
   position: fixed;

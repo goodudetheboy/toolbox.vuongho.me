@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { nearestStops, searchStops, type Stop } from '../lib/api';
 import { shortName } from '../lib/format';
 import NameSheet from './NameSheet';
+import QrSheet from './QrSheet';
 import { loadBookmarks, saveBookmarks, sameTrip, toSaved, type Bookmark, type SavedStop, type Trip } from '../lib/saved';
 
 interface Props {
@@ -21,6 +22,7 @@ export default function Setup({ initial, onGo }: Props) {
   }
 
   const [showSaved, setShowSaved] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const [editing, setEditing] = useState<Bookmark | null>(null);
 
   function rename(b: Bookmark, title: string) {
@@ -93,6 +95,12 @@ export default function Setup({ initial, onGo }: Props) {
           <a className="small" href="/">
             TOOLBOX
           </a>
+          <button className="icon-btn qr-btn" onClick={() => setShowQr(true)} aria-label="Share as QR code">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+              <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" />
+              <path d="M6.5 6.5h.01M17.5 6.5h.01M6.5 17.5h.01M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3" />
+            </svg>
+          </button>
           <button className="icon-btn" onClick={() => setShowSaved(true)} aria-label={`Saved trips (${bookmarks.length})`}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
               <path d="M6 3h12v18l-6-5-6 5z" />
@@ -112,6 +120,7 @@ export default function Setup({ initial, onGo }: Props) {
           <path d="M4 12h15M13 6l6 6-6 6" />
         </svg>
       </button>
+      {showQr && <QrSheet onClose={() => setShowQr(false)} />}
     </main>
   );
 }

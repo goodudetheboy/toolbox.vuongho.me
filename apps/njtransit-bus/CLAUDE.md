@@ -49,6 +49,8 @@ notes: [ADR 0001](docs/adr/0001-njtransit-bus-architecture.md).
   themselves (`Updater.kt`).
   See [ADR 0003](docs/adr/0003-wear-os-watch-app.md) and "Watch app" below.
 - `src/screens/Setup.tsx` — the two stop pickers (search or NEAR ME).
+- `src/screens/QrSheet.tsx` — QR code of the app's link, behind the QR button
+  left of the setup screen's bookmark.
 - `src/screens/Board.tsx` — the board: hero, tiles, flip + wipe, polling (20 s).
 - `src/screens/Alerts.tsx` — the red alert banner across the top of the board
   (alerts run through it) and the red page it opens with each alert in full:
