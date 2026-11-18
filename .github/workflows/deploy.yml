@@ -31,7 +31,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      # onnxruntime-node (via audio-transcriber's transformers.js) downloads CUDA
+      # binaries on Linux by default, and that GitHub release asset now 404s.
+      # Nothing here runs ONNX in Node, so skip them.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
 
       - uses: google-github-actions/auth@v2
         with:
