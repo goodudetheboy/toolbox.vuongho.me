@@ -6,9 +6,9 @@ homepage.
 
 ## Repo map
 
-- `apps/homepage/` — Vite + React + TS landing page: a three.js garage
-  toolbox scene (tools are objects inside it), tool registry in
-  `src/tools.ts` — see `docs/adr/0006-homepage-3d-garage-toolbox.md`
+- `apps/homepage/` — Vite + React + TS landing page: a plain list of tools,
+  registry in `src/tools.ts` (entries can link off-site, e.g. Claude RC on
+  the homelab) — see `docs/adr/0008-homepage-plain-list.md`
 - `apps/<tool-name>/` — one independent app per tool (own deps/styling/
   stack; default is Vite + React + TS but nothing forces it — see
   `docs/adr/0001-monorepo-npm-workspaces.md`). Each tool also has its own

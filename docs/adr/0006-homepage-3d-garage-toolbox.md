@@ -1,6 +1,6 @@
 # 0006. Homepage as a 3D garage toolbox (three.js + cannon-es)
 
-Status: Accepted
+Status: Superseded by 0008
 
 ## Context
 

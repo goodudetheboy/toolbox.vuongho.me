@@ -1,13 +1,11 @@
-// Each tool is rendered as a physical object inside the 3D toolbox. `model`
-// picks which prop represents it; tools without a dedicated prop fall back
-// to a generic wrench so a newly added tool still shows up.
-export type ToolModel = 'marker' | 'microphone' | 'compass' | 'duck' | 'coins' | 'bus' | 'wrench';
+// Tools without a dedicated icon fall back to a generic wrench.
+export type ToolIconName = 'marker' | 'microphone' | 'compass' | 'duck' | 'coins' | 'bus' | 'terminal' | 'wrench';
 
 export interface Tool {
   name: string;
   description: string;
   href: string;
-  model: ToolModel;
+  icon: ToolIconName;
 }
 
 export const tools: Tool[] = [
@@ -15,37 +13,45 @@ export const tools: Tool[] = [
     name: 'PDF Redactor',
     description: 'Black out sensitive parts of a PDF, entirely in your browser.',
     href: '/pdf-redactor/',
-    model: 'marker',
+    icon: 'marker',
   },
   {
     name: 'Audio Transcriber',
     description: 'Transcribe audio and video files to timestamped text, entirely in your browser.',
     href: '/audio-transcriber/',
-    model: 'microphone',
+    icon: 'microphone',
   },
   {
     name: 'Trip Planner',
     description: 'Keep a simple day-by-day itinerary for a trip, saved on this device.',
     href: '/trip-planner/',
-    model: 'compass',
+    icon: 'compass',
   },
   {
     name: 'Study Assistant',
     description: 'Split a study note into parts, then recite each one from memory with Biggu listening and hinting.',
     href: '/study-assistant/',
     // Rubber duck debugging: explain it out loud to someone who just listens.
-    model: 'duck',
+    icon: 'duck',
   },
   {
     name: 'Churn Machine',
     description: 'Browse bank account bonuses, plan which accounts to open with your paycheck, and track them.',
     href: '/churn-machine/',
-    model: 'coins',
+    icon: 'coins',
   },
   {
     name: 'NJ Transit Bus',
     description: 'When the next NJ Transit bus comes from your stop, live, with the Port Authority gate.',
     href: '/njtransit-bus/',
-    model: 'bus',
+    icon: 'bus',
+  },
+  {
+    // Not part of this site: the Claude Remote Control box on my homelab,
+    // behind Cloudflare Access (goodudetheboy/claude-rc).
+    name: 'Claude RC',
+    description: "Renew the Claude login on my Remote Control box, and see which instances are running.",
+    href: 'https://claude-rc.vuongho.me',
+    icon: 'terminal',
   },
 ];

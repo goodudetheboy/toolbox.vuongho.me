@@ -1,9 +1,7 @@
 import { useId } from 'react';
-import type { ToolModel } from './tools';
+import type { ToolIconName } from './tools';
 
-// Flat-ish illustrations of the same props the 3D toolbox uses, so the list
-// view and the info panel read as the same objects.
-export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number }) {
+export function ToolIcon({ icon, size = 56 }: { icon: ToolIconName; size?: number }) {
   const id = useId().replace(/:/g, '');
   const g = (name: string) => `${name}-${id}`;
   const url = (name: string) => `url(#${g(name)})`;
@@ -42,7 +40,7 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </pattern>
       </defs>
 
-      {model === 'marker' && (
+      {icon === 'marker' && (
         <g transform="rotate(-35 32 32)">
           <rect x="6" y="27" width="10" height="10" rx="1.5" fill={url('black')} />
           <path d="M6 28.5 L2.5 30.8 L2.5 33.2 L6 35.5 Z" fill="#0a0a0a" />
@@ -56,7 +54,7 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
-      {model === 'microphone' && (
+      {icon === 'microphone' && (
         <g transform="rotate(-40 32 32)">
           <path d="M8 29.5 L34 27 L34 37 L8 34.5 Z" fill={url('black')} />
           <rect x="5" y="29.3" width="4" height="5.4" rx="1" fill={url('chrome')} />
@@ -68,7 +66,7 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
-      {model === 'compass' && (
+      {icon === 'compass' && (
         <g>
           <circle cx="32" cy="8" r="4.2" fill="none" stroke={url('brass')} strokeWidth="2" />
           <rect x="30" y="10.5" width="4" height="4" rx="1" fill={url('brass')} />
@@ -100,7 +98,7 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
-      {model === 'duck' && (
+      {icon === 'duck' && (
         <g>
           <path d="M8 38 C6 30 10 26 14 30 C18 24 28 26 34 30 C40 33 50 32 54 38 C57 48 46 56 32 56 C18 56 9 50 8 38 Z" fill={url('duck')} />
           <path d="M11 33 L5 26 L15 30 Z" fill={url('duck')} />
@@ -114,7 +112,7 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
-      {model === 'coins' && (
+      {icon === 'coins' && (
         <g>
           {[0, 1, 2, 3].map((i) => (
             <g key={i} transform={`translate(${[0, 1.5, -1.2, 2][i]} ${46 - i * 7})`}>
@@ -128,7 +126,7 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
-      {model === 'bus' && (
+      {icon === 'bus' && (
         <g>
           <rect x="6" y="18" width="52" height="26" rx="5" fill="#005097" />
           <rect x="9" y="22" width="44" height="9" rx="2" fill="#10151c" />
@@ -143,7 +141,20 @@ export function ToolIcon({ model, size = 56 }: { model: ToolModel; size?: number
         </g>
       )}
 
-      {model === 'wrench' && (
+      {icon === 'terminal' && (
+        <g>
+          <rect x="7" y="13" width="50" height="38" rx="6" fill={url('black')} />
+          <rect x="7" y="13" width="50" height="8" rx="6" fill="#2a2a2d" />
+          <rect x="7" y="18" width="50" height="3" fill="#2a2a2d" />
+          {[13, 19, 25].map((x) => (
+            <circle key={x} cx={x} cy="17" r="1.6" fill="#5d6368" />
+          ))}
+          <path d="M16 29 L24 35 L16 41" stroke="#d97757" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="28" y="39" width="12" height="3.4" rx="1.7" fill="#d97757" />
+        </g>
+      )}
+
+      {icon === 'wrench' && (
         <g transform="rotate(-45 32 32)">
           <rect x="16" y="28.5" width="32" height="7" rx="2" fill={url('chrome')} />
           <circle cx="12" cy="32" r="8" fill={url('chrome')} />
